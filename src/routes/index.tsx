@@ -206,7 +206,7 @@ function Dashboard() {
                     </div>
                     <span className="formosa-arrival-count flex shrink-0 items-center gap-2 rounded-xl px-3 py-1.5" aria-label={`${arrivals.length} colaboradores no grupo ${group}`}>
                       <span className="formosa-arrival-count-number font-display tabular-nums">{arrivals.length}</span>
-                      <span className="formosa-arrival-count-label leading-tight">colabora-<br/>dores</span>
+                      <span className="formosa-arrival-count-label leading-tight">colaboradores</span>
                     </span>
                   </div>
                   <div className="formosa-arrival-table-scroll max-h-[740px] overflow-auto">
