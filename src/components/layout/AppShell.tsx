@@ -15,12 +15,12 @@ export function AppShell({ children }: { children: ReactNode }) {
           <p className="mt-4 text-center text-[10px] font-semibold uppercase tracking-[0.22em] text-white/70">
             Gestão de Pessoas
           </p>
-          <div className="formosa-pilot-card formosa-pilot-card-glass relative isolate mt-5 overflow-hidden rounded-xl bg-[#20419C] px-3 py-3">
-            <div className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-widest text-white/70">
+          <div className="formosa-pilot-card formosa-pilot-card-glass relative isolate mt-5 overflow-hidden rounded-2xl px-4 py-4">
+            <div className="formosa-pilot-eyebrow flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.15em] text-white">
               <MapPin className="h-3.5 w-3.5" /> Unidade piloto
             </div>
-            <p className="mt-1.5 font-display text-sm font-semibold text-white">{UNIT.unit}</p>
-            <p className="mt-0.5 text-xs text-white/70">{UNIT.city}</p>
+            <p className="formosa-pilot-name mt-3 font-display text-[15px] font-bold tracking-tight text-white">{UNIT.unit}</p>
+            <p className="formosa-pilot-location mt-1 text-xs font-medium text-white">{UNIT.city}</p>
           </div>
         </div>
         <div className="formosa-sidebar-menu flex min-h-0 flex-1 flex-col">
