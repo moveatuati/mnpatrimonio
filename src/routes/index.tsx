@@ -35,10 +35,10 @@ function Dashboard() {
   const maxSlot = Math.max(...d.timeline.map((s) => s.total), 1);
 
   const kpis = [
-    { label: "Escalados no dia", value: d.kpis.scheduled, icon: Users, tone: "text-primary", stripe: "bg-primary", tint: "bg-accent" },
-    { label: "Entradas registradas", value: d.kpis.entries, icon: CheckCircle2, tone: "text-success", stripe: "bg-success", tint: "bg-success/10" },
-    { label: `Acima do alerta (${RULES.lateAlertMinutes} min)`, value: d.kpis.aboveAlert, icon: Clock, tone: "text-warning-foreground", stripe: "bg-warning", tint: "bg-warning/15" },
-    { label: "Sem entrada registrada", value: d.kpis.missing, icon: UserX, tone: "text-destructive", stripe: "bg-destructive", tint: "bg-destructive/10" },
+    { label: "Escalados no dia", value: d.kpis.scheduled, icon: Users, variant: "ruby" },
+    { label: "Entradas registradas", value: d.kpis.entries, icon: CheckCircle2, variant: "emerald" },
+    { label: `Acima do alerta (${RULES.lateAlertMinutes} min)`, value: d.kpis.aboveAlert, icon: Clock, variant: "amber" },
+    { label: "Sem entrada registrada", value: d.kpis.missing, icon: UserX, variant: "crimson" },
   ];
 
   return (
@@ -75,17 +75,17 @@ function Dashboard() {
           </div>
         </div>
         <section aria-label="Indicadores do dia" className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          {kpis.map(({ label, value, icon: Icon, tone, stripe, tint }) => (
-            <div key={label} className="formosa-kpi-card group relative overflow-hidden rounded-2xl border border-border/80 bg-card px-5 pb-5 pt-6 transition-all hover:-translate-y-0.5">
-              <div className={"absolute inset-x-0 top-0 h-1 " + stripe} />
-              <div className="flex items-center justify-between gap-3">
-                <p className="text-[13px] font-semibold leading-snug text-muted-foreground">{label}</p>
-                <span className={"formosa-kpi-icon flex h-10 w-10 shrink-0 items-center justify-center rounded-xl " + tint}>
-                  <Icon className={"h-5 w-5 " + tone} aria-hidden="true" />
+          {kpis.map(({ label, value, icon: Icon, variant }) => (
+            <div key={label} className={`formosa-kpi-card formosa-kpi-${variant} group relative isolate overflow-hidden rounded-2xl px-5 pb-5 pt-6 transition-transform duration-200 hover:-translate-y-1`}>
+              <div aria-hidden="true" className="formosa-kpi-topline" />
+              <div className="relative flex items-center justify-between gap-3">
+                <p className="formosa-kpi-label text-[13px] font-bold leading-snug">{label}</p>
+                <span className="formosa-kpi-icon flex h-11 w-11 shrink-0 items-center justify-center rounded-xl">
+                  <Icon className="h-[22px] w-[22px]" aria-hidden="true" />
                 </span>
               </div>
-              <p className={"mt-2 font-display text-4xl font-bold tabular-nums tracking-tight " + tone}>{value}</p>
-              <p className="mt-1 text-[11px] text-muted-foreground">Dados demonstrativos do dia</p>
+              <p className="formosa-kpi-number mt-3 font-display text-[39px] font-extrabold tabular-nums tracking-tight">{value}</p>
+              <p className="formosa-kpi-note mt-1 text-[11px] font-medium">Dados demonstrativos do dia</p>
             </div>
           ))}
         </section>
