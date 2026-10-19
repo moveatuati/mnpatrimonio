@@ -220,3 +220,172 @@
     box-shadow: none;
   }
 }
+
+
+/* FORMOSA PREMIUM - materiais com reflexo, relevo e profundidade.
+   Os efeitos são CSS: a arte vetorial oficial não é alterada. */
+.formosa-logo-plaque-premium {
+  overflow: hidden;
+  background: linear-gradient(160deg, #fff 0%, #fff 55%, #fff6f7 100%);
+  border: 1px solid rgb(255 255 255 / 98%);
+  box-shadow:
+    0 2px 0 rgb(103 8 25 / 26%),
+    0 8px 0 -4px rgb(97 12 28 / 14%),
+    0 17px 25px -12px rgb(32 0 13 / 37%),
+    0 34px 42px -26px rgb(26 0 8 / 55%),
+    inset 0 2px 0 #fff,
+    inset 0 -7px 14px rgb(135 33 51 / 9%);
+  transform: translateY(-3px);
+}
+.formosa-logo-plaque-premium::before {
+  content: "";
+  position: absolute;
+  inset: 1px 1px auto 1px;
+  height: 46%;
+  border-radius: 16px 16px 50% 50%;
+  background: linear-gradient(180deg, rgb(255 255 255 / 96%), rgb(255 255 255 / 0%));
+  pointer-events: none;
+}
+.formosa-logo-plaque-premium::after {
+  content: "";
+  position: absolute;
+  inset: auto 14% 4px;
+  height: 5px;
+  border-radius: 50%;
+  background: rgb(99 12 33 / 9%);
+  filter: blur(5px);
+  pointer-events: none;
+}
+.formosa-logo-plaque-premium img {
+  position: relative;
+  z-index: 1;
+  filter:
+    drop-shadow(0 1px 0 rgb(255 255 255 / 90%))
+    drop-shadow(0 2px 1px rgb(124 8 33 / 14%))
+    drop-shadow(0 5px 4px rgb(122 13 32 / 12%));
+}
+
+/* Vidro azul safira: translúcido, legível, com luz e volume. */
+.formosa-pilot-card-glass {
+  background: linear-gradient(137deg,
+    rgb(57 105 202 / 93%) 0%,
+    rgb(29 67 156 / 94%) 52%,
+    rgb(51 92 190 / 90%) 100%);
+  border: 1px solid rgb(189 218 255 / 68%);
+  box-shadow:
+    0 3px 0 rgb(13 32 100 / 35%),
+    0 13px 25px -10px rgb(12 25 78 / 68%),
+    0 25px 36px -23px rgb(11 17 57 / 55%),
+    inset 0 1px 0 rgb(255 255 255 / 63%),
+    inset 0 -2px 8px rgb(8 32 108 / 22%);
+  -webkit-backdrop-filter: blur(10px) saturate(145%);
+  backdrop-filter: blur(10px) saturate(145%);
+  transform: translateY(-3px);
+}
+.formosa-pilot-card-glass::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background:
+    radial-gradient(ellipse at 94% 0%, rgb(255 255 255 / 29%) 0%, transparent 54%),
+    linear-gradient(155deg, rgb(255 255 255 / 22%) 0%, transparent 55%);
+  pointer-events: none;
+}
+.formosa-pilot-card-glass::after {
+  content: "";
+  position: absolute;
+  inset: 1px 1px auto;
+  height: 2px;
+  border-radius: inherit;
+  background: linear-gradient(90deg, transparent, rgb(255 255 255 / 68%), transparent);
+  pointer-events: none;
+}
+.formosa-pilot-card-glass > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* Indicadores de superfície acetinada, com cores suaves e brilhos controlados. */
+section[aria-label="Indicadores do dia"] > .formosa-kpi-card {
+  --kpi-light: #fff6f8;
+  --kpi-glow: rgb(220 42 65 / 12%);
+  isolation: isolate;
+  background: linear-gradient(153deg, #fff 5%, var(--kpi-light) 100%);
+  border: 1px solid rgb(226 216 219 / 87%);
+  box-shadow:
+    0 2px 0 rgb(67 20 32 / 5%),
+    0 13px 25px -16px rgb(72 18 33 / 21%),
+    inset 0 1px 0 rgb(255 255 255 / 96%);
+}
+section[aria-label="Indicadores do dia"] > .formosa-kpi-card:nth-child(1) {
+  --kpi-light: #ffeff3;
+  --kpi-glow: rgb(223 45 72 / 15%);
+}
+section[aria-label="Indicadores do dia"] > .formosa-kpi-card:nth-child(2) {
+  --kpi-light: #edfaf2;
+  --kpi-glow: rgb(24 143 89 / 14%);
+}
+section[aria-label="Indicadores do dia"] > .formosa-kpi-card:nth-child(3) {
+  --kpi-light: #fff5df;
+  --kpi-glow: rgb(207 137 19 / 16%);
+}
+section[aria-label="Indicadores do dia"] > .formosa-kpi-card:nth-child(4) {
+  --kpi-light: #fff0f1;
+  --kpi-glow: rgb(205 33 62 / 14%);
+}
+.formosa-kpi-card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse at 88% 5%, var(--kpi-glow), transparent 52%),
+    linear-gradient(180deg, rgb(255 255 255 / 72%) 0%, transparent 51%);
+  z-index: 0;
+  pointer-events: none;
+}
+.formosa-kpi-card > * {
+  position: relative;
+  z-index: 1;
+}
+.formosa-kpi-card > .absolute.inset-x-0.top-0 {
+  position: absolute;
+  z-index: 2;
+  box-shadow: 0 2px 8px var(--kpi-glow);
+}
+.formosa-kpi-card:hover {
+  border-color: rgb(211 177 183 / 75%);
+  box-shadow:
+    0 4px 0 rgb(67 20 32 / 4%),
+    0 18px 32px -17px rgb(72 18 33 / 28%),
+    inset 0 1px 0 #fff;
+}
+.formosa-kpi-icon {
+  position: relative;
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 89%),
+    0 8px 16px -11px var(--kpi-glow);
+}
+.formosa-kpi-icon::before {
+  content: "";
+  position: absolute;
+  inset: 1px 1px auto;
+  height: 45%;
+  border-radius: inherit;
+  background: linear-gradient(180deg, rgb(255 255 255 / 70%), transparent);
+  pointer-events: none;
+}
+.formosa-kpi-icon svg {
+  position: relative;
+  z-index: 1;
+}
+@media print {
+  .formosa-logo-plaque-premium,
+  .formosa-pilot-card-glass,
+  .formosa-kpi-card {
+    transform: none !important;
+    box-shadow: none !important;
+    -webkit-backdrop-filter: none !important;
+    backdrop-filter: none !important;
+  }
+}

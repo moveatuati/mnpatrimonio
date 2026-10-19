@@ -9,13 +9,13 @@ export function AppShell({ children }: { children: ReactNode }) {
     <div className="min-h-screen bg-background md:flex">
       <aside className="no-print hidden w-[274px] shrink-0 flex-col bg-sidebar text-sidebar-foreground md:sticky md:top-0 md:flex md:h-screen">
         <div className="border-b border-sidebar-border px-5 pb-5 pt-6">
-          <div className="formosa-logo-plaque relative isolate flex items-center justify-center rounded-2xl bg-white px-6 py-4">
+          <div className="formosa-logo-plaque formosa-logo-plaque-premium relative isolate flex items-center justify-center rounded-2xl bg-white px-6 py-4">
             <img src="/formosa-logo.svg" alt="Formosa — logomarca oficial" className="h-auto w-full max-w-[176px]" />
           </div>
           <p className="mt-4 text-center text-[10px] font-semibold uppercase tracking-[0.22em] text-white/70">
             Gestão de Pessoas
           </p>
-          <div className="formosa-pilot-card relative isolate mt-5 overflow-hidden rounded-xl bg-[#20419C] px-3 py-3">
+          <div className="formosa-pilot-card formosa-pilot-card-glass relative isolate mt-5 overflow-hidden rounded-xl bg-[#20419C] px-3 py-3">
             <div className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-widest text-white/70">
               <MapPin className="h-3.5 w-3.5" /> Unidade piloto
             </div>
