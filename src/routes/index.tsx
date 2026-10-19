@@ -35,10 +35,10 @@ function Dashboard() {
   const maxSlot = Math.max(...d.timeline.map((s) => s.total), 1);
 
   const kpis = [
-    { label: "Escalados no dia", value: d.kpis.scheduled, icon: Users, tone: "text-navy" },
-    { label: "Entradas registradas", value: d.kpis.entries, icon: CheckCircle2, tone: "text-success" },
-    { label: `Acima do alerta (${RULES.lateAlertMinutes} min)`, value: d.kpis.aboveAlert, icon: Clock, tone: "text-primary" },
-    { label: "Sem entrada registrada", value: d.kpis.missing, icon: UserX, tone: "text-destructive" },
+    { label: "Escalados no dia", value: d.kpis.scheduled, icon: Users, tone: "text-primary", stripe: "bg-primary", tint: "bg-accent" },
+    { label: "Entradas registradas", value: d.kpis.entries, icon: CheckCircle2, tone: "text-success", stripe: "bg-success", tint: "bg-success/10" },
+    { label: `Acima do alerta (${RULES.lateAlertMinutes} min)`, value: d.kpis.aboveAlert, icon: Clock, tone: "text-warning-foreground", stripe: "bg-warning", tint: "bg-warning/15" },
+    { label: "Sem entrada registrada", value: d.kpis.missing, icon: UserX, tone: "text-destructive", stripe: "bg-destructive", tint: "bg-destructive/10" },
   ];
 
   return (
@@ -47,33 +47,37 @@ function Dashboard() {
         title="Visão da operação"
         subtitle="Acompanhamento diário de escalados, entradas e cobertura dos grupos. Dados fictícios de demonstração."
         actions={
-          <label className="no-print flex items-center gap-2 rounded-lg bg-card/10 px-3 py-2 text-sm">
+          <label className="no-print flex flex-wrap items-center gap-2 rounded-xl border border-white/25 bg-white/10 px-3 py-2 text-sm font-semibold text-white shadow-sm backdrop-blur-sm">
             Data de referência
             <input
               type="date"
               value={date}
               onChange={(e) => e.target.value && setDate(e.target.value)}
-              className="rounded-md bg-card px-2 py-1 text-foreground"
+              className="rounded-lg border border-white/30 bg-white px-3 py-1.5 font-semibold text-foreground shadow-sm focus:outline-none focus:ring-2 focus:ring-white/70"
             />
           </label>
         }
       />
-      <div className="-mt-10 space-y-6 px-6 pb-10 md:px-10">
-        <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          {kpis.map(({ label, value, icon: Icon, tone }) => (
-            <div key={label} className="rounded-xl bg-card p-5 shadow-card">
-              <div className="flex items-center justify-between">
-                <p className="text-sm text-muted-foreground">{label}</p>
-                <Icon className={`h-5 w-5 ${tone}`} />
+      <div className="relative -mt-12 space-y-6 px-5 pb-12 md:px-10">
+        <section aria-label="Indicadores do dia" className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          {kpis.map(({ label, value, icon: Icon, tone, stripe, tint }) => (
+            <div key={label} className="relative overflow-hidden rounded-2xl border border-border/80 bg-card px-5 pb-5 pt-6 shadow-card transition-shadow hover:shadow-lg">
+              <div className={"absolute inset-x-0 top-0 h-1 " + stripe} />
+              <div className="flex items-center justify-between gap-3">
+                <p className="text-[13px] font-semibold leading-snug text-muted-foreground">{label}</p>
+                <span className={"flex h-10 w-10 shrink-0 items-center justify-center rounded-xl " + tint}>
+                  <Icon className={"h-5 w-5 " + tone} aria-hidden="true" />
+                </span>
               </div>
-              <p className={`mt-3 font-display text-4xl font-semibold ${tone}`}>{value}</p>
+              <p className={"mt-2 font-display text-4xl font-bold tabular-nums tracking-tight " + tone}>{value}</p>
+              <p className="mt-1 text-[11px] text-muted-foreground">Dados demonstrativos do dia</p>
             </div>
           ))}
         </section>
 
         <section className="grid gap-6 lg:grid-cols-5">
-          <div className="rounded-xl bg-card p-6 shadow-card lg:col-span-3">
-            <h2 className="text-lg font-semibold">Cobertura dos grupos</h2>
+          <div className="rounded-2xl border border-border/80 bg-card p-6 shadow-card lg:col-span-3">
+            <h2 className="font-display text-lg font-bold tracking-tight">Cobertura dos grupos</h2>
             <p className="text-sm text-muted-foreground">Escalados x necessidade operacional (configurável).</p>
             <div className="mt-5 space-y-5">
               {d.coverage.map((c) => {
@@ -104,8 +108,8 @@ function Dashboard() {
             </div>
           </div>
 
-          <div className="rounded-xl bg-card p-6 shadow-card lg:col-span-2">
-            <h2 className="text-lg font-semibold">Central de atenção</h2>
+          <div className="rounded-2xl border border-border/80 bg-card p-6 shadow-card lg:col-span-2">
+            <h2 className="font-display text-lg font-bold tracking-tight">Central de atenção</h2>
             <ul className="mt-4 space-y-3">
               {d.alerts.map((a) => {
                 const Icon = a.severity === "info" ? Info : AlertTriangle;
@@ -129,14 +133,14 @@ function Dashboard() {
           </div>
         </section>
 
-        <section className="rounded-xl bg-card p-6 shadow-card">
-          <h2 className="text-lg font-semibold">Cobertura ao longo do dia</h2>
+        <section className="rounded-2xl border border-border/80 bg-card p-6 shadow-card">
+          <h2 className="font-display text-lg font-bold tracking-tight">Cobertura ao longo do dia</h2>
           <p className="text-sm text-muted-foreground">Colaboradores em atividade considerando entradas, intervalos e saídas dos horários-base.</p>
-          <div className="mt-6 flex h-48 items-end gap-1">
+          <div className="mt-6 flex h-48 items-end gap-1 rounded-lg bg-muted/25 px-2 pt-2">
             {d.timeline.map((s) => (
               <div key={s.time} className="group flex h-full flex-1 flex-col items-center justify-end" title={`${s.time}: ${s.total} (A ${s.byGroup.A} · B ${s.byGroup.B} · C ${s.byGroup.C})`}>
                 <span className="mb-1 text-[10px] text-muted-foreground opacity-0 group-hover:opacity-100">{s.total}</span>
-                <div className="w-full rounded-t bg-primary" style={{ height: `${Math.round((s.total / maxSlot) * 160)}px` }} />
+                <div className="w-full rounded-t-md bg-brand transition-opacity hover:opacity-80" style={{ height: `${Math.round((s.total / maxSlot) * 160)}px` }} />
               </div>
             ))}
           </div>
@@ -147,22 +151,22 @@ function Dashboard() {
           </div>
         </section>
 
-        <section className="rounded-xl bg-card shadow-card">
+        <section className="overflow-hidden rounded-2xl border border-border/80 bg-card shadow-card">
           <div className="p-6 pb-3">
-            <h2 className="text-lg font-semibold">Ordem de chegada</h2>
+            <h2 className="font-display text-lg font-bold tracking-tight">Ordem de chegada</h2>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead className="bg-navy text-navy-foreground">
                 <tr>
                   {["#", "Colaborador", "Grupo", "Previsto", "Entrada", "Situação"].map((h) => (
-                    <th key={h} className="px-4 py-3 text-left font-medium">{h}</th>
+                    <th key={h} className="px-4 py-3.5 text-left text-xs font-semibold uppercase tracking-wide">{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
                 {d.arrivals.map((a, i) => (
-                  <tr key={a.employee.id} className="border-b border-border even:bg-muted/50">
+                  <tr key={a.employee.id} className="border-b border-border/80 even:bg-muted/50 hover:bg-accent/60 transition-colors">
                     <td className="px-4 py-2.5 text-muted-foreground">{i + 1}</td>
                     <td className="px-4 py-2.5 font-medium">
                       {a.employee.name} <span className="text-xs text-muted-foreground">{a.employee.id}</span>
