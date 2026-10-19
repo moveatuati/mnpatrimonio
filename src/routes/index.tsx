@@ -5,6 +5,7 @@ import { PageHeader } from "@/components/layout/AppShell";
 import { buildDashboard } from "@/domain/dashboard";
 import { GROUPS, GROUP_IDS, RULES } from "@/domain/config";
 import { rankArrivalsByGroup, arrivalOffsetMinutes } from "@/domain/rules/arrival-ranking";
+import { countMonthlyLateArrivals } from "@/domain/rules/late-history";
 import type { ArrivalStatus } from "@/domain/types";
 
 export const Route = createFileRoute("/")({
@@ -35,6 +36,10 @@ function Dashboard() {
   const d = useMemo(() => buildDashboard(date), [date]);
   const maxSlot = Math.max(...d.timeline.map((s) => s.total), 1);
   const arrivalGroups = GROUP_IDS.map((group) => ({ group, arrivals: rankArrivalsByGroup(d.arrivals, group) }));
+  const lateHistory = useMemo(
+    () => countMonthlyLateArrivals(date, d.arrivals.map((arrival) => arrival.employee)),
+    [date, d.arrivals],
+  );
 
   const kpis = [
     { label: "Escalados no dia", value: d.kpis.scheduled, icon: Users, variant: "ruby" },
@@ -175,12 +180,15 @@ function Dashboard() {
             <div>
               <h2 className="formosa-section-title"><ListOrdered aria-hidden="true" />Ordem de chegada por grupo</h2>
               <p className="mt-1 text-sm text-muted-foreground">
-                Ranking separado por horário previsto. Quem chegou mais cedo em relação ao próprio turno aparece primeiro.
+                Ranking por turno, com histórico demonstrativo de atrasos acima de 10 minutos no mês até a data selecionada.
               </p>
             </div>
-            <span className="rounded-full border border-primary/15 bg-accent px-3 py-1.5 text-xs font-semibold text-primary">
-              A · B · C — registros fictícios
-            </span>
+            <div className="flex flex-wrap items-center gap-2" aria-label="Legenda de reincidência mensal">
+              <span className="formosa-late-legend formosa-late-legend-one">1º atraso</span>
+              <span className="formosa-late-legend formosa-late-legend-two">2º atraso</span>
+              <span className="formosa-late-legend formosa-late-legend-three">3º ou mais</span>
+              <span className="text-[11px] font-medium text-muted-foreground">Dados fictícios</span>
+            </div>
           </div>
 
           <div className="grid grid-cols-1 items-start gap-4 md:grid-cols-2 xl:grid-cols-3">
@@ -196,22 +204,24 @@ function Dashboard() {
                         <p className="formosa-arrival-group-time mt-0.5 text-xs">Entrada prevista às {config.shift.start}</p>
                       </div>
                     </div>
-                    <span className="formosa-arrival-count rounded-full px-2.5 py-1 text-[11px] font-semibold">
-                      {arrivals.length} colaboradores
+                    <span className="formosa-arrival-count flex shrink-0 items-center gap-2 rounded-xl px-3 py-1.5" aria-label={`${arrivals.length} colaboradores no grupo ${group}`}>
+                      <span className="formosa-arrival-count-number font-display tabular-nums">{arrivals.length}</span>
+                      <span className="formosa-arrival-count-label leading-tight">colaboradores</span>
                     </span>
                   </div>
                   <div className="formosa-arrival-table-scroll max-h-[740px] overflow-auto">
                     <table className="formosa-arrival-table w-full table-fixed text-[11px]">
                       <colgroup>
-                        <col style={{ width: "8%" }} />
-                        <col style={{ width: "35%" }} />
-                        <col style={{ width: "15%" }} />
-                        <col style={{ width: "15%" }} />
-                        <col style={{ width: "27%" }} />
+                        <col style={{ width: "7%" }} />
+                        <col style={{ width: "29%" }} />
+                        <col style={{ width: "12%" }} />
+                        <col style={{ width: "13%" }} />
+                        <col style={{ width: "19%" }} />
+                        <col style={{ width: "20%" }} />
                       </colgroup>
                       <thead className="sticky top-0 z-10">
                         <tr>
-                          {["#", "Colaborador", "Previsto", "Entrada", "Situação"].map((title) => (
+                          {["#", "Colaborador", "Previsto", "Entrada", "Situação", "Atrasos/mês"].map((title) => (
                             <th key={title} scope="col" className="px-2 py-3 text-left font-bold">{title}</th>
                           ))}
                         </tr>
@@ -219,6 +229,8 @@ function Dashboard() {
                       <tbody>
                         {arrivals.map((arrival, index) => {
                           const offset = arrivalOffsetMinutes(arrival);
+                          const lateCount = lateHistory[arrival.employee.id] ?? 0;
+                          const lateLevel = lateCount >= 3 ? "three" : lateCount === 2 ? "two" : "one";
                           return (
                             <tr key={arrival.employee.id} className="border-b border-border/70 even:bg-muted/40 hover:bg-accent/60">
                               <td className="px-2 py-2.5 font-semibold tabular-nums text-muted-foreground">{index + 1}º</td>
@@ -240,6 +252,20 @@ function Dashboard() {
                                   {arrival.status === "atraso_alerta" ? "Até 10 min" : arrival.status === "atraso_acima" ? "Acima 10 min" : STATUS[arrival.status].label}
                                 </span>
                               </td>
+                              <td className="px-1.5 py-2.5">
+                                {lateCount > 0 ? (
+                                  <span
+                                    className={`formosa-late-badge formosa-late-badge-${lateLevel} inline-flex items-center gap-1 rounded-lg px-1.5 py-1 text-[10px] font-bold leading-tight`}
+                                    title={`${lateCount} ocorrência(s) de entrada acima de ${RULES.lateAlertMinutes} min em ${date.slice(0, 7)} até o dia consultado. Registros fictícios.`}
+                                    aria-label={`${lateCount} atraso(s) acima de ${RULES.lateAlertMinutes} minutos no mês`}
+                                  >
+                                    <AlertTriangle className="h-3 w-3 shrink-0" aria-hidden="true" />
+                                    {lateCount === 1 ? "1º atraso" : lateCount === 2 ? "2º atraso" : lateCount === 3 ? "3º atraso" : `${lateCount} atrasos`}
+                                  </span>
+                                ) : (
+                                  <span className="text-[11px] text-muted-foreground" title="Sem atraso acima de 10 minutos no mês">—</span>
+                                )}
+                              </td>
                             </tr>
                           );
                         })}
@@ -250,7 +276,7 @@ function Dashboard() {
                     )}
                   </div>
                   <div className="formosa-arrival-footer border-t border-border px-4 py-3 text-[11px] text-muted-foreground">
-                    Antecipações primeiro · sem registro por último
+                    Ranking diário por turno · atraso mensal &gt; 10 min · sem registro por último
                   </div>
                 </section>
               );
