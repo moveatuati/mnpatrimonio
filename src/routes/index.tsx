@@ -3,7 +3,8 @@ import { useMemo, useState } from "react";
 import { AlertTriangle, CheckCircle2, Clock, Info, UserX, Users, ShieldCheck, CalendarRange, ChevronRight, BellRing, ChartNoAxesColumnIncreasing, ListOrdered } from "lucide-react";
 import { PageHeader } from "@/components/layout/AppShell";
 import { buildDashboard } from "@/domain/dashboard";
-import { GROUPS, RULES } from "@/domain/config";
+import { GROUPS, GROUP_IDS, RULES } from "@/domain/config";
+import { rankArrivalsByGroup, arrivalOffsetMinutes } from "@/domain/rules/arrival-ranking";
 import type { ArrivalStatus } from "@/domain/types";
 
 export const Route = createFileRoute("/")({
@@ -33,6 +34,7 @@ function Dashboard() {
   const [date, setDate] = useState(REF_DATE);
   const d = useMemo(() => buildDashboard(date), [date]);
   const maxSlot = Math.max(...d.timeline.map((s) => s.total), 1);
+  const arrivalGroups = GROUP_IDS.map((group) => ({ group, arrivals: rankArrivalsByGroup(d.arrivals, group) }));
 
   const kpis = [
     { label: "Escalados no dia", value: d.kpis.scheduled, icon: Users, variant: "ruby" },
@@ -168,39 +170,91 @@ function Dashboard() {
           </div>
         </section>
 
-        <section className="overflow-hidden rounded-2xl border border-border/80 bg-card shadow-card">
-          <div className="p-6 pb-3">
-            <div className="flex flex-wrap items-center justify-between gap-3"><h2 className="formosa-section-title"><ListOrdered aria-hidden="true" />Ordem de chegada</h2><span className="text-xs font-semibold text-primary">Registros fictícios</span></div>
+        <section aria-label="Ordem de chegada por grupo" className="space-y-4">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <h2 className="formosa-section-title"><ListOrdered aria-hidden="true" />Ordem de chegada por grupo</h2>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Ranking separado por horário previsto. Quem chegou mais cedo em relação ao próprio turno aparece primeiro.
+              </p>
+            </div>
+            <span className="rounded-full border border-primary/15 bg-accent px-3 py-1.5 text-xs font-semibold text-primary">
+              A · B · C — registros fictícios
+            </span>
           </div>
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[740px] text-sm">
-              <thead className="sticky top-0 z-10 bg-navy text-navy-foreground">
-                <tr>
-                  {["#", "Colaborador", "Grupo", "Previsto", "Entrada", "Situação"].map((h) => (
-                    <th key={h} className="px-4 py-3.5 text-left text-xs font-semibold uppercase tracking-wide">{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {d.arrivals.map((a, i) => (
-                  <tr key={a.employee.id} className="border-b border-border/80 even:bg-muted/50 hover:bg-accent/60 transition-colors">
-                    <td className="px-4 py-2.5 text-muted-foreground">{i + 1}</td>
-                    <td className="px-4 py-2.5 font-medium">
-                      {a.employee.name} <span className="text-xs text-muted-foreground">{a.employee.id}</span>
-                    </td>
-                    <td className="px-4 py-2.5">{a.employee.group} — {GROUPS[a.employee.group].name}</td>
-                    <td className="px-4 py-2.5">{a.planned}</td>
-                    <td className="px-4 py-2.5">{a.entry ?? "—"}</td>
-                    <td className="px-4 py-2.5">
-                      <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${STATUS[a.status].cls}`}>
-                        {STATUS[a.status].label}
-                        {a.delayMinutes > 0 && ` · +${a.delayMinutes} min`}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+
+          <div className="grid grid-cols-1 items-start gap-4 md:grid-cols-2 xl:grid-cols-3">
+            {arrivalGroups.map(({ group, arrivals }) => {
+              const config = GROUPS[group];
+              return (
+                <section key={group} aria-label={`Ranking de chegadas do grupo ${group}`} className="formosa-arrival-group min-w-0 overflow-hidden rounded-2xl border border-border bg-card">
+                  <div className="formosa-arrival-group-header flex flex-wrap items-center justify-between gap-2 px-4 py-3">
+                    <div className="flex items-center gap-2.5">
+                      <span className="formosa-arrival-letter flex h-10 w-10 shrink-0 items-center justify-center rounded-xl font-display text-xl font-extrabold">{group}</span>
+                      <div className="min-w-0">
+                        <h3 className="font-display text-sm font-bold">Grupo {group} — {config.name}</h3>
+                        <p className="formosa-arrival-group-time mt-0.5 text-xs">Entrada prevista às {config.shift.start}</p>
+                      </div>
+                    </div>
+                    <span className="formosa-arrival-count rounded-full px-2.5 py-1 text-[11px] font-semibold">
+                      {arrivals.length} colaboradores
+                    </span>
+                  </div>
+                  <div className="formosa-arrival-table-scroll max-h-[740px] overflow-auto">
+                    <table className="formosa-arrival-table w-full table-fixed text-[11px]">
+                      <colgroup>
+                        <col style={{ width: "8%" }} />
+                        <col style={{ width: "35%" }} />
+                        <col style={{ width: "15%" }} />
+                        <col style={{ width: "15%" }} />
+                        <col style={{ width: "27%" }} />
+                      </colgroup>
+                      <thead className="sticky top-0 z-10">
+                        <tr>
+                          {["#", "Colaborador", "Previsto", "Entrada", "Situação"].map((title) => (
+                            <th key={title} scope="col" className="px-2 py-3 text-left font-bold">{title}</th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {arrivals.map((arrival, index) => {
+                          const offset = arrivalOffsetMinutes(arrival);
+                          return (
+                            <tr key={arrival.employee.id} className="border-b border-border/70 even:bg-muted/40 hover:bg-accent/60">
+                              <td className="px-2 py-2.5 font-semibold tabular-nums text-muted-foreground">{index + 1}º</td>
+                              <td className="px-2 py-2.5">
+                                <span className="block break-words font-semibold leading-snug text-foreground" title={arrival.employee.name}>{arrival.employee.name}</span>
+                                <span className="mt-0.5 block text-[10px] text-muted-foreground">{arrival.employee.id}</span>
+                              </td>
+                              <td className="px-2 py-2.5 font-medium tabular-nums text-foreground">{arrival.planned}</td>
+                              <td className="px-2 py-2.5 tabular-nums">
+                                <span className="block font-semibold text-foreground">{arrival.entry ?? "—"}</span>
+                                {offset !== null && (
+                                  <span className="mt-0.5 block text-[10px] text-muted-foreground">
+                                    {offset < 0 ? `${Math.abs(offset)} min antes` : offset === 0 ? "Pontual" : `+${offset} min`}
+                                  </span>
+                                )}
+                              </td>
+                              <td className="px-2 py-2.5">
+                                <span title={STATUS[arrival.status].label} className={`formosa-arrival-status inline-flex max-w-full items-center rounded-md px-1.5 py-1 text-[10px] font-semibold leading-tight ${STATUS[arrival.status].cls}`}>
+                                  {arrival.status === "atraso_alerta" ? "Até 10 min" : arrival.status === "atraso_acima" ? "Acima 10 min" : STATUS[arrival.status].label}
+                                </span>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                    {arrivals.length === 0 && (
+                      <p className="px-4 py-8 text-center text-sm text-muted-foreground">Nenhum colaborador escalado neste grupo.</p>
+                    )}
+                  </div>
+                  <div className="formosa-arrival-footer border-t border-border px-4 py-3 text-[11px] text-muted-foreground">
+                    Antecipações primeiro · sem registro por último
+                  </div>
+                </section>
+              );
+            })}
           </div>
         </section>
       </div>
