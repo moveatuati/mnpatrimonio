@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { countMonthlyLateArrivals } from "./late-history";
+import { countMonthlyLateArrivals, rankMonthlyLateArrivals } from "./late-history";
 import { GROUPS } from "../config";
 import type { Employee, PunchRecord, ISODate } from "../types";
 
@@ -38,5 +38,28 @@ describe("Histórico demonstrativo mensal de atrasos", () => {
     expect(GROUPS.A.shift.start).toBe("07:00");
     expect(GROUPS.B.shift.start).toBe("08:00");
     expect(GROUPS.C.shift.start).toBe("12:40");
+  });
+});
+
+describe("Top 5 de atrasos no mês", () => {
+  it("inclui os três grupos, ordena reincidência e desempata pelo nome", () => {
+    const people = [
+      { ...employee("A1", "A"), name: "Alana" },
+      { ...employee("B1", "B"), name: "Bruna" },
+      { ...employee("C1", "C"), name: "Carlos" },
+      { ...employee("B2", "B"), name: "Daniel" },
+      { ...employee("C2", "C"), name: "Elisa" },
+      { ...employee("A2", "A"), name: "Fabio" },
+      { ...employee("C3", "C"), name: "Gabi" },
+    ];
+    const stats = { A1: 3, B1: 5, C1: 5, B2: 2, C2: 4, A2: 1, C3: 0 };
+    expect(rankMonthlyLateArrivals(people, stats).map((row) => row.employee.id))
+      .toEqual(["B1", "C1", "C2", "A1", "B2"]);
+    expect(rankMonthlyLateArrivals(people, stats, 2)).toHaveLength(2);
+    expect(people.map((person) => person.id)[0]).toBe("A1");
+  });
+  it("não inclui quem não possui ocorrências", () => {
+    const people = [employee("A1", "A"), employee("B1", "B")];
+    expect(rankMonthlyLateArrivals(people, { A1: 0, B1: 0 })).toEqual([]);
   });
 });
