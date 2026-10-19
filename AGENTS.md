@@ -14,3 +14,4 @@
 - Stage 1 is demo-only (fictional data, no backend/auth); why: spec forbids connecting a database or production migrations without authorization.
 - The 5×2 simulator must never share state with the real 6×1 schedule; why: explicit spec constraint.
 - Full spec is in `docs/FORMOSA-REQUISITOS.md`; read it before changing scheduling logic.
+- Shared shell materials and dashboard presentation use semantic CSS tokens in `src/styles.css`, with dashboard-specific classes scoped to the operation view; why: visual refinements must not alter domain rules or other module content.

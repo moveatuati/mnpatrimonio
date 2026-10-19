@@ -154,470 +154,133 @@
   .shadow-card { box-shadow: none !important; }
 }
 
-/* Formosa: contraste garantido para o item ativo independentemente
-   da ordem das utilidades Tailwind inseridas pelo Link do TanStack Router. */
-.formosa-sidebar-nav .formosa-nav-link:is(.formosa-nav-active, [aria-current="page"], [data-status="active"]) {
-  background: #fff;
-  color: #20419c;
-  box-shadow: 0 5px 14px rgb(0 0 0 / 12%);
-  font-weight: 700;
+/* Conceito 3: materiais e iluminação centralizados em tokens. */
+:root {
+  --foreground: oklch(0.25 0.025 270);
+  --card-foreground: var(--foreground);
+  --background: oklch(0.968 0.008 285);
+  --muted: oklch(0.965 0.008 280);
+  --muted-foreground: oklch(0.51 0.018 270);
+  --border: oklch(0.91 0.009 285);
+  --navy: oklch(0.30 0.10 15);
+  --glass-light: oklch(1 0 0 / 22%);
+  --glass-sheen: oklch(1 0 0 / 10%);
+  --glass-edge: oklch(1 0 0 / 48%);
+  --material-ink: oklch(0.20 0.06 15);
+  --pilot-deep: oklch(0.39 0.21 263);
+  --pilot-bright: oklch(0.60 0.24 260);
+  --pilot-light: oklch(0.78 0.14 220);
+  --ruby-deep: oklch(0.29 0.12 12);
+  --ruby-mid: oklch(0.39 0.16 15);
+  --ruby-light: oklch(0.65 0.25 15);
+  --emerald-deep: oklch(0.29 0.065 180);
+  --emerald-mid: oklch(0.40 0.09 180);
+  --emerald-light: oklch(0.73 0.18 165);
+  --amber-deep: oklch(0.31 0.065 75);
+  --amber-mid: oklch(0.43 0.10 75);
+  --amber-light: oklch(0.80 0.17 80);
+  --magenta-deep: oklch(0.29 0.11 340);
+  --magenta-mid: oklch(0.40 0.15 340);
+  --magenta-light: oklch(0.65 0.26 350);
+  --sidebar-gradient: linear-gradient(150deg, oklch(0.27 0.10 12), oklch(0.36 0.14 18) 55%, oklch(0.46 0.19 22));
+  --gradient-header: linear-gradient(110deg, oklch(0.31 0.12 15), oklch(0.42 0.18 20) 55%, oklch(0.57 0.23 24));
+  --shadow-card: 0 3px 8px oklch(0.25 0.02 280 / 3%), 0 14px 28px -18px oklch(0.25 0.02 280 / 24%);
+  --shadow-glass: inset 0 1px 0 var(--glass-edge), 0 10px 25px -16px var(--material-ink);
 }
-.formosa-sidebar-nav .formosa-nav-link:is(.formosa-nav-active, [aria-current="page"], [data-status="active"]):hover {
-  background: #fff;
-  color: #20419c;
-}
-.formosa-sidebar-nav .formosa-nav-link:is(.formosa-nav-active, [aria-current="page"], [data-status="active"]) svg {
-  color: #20419c;
-}
-
-/* Sidebar em vinho degradê como o cabeçalho — azul restrito à unidade piloto. */
-.formosa-sidebar-menu {
-  background: linear-gradient(112deg, #700817 0%, #890e23 47%, #aa1c35 100%);
-  box-shadow: inset 0 1px 0 rgb(255 255 255 / 10%);
-}
+.formosa-sidebar { background: var(--sidebar-gradient); border-right: 1px solid var(--glass-light); }
+.formosa-sidebar-menu { background: transparent; }
 .formosa-logo-plaque {
-  border: 1px solid rgb(255 255 255 / 92%);
-  background: linear-gradient(150deg, #fff 0%, #fff 72%, #fff6f6 100%);
-  box-shadow:
-    0 3px 0 rgb(73 7 20 / 17%),
-    0 12px 22px -10px rgb(28 0 12 / 34%),
-    0 23px 36px -20px rgb(20 0 7 / 48%),
-    inset 0 1px 0 #fff,
-    inset 0 -3px 7px rgb(141 32 50 / 5%);
-  transform: translateY(-2px);
+  border: 1px solid var(--glass-edge);
+  background: linear-gradient(150deg, var(--card) 65%, var(--accent));
+  box-shadow: 0 0 16px -7px var(--ruby-light), 0 12px 24px -14px var(--material-ink), inset 0 2px 0 var(--card);
 }
-.formosa-logo-plaque img {
-  position: relative;
-  z-index: 1;
-  filter: drop-shadow(0 2px 1px rgb(130 25 40 / 8%));
+.formosa-sidebar-nav .formosa-nav-link:is(.formosa-nav-active, [aria-current="page"], [data-status="active"]) {
+  background: var(--card); color: var(--primary); font-weight: 700;
+  box-shadow: 0 0 14px -6px var(--ruby-light), var(--shadow-glass);
 }
-
-
-
-@media print {
-  .formosa-logo-plaque,
-  .formosa-pilot-card {
-    transform: none;
-    box-shadow: none;
-  }
+.formosa-pilot-card {
+  background: linear-gradient(145deg, var(--pilot-bright), var(--pilot-deep));
+  border: 1px solid var(--pilot-light);
+  box-shadow: inset 0 2px 3px var(--glass-edge), 0 0 15px -6px var(--pilot-light), 0 12px 22px -14px var(--pilot-deep);
 }
-
-
-/* FORMOSA PREMIUM - materiais com reflexo, relevo e profundidade.
-   Os efeitos são CSS: a arte vetorial oficial não é alterada. */
-.formosa-logo-plaque-premium {
-  overflow: hidden;
-  background: linear-gradient(160deg, #fff 0%, #fff 55%, #fff6f7 100%);
-  border: 1px solid rgb(255 255 255 / 98%);
-  box-shadow:
-    0 2px 0 rgb(103 8 25 / 26%),
-    0 8px 0 -4px rgb(97 12 28 / 14%),
-    0 17px 25px -12px rgb(32 0 13 / 37%),
-    0 34px 42px -26px rgb(26 0 8 / 55%),
-    inset 0 2px 0 #fff,
-    inset 0 -7px 14px rgb(135 33 51 / 9%);
-  transform: translateY(-3px);
+.formosa-pilot-card::before {
+  content: ""; position: absolute; inset: 0; pointer-events: none;
+  background: linear-gradient(135deg, var(--glass-light), transparent 50%), linear-gradient(35deg, transparent 45%, var(--glass-sheen) 45%, transparent 80%);
 }
-.formosa-logo-plaque-premium::before {
-  content: "";
-  position: absolute;
-  inset: 1px 1px auto 1px;
-  height: 46%;
-  border-radius: 16px 16px 50% 50%;
-  background: linear-gradient(180deg, rgb(255 255 255 / 96%), rgb(255 255 255 / 0%));
-  pointer-events: none;
+.formosa-pilot-card > * { position: relative; }
+.formosa-pilot-eyebrow { padding: 0; }
+.formosa-page-header { border-bottom: 1px solid var(--glass-edge); }
+.formosa-header-ribbon {
+  position: absolute; pointer-events: none; width: 85%; height: 230px;
+  border-radius: 50%; border-bottom: 1px solid var(--glass-edge);
+  background: linear-gradient(180deg, transparent 50%, var(--glass-sheen));
+  box-shadow: 0 7px 20px -14px var(--ruby-light);
 }
-.formosa-logo-plaque-premium::after {
-  content: "";
-  position: absolute;
-  inset: auto 14% 4px;
-  height: 5px;
-  border-radius: 50%;
-  background: rgb(99 12 33 / 9%);
-  filter: blur(5px);
-  pointer-events: none;
+.formosa-header-ribbon-one { right: -18%; top: -130px; transform: rotate(20deg); }
+.formosa-header-ribbon-two { right: -20%; top: -155px; transform: rotate(-22deg); opacity: .6; }
+.formosa-date-control { box-shadow: var(--shadow-glass), 0 4px 12px -6px var(--material-ink); }
+.formosa-demo-strip { background: linear-gradient(110deg, var(--card), var(--card) 75%, var(--accent)); }
+.formosa-kpi-card {
+  --kpi-deep: var(--ruby-deep); --kpi-mid: var(--ruby-mid); --kpi-light: var(--ruby-light);
+  padding: 20px 36px 20px 16px;
+  border: 1px solid var(--kpi-light);
+  background: linear-gradient(120deg, var(--kpi-mid), var(--kpi-deep));
+  color: var(--primary-foreground);
+  box-shadow: inset 0 1px 2px var(--glass-edge), 0 0 9px -3px var(--kpi-light), 0 12px 20px -17px var(--kpi-deep);
 }
-.formosa-logo-plaque-premium img {
-  position: relative;
-  z-index: 1;
-  filter:
-    drop-shadow(0 1px 0 rgb(255 255 255 / 90%))
-    drop-shadow(0 2px 1px rgb(124 8 33 / 14%))
-    drop-shadow(0 5px 4px rgb(122 13 32 / 12%));
-}
-
-/* Vidro azul safira: translúcido, legível, com luz e volume. */
-
-
-
-
-
-/* Indicadores de superfície acetinada, com cores suaves e brilhos controlados. */
-section[aria-label="Indicadores do dia"] > .formosa-kpi-card {
-  --kpi-light: #fff6f8;
-  --kpi-glow: rgb(220 42 65 / 12%);
-  isolation: isolate;
-  background: linear-gradient(153deg, #fff 5%, var(--kpi-light) 100%);
-  border: 1px solid rgb(226 216 219 / 87%);
-  box-shadow:
-    0 2px 0 rgb(67 20 32 / 5%),
-    0 13px 25px -16px rgb(72 18 33 / 21%),
-    inset 0 1px 0 rgb(255 255 255 / 96%);
-}
-section[aria-label="Indicadores do dia"] > .formosa-kpi-card:nth-child(1) {
-  --kpi-light: #ffeff3;
-  --kpi-glow: rgb(223 45 72 / 15%);
-}
-section[aria-label="Indicadores do dia"] > .formosa-kpi-card:nth-child(2) {
-  --kpi-light: #edfaf2;
-  --kpi-glow: rgb(24 143 89 / 14%);
-}
-section[aria-label="Indicadores do dia"] > .formosa-kpi-card:nth-child(3) {
-  --kpi-light: #fff5df;
-  --kpi-glow: rgb(207 137 19 / 16%);
-}
-section[aria-label="Indicadores do dia"] > .formosa-kpi-card:nth-child(4) {
-  --kpi-light: #fff0f1;
-  --kpi-glow: rgb(205 33 62 / 14%);
+.formosa-kpi-emerald { --kpi-deep: var(--emerald-deep); --kpi-mid: var(--emerald-mid); --kpi-light: var(--emerald-light); }
+.formosa-kpi-amber { --kpi-deep: var(--amber-deep); --kpi-mid: var(--amber-mid); --kpi-light: var(--amber-light); }
+.formosa-kpi-crimson { --kpi-deep: var(--magenta-deep); --kpi-mid: var(--magenta-mid); --kpi-light: var(--magenta-light); }
+.formosa-kpi-card::before, .formosa-kpi-card::after {
+  content: ""; position: absolute; pointer-events: none; z-index: 0;
 }
 .formosa-kpi-card::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background:
-    radial-gradient(ellipse at 88% 5%, var(--kpi-glow), transparent 52%),
-    linear-gradient(180deg, rgb(255 255 255 / 72%) 0%, transparent 51%);
-  z-index: 0;
-  pointer-events: none;
+  inset: 0; background: linear-gradient(145deg, var(--glass-sheen), transparent 45%);
 }
-.formosa-kpi-card > * {
-  position: relative;
-  z-index: 1;
+.formosa-kpi-card::after {
+  width: 120%; height: 130px; border-radius: 50%; right: -38%; bottom: -103px;
+  border-top: 1px solid var(--glass-light); background: var(--glass-sheen); transform: rotate(25deg);
 }
-.formosa-kpi-card > .absolute.inset-x-0.top-0 {
-  position: absolute;
-  z-index: 2;
-  box-shadow: 0 2px 8px var(--kpi-glow);
-}
-.formosa-kpi-card:hover {
-  border-color: rgb(211 177 183 / 75%);
-  box-shadow:
-    0 4px 0 rgb(67 20 32 / 4%),
-    0 18px 32px -17px rgb(72 18 33 / 28%),
-    inset 0 1px 0 #fff;
-}
+.formosa-kpi-layout { position: relative; z-index: 1; }
+.formosa-kpi-label { padding-right: 2px; min-height: 16px; }
+.formosa-kpi-number { color: var(--primary-foreground); line-height: 1.05; text-shadow: 0 2px 8px var(--kpi-deep); }
+.formosa-kpi-note { color: var(--primary-foreground); opacity: .85; }
 .formosa-kpi-icon {
-  position: relative;
-  box-shadow:
-    inset 0 1px 0 rgb(255 255 255 / 89%),
-    0 8px 16px -11px var(--kpi-glow);
+  color: var(--primary-foreground); border: 1px solid color-mix(in oklch, var(--kpi-light) 75%, transparent);
+  background: linear-gradient(145deg, color-mix(in oklch, var(--kpi-light) 45%, var(--kpi-mid)), var(--kpi-deep));
+  box-shadow: inset 0 1px 0 var(--glass-light), 0 0 14px -8px var(--kpi-light);
 }
-.formosa-kpi-icon::before {
-  content: "";
-  position: absolute;
-  inset: 1px 1px auto;
-  height: 45%;
-  border-radius: inherit;
-  background: linear-gradient(180deg, rgb(255 255 255 / 70%), transparent);
-  pointer-events: none;
+.formosa-kpi-arrow {
+  position: absolute; right: 12px; top: 18px; z-index: 1;
+  display: flex; align-items: center; justify-content: center; width: 20px; height: 20px;
+  border-radius: 50%; border: 1px solid var(--glass-edge); background: var(--glass-sheen);
 }
-.formosa-kpi-icon svg {
-  position: relative;
-  z-index: 1;
+.formosa-kpi-topline { display: none; }
+.formosa-dashboard h2 { letter-spacing: 0; }
+.formosa-section-title { display: flex; align-items: center; gap: 10px; font-family: var(--font-sans); font-size: 16px; font-weight: 700; }
+.formosa-section-title svg { width: 20px; height: 20px; flex-shrink: 0; color: var(--primary); }
+.formosa-alert-atencao { background: color-mix(in oklch, var(--warning) 9%, var(--card)); }
+.formosa-alert-critico { background: color-mix(in oklch, var(--destructive) 5%, var(--card)); }
+.formosa-alert-info { background: color-mix(in oklch, var(--info) 6%, var(--card)); }
+.formosa-timeline {
+  background: repeating-linear-gradient(90deg, transparent 0, transparent calc(12.5% - 1px), var(--border) 12.5%), linear-gradient(180deg, var(--muted), var(--card));
 }
-@media print {
-  .formosa-logo-plaque-premium,
-  .formosa-pilot-card-glass,
-  .formosa-kpi-card {
-    transform: none !important;
-    box-shadow: none !important;
-    -webkit-backdrop-filter: none !important;
-    backdrop-filter: none !important;
-  }
+.formosa-timeline-bar {
+  background: linear-gradient(180deg, var(--ruby-light), var(--primary) 85%);
+  box-shadow: inset 0 2px 0 var(--glass-edge), 0 3px 6px -4px var(--primary);
 }
-
-
-/* Azul royal vivo: profundidade e luminosidade inspiradas no CRM MoveAtuati.
-   Ajuste restrito ao card da unidade piloto; nenhum dado ou rota muda. */
-.formosa-pilot-card.formosa-pilot-card-glass {
-  isolation: isolate;
-  background:
-    radial-gradient(ellipse at 18% -30%, rgb(135 231 255 / 52%) 0%, transparent 57%),
-    linear-gradient(125deg, #0886f4 0%, #1267eb 35%, #1251ce 68%, #092f94 100%);
-  border: 1px solid rgb(178 233 255 / 85%);
-  border-radius: 16px;
-  box-shadow:
-    0 3px 0 rgb(5 34 110 / 68%),
-    0 8px 0 -5px rgb(9 29 107 / 65%),
-    0 15px 27px -11px rgb(7 28 92 / 72%),
-    0 26px 35px -25px rgb(6 18 62 / 80%),
-    inset 0 2px 1px rgb(255 255 255 / 62%),
-    inset 0 -4px 7px rgb(2 26 104 / 28%);
-  -webkit-backdrop-filter: none;
-  backdrop-filter: none;
-  transform: translateY(-3px);
-  transition: transform 220ms ease, box-shadow 220ms ease;
+@media (min-width: 1600px) {
+  .formosa-dashboard { padding-left: 40px; padding-right: 40px; }
+  .formosa-kpi-card { padding-top: 24px; padding-bottom: 24px; }
 }
-.formosa-pilot-card.formosa-pilot-card-glass::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  background:
-    linear-gradient(145deg, rgb(255 255 255 / 32%) 0%, rgb(255 255 255 / 8%) 33%, transparent 55%),
-    linear-gradient(119deg, transparent 58%, rgb(183 236 255 / 13%) 72%, transparent 86%);
-  z-index: 0;
-  pointer-events: none;
-}
-.formosa-pilot-card.formosa-pilot-card-glass::after {
-  content: "";
-  position: absolute;
-  top: -52px;
-  right: -54px;
-  width: 148px;
-  height: 148px;
-  border: 1px solid rgb(198 244 255 / 22%);
-  border-radius: 50%;
-  background: radial-gradient(circle at 35% 45%, rgb(144 233 255 / 24%), transparent 70%);
-  box-shadow: 0 0 26px rgb(83 201 255 / 17%);
-  z-index: 0;
-  pointer-events: none;
-}
-.formosa-pilot-card.formosa-pilot-card-glass > * {
-  position: relative;
-  z-index: 1;
-}
-.formosa-pilot-card.formosa-pilot-card-glass > div:first-child {
-  display: inline-flex;
-  width: fit-content;
-  max-width: 100%;
-  padding: 5px 8px;
-  border: 1px solid rgb(229 249 255 / 35%);
-  border-radius: 8px;
-  background: rgb(255 255 255 / 13%);
-  color: #fff;
-  box-shadow: inset 0 1px 0 rgb(255 255 255 / 25%);
-}
-.formosa-pilot-card.formosa-pilot-card-glass > p {
-  color: #fff;
-  text-shadow: 0 1px 3px rgb(3 25 92 / 30%);
-}
-.formosa-pilot-card.formosa-pilot-card-glass > p:last-child {
-  color: #e0f4ff;
-}
-@media (hover: hover) {
-  .formosa-pilot-card.formosa-pilot-card-glass:hover {
-    transform: translateY(-5px);
-    box-shadow:
-      0 3px 0 rgb(5 34 110 / 68%),
-      0 20px 32px -15px rgb(7 28 92 / 76%),
-      0 30px 42px -25px rgb(6 18 62 / 70%),
-      inset 0 2px 1px rgb(255 255 255 / 70%),
-      inset 0 -4px 7px rgb(2 26 104 / 28%);
-  }
+@media (max-width: 640px) {
+  .formosa-kpi-card { padding: 20px 38px 20px 18px; }
+  .formosa-date-control { width: 100%; }
+  .formosa-date-control input { flex: 1; }
+  .formosa-section-title { font-size: 15px; }
 }
 @media print {
-  .formosa-pilot-card.formosa-pilot-card-glass {
-    transform: none !important;
-    box-shadow: none !important;
-  }
-}
-
-
-/* Identidade dos cards inspirada na linguagem de alto contraste do CRM MoveAtuati.
- * As variantes afetam somente os quatro indicadores da Visão da operação. */
-section[aria-label="Indicadores do dia"] > .formosa-kpi-card {
-  --kpi-color: #ff5978;
-  --kpi-border: rgb(255 86 122 / 68%);
-  --kpi-light: rgb(255 87 129 / 21%);
-  --kpi-glow: rgb(255 64 108 / 26%);
-  position: relative;
-  isolation: isolate;
-  border: 1px solid var(--kpi-border);
-  color: #fff;
-  background:
-    radial-gradient(ellipse at 95% -15%, var(--kpi-light) 0%, transparent 58%),
-    linear-gradient(116deg, #301123 0%, #171629 63%, #101a2c 100%);
-  box-shadow:
-    0 3px 0 rgb(8 13 28 / 12%),
-    0 16px 30px -18px rgb(9 18 35 / 56%),
-    inset 0 1px 0 rgb(255 255 255 / 13%);
-}
-section[aria-label="Indicadores do dia"] > .formosa-kpi-card.formosa-kpi-ruby {
-  --kpi-color: #ff6382;
-  --kpi-border: rgb(255 91 125 / 68%);
-  --kpi-light: rgb(251 61 112 / 26%);
-  --kpi-glow: rgb(255 41 105 / 32%);
-  background:
-    radial-gradient(ellipse at 95% 0%, var(--kpi-light), transparent 62%),
-    linear-gradient(118deg, #4b1329 0%, #281523 55%, #141827 100%);
-}
-section[aria-label="Indicadores do dia"] > .formosa-kpi-card.formosa-kpi-emerald {
-  --kpi-color: #3af5b9;
-  --kpi-border: rgb(28 220 161 / 66%);
-  --kpi-light: rgb(0 216 158 / 25%);
-  --kpi-glow: rgb(13 222 164 / 28%);
-  background:
-    radial-gradient(ellipse at 96% 0%, var(--kpi-light), transparent 62%),
-    linear-gradient(118deg, #074637 0%, #0a292c 58%, #111b2a 100%);
-}
-section[aria-label="Indicadores do dia"] > .formosa-kpi-card.formosa-kpi-amber {
-  --kpi-color: #ffd160;
-  --kpi-border: rgb(255 174 34 / 68%);
-  --kpi-light: rgb(255 171 29 / 25%);
-  --kpi-glow: rgb(255 186 38 / 31%);
-  background:
-    radial-gradient(ellipse at 96% 0%, var(--kpi-light), transparent 62%),
-    linear-gradient(118deg, #59380d 0%, #2e281d 58%, #18202a 100%);
-}
-section[aria-label="Indicadores do dia"] > .formosa-kpi-card.formosa-kpi-crimson {
-  --kpi-color: #ff658c;
-  --kpi-border: rgb(255 76 114 / 72%);
-  --kpi-light: rgb(255 44 94 / 26%);
-  --kpi-glow: rgb(255 42 91 / 29%);
-  background:
-    radial-gradient(ellipse at 96% 0%, var(--kpi-light), transparent 62%),
-    linear-gradient(118deg, #5c102a 0%, #321325 56%, #1a1c2d 100%);
-}
-section[aria-label="Indicadores do dia"] > .formosa-kpi-card::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background:
-    linear-gradient(166deg, rgb(255 255 255 / 10%) 0%, transparent 36%),
-    radial-gradient(ellipse at 5% 120%, var(--kpi-glow), transparent 58%);
-  z-index: 0;
-  pointer-events: none;
-}
-section[aria-label="Indicadores do dia"] > .formosa-kpi-card::after {
-  content: "";
-  position: absolute;
-  inset: auto 16px 0;
-  height: 2px;
-  background: linear-gradient(90deg, transparent, var(--kpi-color), transparent);
-  opacity: 0.5;
-  pointer-events: none;
-}
-section[aria-label="Indicadores do dia"] > .formosa-kpi-card > * {
-  position: relative;
-  z-index: 1;
-}
-section[aria-label="Indicadores do dia"] > .formosa-kpi-card > .formosa-kpi-topline {
-  position: absolute;
-  top: 0;
-  left: 13px;
-  right: 13px;
-  height: 3px;
-  z-index: 2;
-  border-radius: 0 0 4px 4px;
-  background: linear-gradient(90deg, transparent, var(--kpi-color), transparent);
-  box-shadow: 0 2px 15px var(--kpi-glow);
-}
-section[aria-label="Indicadores do dia"] > .formosa-kpi-card .formosa-kpi-label {
-  color: #f8f9ff;
-}
-section[aria-label="Indicadores do dia"] > .formosa-kpi-card .formosa-kpi-number {
-  color: var(--kpi-color);
-  text-shadow: 0 2px 14px var(--kpi-glow);
-  line-height: 1.1;
-}
-section[aria-label="Indicadores do dia"] > .formosa-kpi-card .formosa-kpi-note {
-  color: #d1d9e7;
-}
-section[aria-label="Indicadores do dia"] > .formosa-kpi-card .formosa-kpi-icon {
-  position: relative;
-  color: var(--kpi-color);
-  background: linear-gradient(145deg, var(--kpi-glow) 0%, rgb(9 16 32 / 75%) 100%);
-  border: 1px solid var(--kpi-border);
-  box-shadow:
-    0 4px 0 -2px rgb(0 0 0 / 22%),
-    0 7px 23px var(--kpi-glow),
-    inset 0 1px 0 rgb(255 255 255 / 20%);
-}
-section[aria-label="Indicadores do dia"] > .formosa-kpi-card .formosa-kpi-icon::before {
-  content: "";
-  position: absolute;
-  inset: 1px 1px auto;
-  height: 41%;
-  background: linear-gradient(180deg, rgb(255 255 255 / 16%), transparent);
-  border-radius: inherit;
-  pointer-events: none;
-}
-section[aria-label="Indicadores do dia"] > .formosa-kpi-card .formosa-kpi-icon svg {
-  position: relative;
-  z-index: 1;
-  filter: drop-shadow(0 2px 6px var(--kpi-glow));
-}
-section[aria-label="Indicadores do dia"] > .formosa-kpi-card:hover {
-  border-color: var(--kpi-color);
-  box-shadow:
-    0 3px 0 rgb(8 13 28 / 12%),
-    0 19px 34px -15px rgb(9 18 35 / 59%),
-    0 0 23px -8px var(--kpi-glow),
-    inset 0 1px 0 rgb(255 255 255 / 16%);
-}
-
-/* Unidade piloto: painel em vidro mineral azul elétrico, como nos cards setoriais do CRM. */
-.formosa-pilot-card.formosa-pilot-card-glass {
-  padding: 15px 14px;
-  background:
-    radial-gradient(ellipse at 105% -5%, rgb(50 214 255 / 38%) 0%, transparent 62%),
-    linear-gradient(118deg, #04377e 0%, #075bb9 50%, #0875ea 100%);
-  border: 1px solid rgb(94 214 255 / 85%);
-  box-shadow:
-    0 4px 0 rgb(2 23 76 / 50%),
-    0 14px 26px -10px rgb(0 30 96 / 75%),
-    0 25px 31px -19px rgb(0 18 61 / 50%),
-    inset 0 1px 0 rgb(255 255 255 / 45%),
-    inset 0 -2px 8px rgb(2 29 102 / 24%);
-}
-.formosa-pilot-card.formosa-pilot-card-glass::before {
-  background:
-    radial-gradient(circle at 99% 15%, rgb(111 235 255 / 23%), transparent 51%),
-    linear-gradient(146deg, rgb(255 255 255 / 17%), transparent 53%);
-}
-.formosa-pilot-card.formosa-pilot-card-glass::after {
-  inset: -55px -55px auto auto;
-  width: 165px;
-  height: 165px;
-  border: 1px solid rgb(150 246 255 / 30%);
-  background: radial-gradient(circle, rgb(78 195 255 / 23%), transparent 71%);
-  box-shadow: 0 0 34px rgb(66 201 255 / 18%);
-}
-.formosa-pilot-card.formosa-pilot-card-glass .formosa-pilot-eyebrow {
-  display: inline-flex;
-  gap: 6px;
-  width: fit-content;
-  padding: 6px 8px;
-  background: rgb(2 27 83 / 34%);
-  border: 1px solid rgb(158 231 255 / 45%);
-  border-radius: 8px;
-  box-shadow: inset 0 1px 0 rgb(255 255 255 / 20%);
-  color: #eefbff;
-}
-.formosa-pilot-card.formosa-pilot-card-glass .formosa-pilot-name {
-  font-size: 15px;
-  color: #fff;
-  text-shadow: 0 2px 9px rgb(0 22 64 / 35%);
-}
-.formosa-pilot-card.formosa-pilot-card-glass .formosa-pilot-location {
-  color: #def6ff;
-}
-@media print {
-  section[aria-label="Indicadores do dia"] > .formosa-kpi-card,
-  .formosa-pilot-card.formosa-pilot-card-glass {
-    box-shadow: none !important;
-    background: #fff !important;
-    color: #000 !important;
-    border-color: #aaa !important;
-    transform: none !important;
-  }
-  section[aria-label="Indicadores do dia"] > .formosa-kpi-card .formosa-kpi-label,
-  section[aria-label="Indicadores do dia"] > .formosa-kpi-card .formosa-kpi-number,
-  section[aria-label="Indicadores do dia"] > .formosa-kpi-card .formosa-kpi-note,
-  .formosa-pilot-card.formosa-pilot-card-glass .formosa-pilot-name,
-  .formosa-pilot-card.formosa-pilot-card-glass .formosa-pilot-location {
-    color: #000 !important;
-    text-shadow: none !important;
-  }
+  .formosa-kpi-card, .formosa-pilot-card { background: var(--card) !important; color: var(--foreground); box-shadow: none; }
+  .formosa-kpi-number, .formosa-kpi-note { color: var(--foreground); text-shadow: none; }
+  .formosa-header-ribbon, .formosa-kpi-arrow { display: none; }
 }
