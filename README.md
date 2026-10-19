@@ -1,24 +1,11 @@
-# RH Formosa Augusto Montenegro
+# Rh Formosa — Augusto Montenegro
 
-cria um novo projeto chamado Rh Formosa — Augusto Montenegro
+Formosa • Gestão de Pessoas — plataforma de escalas, jornadas e pessoal da unidade Augusto Montenegro (Belém/PA).
 
-This project was built with [Lovable](https://lovable.dev).
+**Modo demonstração:** todos os dados são fictícios. Não constitui registro oficial de ponto. Sem banco de dados, autenticação ou integrações nesta fase.
 
-## Build with Lovable
+- Especificação: `docs/FORMOSA-REQUISITOS.md`
+- Regras: `docs/REGRAS-OPERACIONAIS.md`
+- Plano por etapas: `docs/PLANO-DE-IMPLEMENTACAO.md`
 
-Continue developing this project in the [Lovable editor](https://lovable.dev/projects/e0e26819-0ef0-4c0a-bcd6-55969c49e376).
-
-- **Ship faster**: describe what you want to build and Lovable handles the code.
-- **Stay in sync**: every change made in Lovable is committed straight to this repository.
-- **Full ownership**: this code is yours. Push to `main` on GitHub and your changes sync back into Lovable, ready for your next prompt.
-
-## Development
-
-Prefer working locally? You need Node.js and npm — [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating).
-
-```sh
-git clone <this-repository-url>
-cd <repository-name>
-npm i
-npm run dev
-```
+Regras de negócio ficam em `src/domain` (sem dependência de interface). Testes: `bunx vitest run`.

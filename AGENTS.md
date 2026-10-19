@@ -8,3 +8,9 @@
 > Commits you push to the connected branch sync back to Lovable and show up in
 > the editor, so keep the branch in a working state.
 <!-- LOVABLE:END -->
+
+## Project rules
+- Business rules and typed models live in `src/domain` with no UI imports; why: spec requires separating rules from interface and keeping them testable.
+- Stage 1 is demo-only (fictional data, no backend/auth); why: spec forbids connecting a database or production migrations without authorization.
+- The 5×2 simulator must never share state with the real 6×1 schedule; why: explicit spec constraint.
+- Full spec is in `docs/FORMOSA-REQUISITOS.md`; read it before changing scheduling logic.

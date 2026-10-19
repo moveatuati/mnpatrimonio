@@ -10,33 +10,141 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as BancoDeHorasRouteImport } from './routes/banco-de-horas'
+import { Route as ColaboradoresRouteImport } from './routes/colaboradores'
+import { Route as EscalaRouteImport } from './routes/escala'
+import { Route as FeriasRouteImport } from './routes/ferias'
+import { Route as PontoRouteImport } from './routes/ponto'
+import { Route as RegrasRouteImport } from './routes/regras'
+import { Route as RelatoriosRouteImport } from './routes/relatorios'
+import { Route as SimuladorRouteImport } from './routes/simulador'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const BancoDeHorasRoute = BancoDeHorasRouteImport.update({
+  id: '/banco-de-horas',
+  path: '/banco-de-horas',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ColaboradoresRoute = ColaboradoresRouteImport.update({
+  id: '/colaboradores',
+  path: '/colaboradores',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const EscalaRoute = EscalaRouteImport.update({
+  id: '/escala',
+  path: '/escala',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const FeriasRoute = FeriasRouteImport.update({
+  id: '/ferias',
+  path: '/ferias',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PontoRoute = PontoRouteImport.update({
+  id: '/ponto',
+  path: '/ponto',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RegrasRoute = RegrasRouteImport.update({
+  id: '/regras',
+  path: '/regras',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RelatoriosRoute = RelatoriosRouteImport.update({
+  id: '/relatorios',
+  path: '/relatorios',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SimuladorRoute = SimuladorRouteImport.update({
+  id: '/simulador',
+  path: '/simulador',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/banco-de-horas': typeof BancoDeHorasRoute
+  '/colaboradores': typeof ColaboradoresRoute
+  '/escala': typeof EscalaRoute
+  '/ferias': typeof FeriasRoute
+  '/ponto': typeof PontoRoute
+  '/regras': typeof RegrasRoute
+  '/relatorios': typeof RelatoriosRoute
+  '/simulador': typeof SimuladorRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/banco-de-horas': typeof BancoDeHorasRoute
+  '/colaboradores': typeof ColaboradoresRoute
+  '/escala': typeof EscalaRoute
+  '/ferias': typeof FeriasRoute
+  '/ponto': typeof PontoRoute
+  '/regras': typeof RegrasRoute
+  '/relatorios': typeof RelatoriosRoute
+  '/simulador': typeof SimuladorRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/banco-de-horas': typeof BancoDeHorasRoute
+  '/colaboradores': typeof ColaboradoresRoute
+  '/escala': typeof EscalaRoute
+  '/ferias': typeof FeriasRoute
+  '/ponto': typeof PontoRoute
+  '/regras': typeof RegrasRoute
+  '/relatorios': typeof RelatoriosRoute
+  '/simulador': typeof SimuladorRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    | '/'
+    | '/banco-de-horas'
+    | '/colaboradores'
+    | '/escala'
+    | '/ferias'
+    | '/ponto'
+    | '/regras'
+    | '/relatorios'
+    | '/simulador'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to:
+    | '/'
+    | '/banco-de-horas'
+    | '/colaboradores'
+    | '/escala'
+    | '/ferias'
+    | '/ponto'
+    | '/regras'
+    | '/relatorios'
+    | '/simulador'
+  id:
+    | '__root__'
+    | '/'
+    | '/banco-de-horas'
+    | '/colaboradores'
+    | '/escala'
+    | '/ferias'
+    | '/ponto'
+    | '/regras'
+    | '/relatorios'
+    | '/simulador'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  BancoDeHorasRoute: typeof BancoDeHorasRoute
+  ColaboradoresRoute: typeof ColaboradoresRoute
+  EscalaRoute: typeof EscalaRoute
+  FeriasRoute: typeof FeriasRoute
+  PontoRoute: typeof PontoRoute
+  RegrasRoute: typeof RegrasRoute
+  RelatoriosRoute: typeof RelatoriosRoute
+  SimuladorRoute: typeof SimuladorRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -48,11 +156,75 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/banco-de-horas': {
+      id: '/banco-de-horas'
+      path: '/banco-de-horas'
+      fullPath: '/banco-de-horas'
+      preLoaderRoute: typeof BancoDeHorasRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/colaboradores': {
+      id: '/colaboradores'
+      path: '/colaboradores'
+      fullPath: '/colaboradores'
+      preLoaderRoute: typeof ColaboradoresRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/escala': {
+      id: '/escala'
+      path: '/escala'
+      fullPath: '/escala'
+      preLoaderRoute: typeof EscalaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/ferias': {
+      id: '/ferias'
+      path: '/ferias'
+      fullPath: '/ferias'
+      preLoaderRoute: typeof FeriasRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/ponto': {
+      id: '/ponto'
+      path: '/ponto'
+      fullPath: '/ponto'
+      preLoaderRoute: typeof PontoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/regras': {
+      id: '/regras'
+      path: '/regras'
+      fullPath: '/regras'
+      preLoaderRoute: typeof RegrasRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/relatorios': {
+      id: '/relatorios'
+      path: '/relatorios'
+      fullPath: '/relatorios'
+      preLoaderRoute: typeof RelatoriosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/simulador': {
+      id: '/simulador'
+      path: '/simulador'
+      fullPath: '/simulador'
+      preLoaderRoute: typeof SimuladorRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  BancoDeHorasRoute: BancoDeHorasRoute,
+  ColaboradoresRoute: ColaboradoresRoute,
+  EscalaRoute: EscalaRoute,
+  FeriasRoute: FeriasRoute,
+  PontoRoute: PontoRoute,
+  RegrasRoute: RegrasRoute,
+  RelatoriosRoute: RelatoriosRoute,
+  SimuladorRoute: SimuladorRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
