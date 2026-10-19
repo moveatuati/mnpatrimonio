@@ -269,6 +269,8 @@
   background: linear-gradient(180deg, var(--ruby-light), var(--primary) 85%);
   box-shadow: inset 0 2px 0 var(--glass-edge), 0 3px 6px -4px var(--primary);
 }
+.formosa-timeline > .group { min-width: 0; position: relative; }
+.formosa-timeline > .group > span { position: absolute; bottom: 100%; }
 @media (min-width: 1600px) {
   .formosa-dashboard { padding-left: 40px; padding-right: 40px; }
   .formosa-kpi-card { padding-top: 24px; padding-bottom: 24px; }
