@@ -76,11 +76,11 @@ function Dashboard() {
         </div>
         <section aria-label="Indicadores do dia" className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
           {kpis.map(({ label, value, icon: Icon, tone, stripe, tint }) => (
-            <div key={label} className="group relative overflow-hidden rounded-2xl border border-border/80 bg-card px-5 pb-5 pt-6 shadow-card transition-all hover:-translate-y-0.5 hover:border-primary/25 hover:shadow-lg">
+            <div key={label} className="formosa-kpi-card group relative overflow-hidden rounded-2xl border border-border/80 bg-card px-5 pb-5 pt-6 transition-all hover:-translate-y-0.5">
               <div className={"absolute inset-x-0 top-0 h-1 " + stripe} />
               <div className="flex items-center justify-between gap-3">
                 <p className="text-[13px] font-semibold leading-snug text-muted-foreground">{label}</p>
-                <span className={"flex h-10 w-10 shrink-0 items-center justify-center rounded-xl " + tint}>
+                <span className={"formosa-kpi-icon flex h-10 w-10 shrink-0 items-center justify-center rounded-xl " + tint}>
                   <Icon className={"h-5 w-5 " + tone} aria-hidden="true" />
                 </span>
               </div>
