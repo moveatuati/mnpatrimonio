@@ -142,3 +142,14 @@
 @media print {
   aside, .no-print { display: none !important; }
 }
+
+/* Acabamento institucional Formosa */
+::selection { background: oklch(0.72 0.13 25 / 35%); }
+:focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { scroll-behavior: auto !important; transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; }
+}
+@media print {
+  body { background: white !important; }
+  .shadow-card { box-shadow: none !important; }
+}
