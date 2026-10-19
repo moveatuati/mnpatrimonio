@@ -136,7 +136,7 @@ function Dashboard() {
             {d.timeline.map((s) => (
               <div key={s.time} className="group flex h-full flex-1 flex-col items-center justify-end" title={`${s.time}: ${s.total} (A ${s.byGroup.A} · B ${s.byGroup.B} · C ${s.byGroup.C})`}>
                 <span className="mb-1 text-[10px] text-muted-foreground opacity-0 group-hover:opacity-100">{s.total}</span>
-                <div className="w-full rounded-t bg-brand" style={{ height: `${(s.total / maxSlot) * 100}%` }} />
+                <div className="w-full rounded-t bg-primary" style={{ height: `${Math.round((s.total / maxSlot) * 160)}px` }} />
               </div>
             ))}
           </div>
