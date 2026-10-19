@@ -153,3 +153,19 @@
   body { background: white !important; }
   .shadow-card { box-shadow: none !important; }
 }
+
+/* Formosa: contraste garantido para o item ativo independentemente
+   da ordem das utilidades Tailwind inseridas pelo Link do TanStack Router. */
+.formosa-sidebar-nav .formosa-nav-link:is(.formosa-nav-active, [aria-current="page"], [data-status="active"]) {
+  background: #fff;
+  color: #20419c;
+  box-shadow: 0 5px 14px rgb(0 0 0 / 12%);
+  font-weight: 700;
+}
+.formosa-sidebar-nav .formosa-nav-link:is(.formosa-nav-active, [aria-current="page"], [data-status="active"]):hover {
+  background: #fff;
+  color: #20419c;
+}
+.formosa-sidebar-nav .formosa-nav-link:is(.formosa-nav-active, [aria-current="page"], [data-status="active"]) svg {
+  color: #20419c;
+}

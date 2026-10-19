@@ -15,7 +15,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           <p className="mt-4 text-center text-[10px] font-semibold uppercase tracking-[0.22em] text-white/70">
             Gestão de Pessoas
           </p>
-          <div className="mt-5 rounded-xl border border-white/15 bg-white/10 px-3 py-3">
+          <div className="mt-5 rounded-xl border border-white/25 bg-[#20419C] px-3 py-3 shadow-lg shadow-black/15">
             <div className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-widest text-white/70">
               <MapPin className="h-3.5 w-3.5" /> Unidade piloto
             </div>
@@ -23,27 +23,31 @@ export function AppShell({ children }: { children: ReactNode }) {
             <p className="mt-0.5 text-xs text-white/70">{UNIT.city}</p>
           </div>
         </div>
-        <div className="px-6 pb-2 pt-6 text-[10px] font-bold uppercase tracking-[0.2em] text-white/60">Menu de gestão</div>
-        <nav aria-label="Navegação principal" className="flex-1 space-y-1 overflow-y-auto px-3 pb-5">
-          {NAV.map(({ to, label, icon: Icon }) => (
-            <Link
-              key={to}
-              to={to}
-              activeOptions={{ exact: to === "/" }}
-              className="group flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-[13px] font-medium text-white/85 transition-all hover:bg-white/15 hover:text-white"
-              activeProps={{ className: "bg-white text-primary shadow-md shadow-black/10 hover:bg-white hover:text-primary" }}
-            >
-              <Icon className="h-[18px] w-[18px] shrink-0" aria-hidden="true" />
-              <span>{label}</span>
-            </Link>
-          ))}
-        </nav>
-        <div className="border-t border-sidebar-border px-5 py-4">
-          <div className="flex gap-2 text-white/70">
-            <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-white/85" />
-            <p className="text-[11px] leading-relaxed">
-              Ambiente demonstrativo. Dados fictícios, sem registro oficial de ponto.
-            </p>
+        <div className="formosa-sidebar-menu flex min-h-0 flex-1 flex-col bg-[#20419C]">
+          <div className="px-6 pb-3 pt-6 text-[10px] font-bold uppercase tracking-[0.2em] text-white/80">
+            Menu de gestão
+          </div>
+          <nav aria-label="Navegação principal" className="formosa-sidebar-nav flex-1 space-y-1 overflow-y-auto px-3 pb-5">
+            {NAV.map(({ to, label, icon: Icon }) => (
+              <Link
+                key={to}
+                to={to}
+                activeOptions={{ exact: to === "/" }}
+                className="formosa-nav-link group flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-[13px] font-medium text-white/90 transition-colors hover:bg-white/15 hover:text-white"
+                activeProps={{ className: "formosa-nav-active" }}
+              >
+                <Icon className="h-[18px] w-[18px] shrink-0" aria-hidden="true" />
+                <span>{label}</span>
+              </Link>
+            ))}
+          </nav>
+          <div className="border-t border-white/20 px-5 py-4">
+            <div className="flex gap-2 text-white/80">
+              <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-white" />
+              <p className="text-[11px] leading-relaxed">
+                Ambiente demonstrativo. Dados fictícios, sem registro oficial de ponto.
+              </p>
+            </div>
           </div>
         </div>
       </aside>
