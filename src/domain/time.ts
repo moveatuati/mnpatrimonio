@@ -1,7 +1,7 @@
 import type { ISODate, Time } from "./types";
 
 export function toMinutes(t: Time): number {
-  const [h, m] = t.split(":").map(Number);
+  const [h = 0, m = 0] = t.split(":").map(Number);
   return h * 60 + m;
 }
 
@@ -12,7 +12,7 @@ export function fromMinutes(total: number): Time {
 
 /** Converte data + hora em minutos absolutos (UTC, sem fuso), atravessando a meia-noite corretamente. */
 export function toAbsoluteMinutes(date: ISODate, time: Time): number {
-  const [y, mo, d] = date.split("-").map(Number);
+  const [y = 1970, mo = 1, d = 1] = date.split("-").map(Number);
   return Date.UTC(y, mo - 1, d) / 60000 + toMinutes(time);
 }
 
