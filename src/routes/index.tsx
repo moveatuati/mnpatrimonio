@@ -134,7 +134,7 @@ function Dashboard() {
           <p className="text-sm text-muted-foreground">Colaboradores em atividade considerando entradas, intervalos e saídas dos horários-base.</p>
           <div className="mt-6 flex h-48 items-end gap-1">
             {d.timeline.map((s) => (
-              <div key={s.time} className="group flex flex-1 flex-col items-center justify-end" title={`${s.time}: ${s.total} (A ${s.byGroup.A} · B ${s.byGroup.B} · C ${s.byGroup.C})`}>
+              <div key={s.time} className="group flex h-full flex-1 flex-col items-center justify-end" title={`${s.time}: ${s.total} (A ${s.byGroup.A} · B ${s.byGroup.B} · C ${s.byGroup.C})`}>
                 <span className="mb-1 text-[10px] text-muted-foreground opacity-0 group-hover:opacity-100">{s.total}</span>
                 <div className="w-full rounded-t bg-brand" style={{ height: `${(s.total / maxSlot) * 100}%` }} />
               </div>
