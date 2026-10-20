@@ -56,8 +56,8 @@ export function buildDashboard(date: ISODate, employees: Employee[] = DEMO_EMPLO
     id: "rest-rule",
     severity: "info",
     category: "descanso",
-    title: "Regra de 11h entre jornadas ativa",
-    detail: `Quem encerra às ${GROUPS.C.shift.end} só pode iniciar a partir das ${restC.earliestStart.time} do dia seguinte. Trocas do grupo C para A ou B no dia seguinte serão bloqueadas.`,
+    title: "Parâmetro demonstrativo: 11h entre jornadas",
+    detail: `No cenário-base, saída às ${GROUPS.C.shift.end} permite a próxima entrada a partir das ${restC.earliestStart.time} do dia seguinte. A validação de trocas será aplicada quando o módulo de escalas for implementado.`,
   });
 
   return {
@@ -73,3 +73,4 @@ export function buildDashboard(date: ISODate, employees: Employee[] = DEMO_EMPLO
     timeline: coverageOverDay(scheduled),
   };
 }
+
