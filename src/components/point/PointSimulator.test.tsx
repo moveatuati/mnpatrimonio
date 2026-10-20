@@ -22,7 +22,7 @@ describe("Ponto simulado - quatro marcações manuais",()=>{
     render(<PointSimulator/>);
     fireEvent.click(screen.getByRole("button",{name:"Registrar marcação simulada"}));
     expect(screen.getByText(/Marcação demonstrativa registrada: Entrada/)).toBeInTheDocument();
-    expect(screen.getByText("Saída para intervalo")).toBeInTheDocument();
+    expect(screen.getByText("Saída para intervalo", { selector: ".fp-active-step strong" })).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button",{name:"Corrigir Entrada"}));
     fireEvent.change(screen.getByRole("textbox",{name:"Justificativa da correção (obrigatória)"}),
       {target:{value:"Demonstração de ajuste autorizado"}});
