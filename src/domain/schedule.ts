@@ -79,7 +79,7 @@ function rotatingSelection(employees: Employee[], date: ISODate, count: number) 
   const start = ((round * n) % employees.length + employees.length) % employees.length;
   return new Set(Array.from({ length: n }, (_, k) => employees[(start + k) % employees.length]!.id));
 }
-/** Escala-base: segunda a sábado. Domingo com revezamento, compensação automática na segunda.
+/** Escala-base: segunda a sábado. Quem trabalha no domingo folga no sábado anterior,
  * Feriado: contingente próprio, sem transformar automaticamente hora extra/folga em direito liquidado.
  */
 export function baseAssignment(store: ScheduleStore, employee: Employee, date: ISODate): Assignment {
@@ -90,14 +90,13 @@ export function baseAssignment(store: ScheduleStore, employee: Employee, date: I
   if (weekday === 0) {
     return rotatingSelection(members, date, store.rules.sunday[group]).has(employee.id) ? group : null;
   }
-  if (weekday === 1) {
-    const previousSunday = dateOffset(date, -1);
-    // Compensação após trabalho no domingo para evitar sete dias de trabalho consecutivos.
-    if (assignmentFor(store, employee, previousSunday) !== null) return null;
+  if (weekday === 6) {
+    // Evita sete dias seguidos: quem trabalha no domingo recebe o sábado anterior como folga.
+    if (assignmentFor(store, employee, dateOffset(date, 1)) !== null) return null;
   }
   if (store.rules.holidays.includes(date)) {
     const eligible = members.filter(e =>
-      !(weekday === 1 && assignmentFor(store, e, dateOffset(date, -1)) !== null));
+      !(weekday === 6 && assignmentFor(store, e, dateOffset(date, 1)) !== null));
     return rotatingSelection(eligible, date, holidayTargetsFor(store.rules, date)[group]).has(employee.id) ? group : null;
   }
   return group;
@@ -171,9 +170,9 @@ export function validateChanges(store: ScheduleStore, changes: AssignmentChange[
   if (errors.length) return { ok: false, errors, coverageBefore: before, coverageAfter: before };
   const next = withChanges(store, changes);
   const after = coverageFor(next, date);
-  // O descanso compensatório da segunda depende também de trocas de domingo.
-  // Por isso conferir cobertura da data editada e do dia subsequente.
-  const affectedDates = dayOfWeek(date) === 0 ? [date, dateOffset(date, 1)] : [date];
+  // Folga do sábado anterior depende dos colaboradores realmente escalados no domingo.
+  // Validar também a cobertura do sábado ao alterar a composição do domingo.
+  const affectedDates = dayOfWeek(date) === 0 ? [date, dateOffset(date, -1)] : [date];
   for (const checkDate of affectedDates) {
     const oldCoverage = checkDate === date ? before : coverageFor(store, checkDate);
     const newCoverage = checkDate === date ? after : coverageFor(next, checkDate);
