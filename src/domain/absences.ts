@@ -145,6 +145,8 @@ export function saveAbsence(store: AbsenceStore, draft: AbsenceDraft, currentId?
   if (currentId && (!existing || ["recusado", "cancelado"].includes(existing.status)))
     return { ok: false as const, errors: ["O registro não pode ser editado neste estado."], store };
   const errors = validateAbsence(store, draft, currentId, existing?.supersedesId);
+  if (existing?.status === "aprovado" && existing.employeeId !== draft.employeeId)
+    errors.push("Não altere o colaborador de um período aprovado; cancele ou registre outro pedido.");
   if (existing?.status === "aprovado" &&
       store.entries.some(e => e.supersedesId === existing.id && e.status === "pendente"))
     errors.push("Existe uma alteração pendente deste período. Analise-a antes de alterar novamente.");
