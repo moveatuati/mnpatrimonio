@@ -1,6 +1,6 @@
 import { GROUPS, GROUP_IDS } from "./config";
 import { DEMO_EMPLOYEES } from "./demo-data";
-import { ABSENCE_LABELS, coverageWithAbsences, isActive, nextWorkDate, type AbsenceStore } from "./absences";
+import { ABSENCE_LABELS, nextWorkDate, type AbsenceStore } from "./absences";
 import { balanceOf, type HourStore } from "./hour-bank";
 import { isValidReferenceDate } from "./operation-query";
 import { analysePoint, pointKey, type PointStore } from "./point-simulator";
@@ -152,11 +152,10 @@ export function buildReport(sources: ReportSources, filters: ReportFilters) {
   let absenceDays = 0, plannedShifts = 0, restDays = 0;
   let totalRequired = 0, totalAvailable = 0, totalDeficit = 0;
   let sundays = 0, holidays = 0, conflictingPointOnAbsence = 0;
-  const approvedAbsenceByDay = new Map<ISODate, Set<string>>();
+  let totalCovered=0;
   for(const day of dates) {
     const active = new Set(sources.absences.entries.filter(e => e.status === "aprovado" &&
       e.start <= day && e.end >= day && peopleIds.has(e.employeeId)).map(e => e.employeeId));
-    approvedAbsenceByDay.set(day,active);
     if(dayOfWeek(day) === 0) sundays++;
     if(sources.schedule.rules.holidays.includes(day)) holidays++;
     let dayHasPunch = false;
@@ -209,7 +208,7 @@ export function buildReport(sources: ReportSources, filters: ReportFilters) {
       shifts.push({date:day,group:g,scheduled,restDays:people.filter(e=>e.group===g &&
         assignmentFor(sources.schedule,e,day)===null).length,
         required,holiday:sources.schedule.rules.holidays.includes(day),sunday:dayOfWeek(day)===0});
-      totalRequired+=required;totalAvailable+=available;totalDeficit+=deficit;
+      totalRequired+=required;totalAvailable+=available;totalCovered+=Math.min(required,available);totalDeficit+=deficit;
     }
   }
   const hourMovements:HourReportRow[] = sources.hours.entries
@@ -251,7 +250,7 @@ export function buildReport(sources: ReportSources, filters: ReportFilters) {
       pointCapture:expectedEntries?recordedEntries/expectedEntries*100:null,
       lateCount,incompletePunches,earlyExits,daysWithPoint,
       totalRequired,totalAvailable,totalDeficit,
-      groupCoverageRate:totalRequired?Math.min(totalAvailable,totalRequired)/totalRequired*100:null,
+      groupCoverageRate:totalRequired?totalCovered/totalRequired*100:null,
       sundays,holidays,conflictingPointOnAbsence,
       approvedAbsenceCases:absenceRows.filter(e=>e.status==="aprovado").length,
       pendingAbsenceCases:absenceRows.filter(e=>e.status==="pendente").length,
