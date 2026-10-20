@@ -23,7 +23,7 @@ describe("EC 141/2026 · simulador 5×2",()=>{
  });
  it("mantém base A/B/C e adiciona reforços fictícios únicos",()=>{
    expect(groupAllocation(63)).toEqual({A:4,B:29,C:30});
-   for(const n of [63,78,79,90,140]){
+   for(const n of [63,78,83,90,140]){
      const list=makeScenarioPeople(n);
      expect(list).toHaveLength(n);
      expect(new Set(list.map(x=>x.id)).size).toBe(n);
@@ -37,6 +37,8 @@ describe("EC 141/2026 · simulador 5×2",()=>{
      expect(proposedShift(g,40,dateOffset(FUTURE_START,6)).minutes).toBe(375);
    }
    expect(PROPOSED_SHIFTS[40].C.end).toBe("22:00");
+   expect(PROPOSED_SHIFTS[40].C.breakEnd).toBe("17:00");
+   expect(PROPOSED_SHIFTS[42].C.breakEnd).toBe("17:00");
    expect(PROPOSED_SHIFTS[42].C.end).toBe("22:00");
  });
  it("encontra limite teórico por grupo, sem prometer cobertura",()=>{
@@ -55,12 +57,18 @@ describe("EC 141/2026 · simulador 5×2",()=>{
    expect(minimumBreakdown(holiday,FUTURE_START).map(r=>r.weekdayNeed)).toEqual([77,557,576]);
    expect(theoreticalMinimum(holiday,FUTURE_START).total).toBe(88);
  });
+ it("parte da projeção A6/B38/C39",()=>{
+   expect(DEFAULT_PARAMETERS.people).toBe(83);
+   expect(DEFAULT_PARAMETERS.allocation).toEqual({A:6,B:38,C:39});
+   const r=simulate5x2(DEFAULT_SCHEDULE,demoAbsences(),DEFAULT_PARAMETERS);
+   expect(r.groups.map(g=>g.headcount)).toEqual([6,38,39]);
+ });
  it("gera quatro semanas sem repetir dia ou perder descanso",()=>{
    const r=simulate5x2(DEFAULT_SCHEDULE,demoAbsences(),DEFAULT_PARAMETERS);
    expect(r.dates).toHaveLength(28);
    expect(r.coverage).toHaveLength(84);
-   expect(r.people).toHaveLength(78);
-   expect(r.byWeek).toHaveLength(312);
+   expect(r.people).toHaveLength(83);
+   expect(r.byWeek).toHaveLength(332);
    for(const w of r.byWeek){
      expect(w.workingDates).toHaveLength(5);
      expect(w.restDates).toHaveLength(2);
@@ -71,7 +79,7 @@ describe("EC 141/2026 · simulador 5×2",()=>{
    expect(r.coverage.every(c=>c.deficit===Math.max(0,c.required-c.available))).toBe(true);
  });
  it("sábado jamais é folga, domingo alterna, e cada semana tem duas folgas",()=>{
-   for(const size of [63,78,91,140]){
+   for(const size of [63,78,83,91,140]){
      const result=simulate5x2(DEFAULT_SCHEDULE,demoAbsences(),{
        ...DEFAULT_PARAMETERS,people:size,
      });
