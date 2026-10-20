@@ -28,7 +28,6 @@ export interface CoverageReportRow {
   absent: number;
   available: number;
   deficit: number;
-  overtimeNeeded: number; // identical to deficit for display; no paid hours inferred
 }
 export interface PersonReportRow {
   id: string;
@@ -182,7 +181,7 @@ export function buildReport(sources: ReportSources, filters: ReportFilters) {
       }
       if(info.earlyExit!==null && info.earlyExit>0) {member.earlyExits++; earlyExits++;}
       if(info.registered>0 && !info.complete) {member.incompletePunches++; incompletePunches++;}
-      if(entry || info.registered) dailyPoint.push({
+      dailyPoint.push({
         date:day,employeeId:e.id,name:e.name,group:e.group,
         planned:info.planned.entry??"—",entry,breakOut:info.marks.breakOut??null,
         breakIn:info.marks.breakIn??null,exit:info.marks.exit??null,
@@ -190,7 +189,7 @@ export function buildReport(sources: ReportSources, filters: ReportFilters) {
         status:info.late!==null && info.late>sources.point.alertMinutes?"acima do alerta":
           info.earlyExit!==null&&info.earlyExit>0?"saída antecipada":
           info.registered>0&&!info.complete?"em andamento":
-          entry?"no horário":"inconsistência",
+          entry?"no horário":info.registered?"inconsistência":"sem registro",
       });
     }
     if(dayHasPunch) daysWithPoint++;
@@ -204,7 +203,7 @@ export function buildReport(sources: ReportSources, filters: ReportFilters) {
       const absent=groupPeople.filter(e=>active.has(e.id)).length;
       const available=scheduled-absent;
       const deficit=Math.max(0,required-available);
-      coverage.push({date:day,group:g,required,scheduled,absent,available,deficit,overtimeNeeded:deficit});
+      coverage.push({date:day,group:g,required,scheduled,absent,available,deficit});
       shifts.push({date:day,group:g,scheduled,restDays:people.filter(e=>e.group===g &&
         assignmentFor(sources.schedule,e,day)===null).length,
         required,holiday:sources.schedule.rules.holidays.includes(day),sunday:dayOfWeek(day)===0});
@@ -237,6 +236,13 @@ export function buildReport(sources: ReportSources, filters: ReportFilters) {
     .sort((a,b)=>b.date.localeCompare(a.date)||a.id.localeCompare(b.id));
   const personnel=[...final.values()].sort((a,b)=>b.overAlert-a.overAlert||b.missingEntries-a.missingEntries||
     a.name.localeCompare(b.name,"pt-BR")||a.id.localeCompare(b.id));
+  // Exceptions first in punctuality detail, then most recent occurrences.
+  const priority: Record<DailyPointRow["status"],number> = {
+    "acima do alerta":0,"saída antecipada":1,"inconsistência":2,
+    "em andamento":3,"sem registro":4,"no horário":5,
+  };
+  dailyPoint.sort((a,b)=>priority[a.status]-priority[b.status] ||
+    b.date.localeCompare(a.date) || a.name.localeCompare(b.name,"pt-BR") || a.employeeId.localeCompare(b.employeeId));
   const accepted = hourMovements.filter(e=>e.status==="aprovado");
   const credited=accepted.reduce((n,r)=>n+Math.max(0,r.minutes),0);
   const debited=accepted.reduce((n,r)=>n+Math.max(0,-r.minutes),0);
@@ -258,6 +264,7 @@ export function buildReport(sources: ReportSources, filters: ReportFilters) {
       positiveBalances:personnel.reduce((n,e)=>n+Math.max(0,e.balanceMinutes),0),
       negativeBalances:personnel.reduce((n,e)=>n+Math.max(0,-e.balanceMinutes),0),
       netBalance:personnel.reduce((n,e)=>n+e.balanceMinutes,0),
+      openingBalance:personnel.reduce((n,e)=>n+e.balanceMinutes-e.positiveMinutes+e.negativeMinutes,0),
       pendingHours:hourMovements.filter(e=>e.status==="pendente").length,
       approvedSwaps:swapRows.filter(e=>e.status==="aprovada").length,
     },
