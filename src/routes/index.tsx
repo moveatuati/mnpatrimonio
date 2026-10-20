@@ -6,6 +6,7 @@ import { buildDashboard } from "@/domain/dashboard";
 import { GROUPS, GROUP_IDS, RULES } from "@/domain/config";
 import { rankArrivalsByGroup, arrivalOffsetMinutes } from "@/domain/rules/arrival-ranking";
 import { countMonthlyLateArrivals, rankMonthlyLateArrivals } from "@/domain/rules/late-history";
+import { summarizeGroupEntries } from "@/domain/rules/group-readiness";
 import type { ArrivalStatus } from "@/domain/types";
 
 export const Route = createFileRoute("/")({
@@ -36,6 +37,11 @@ function Dashboard() {
   const d = useMemo(() => buildDashboard(date), [date]);
   const maxSlot = Math.max(...d.timeline.map((s) => s.total), 1);
   const arrivalGroups = GROUP_IDS.map((group) => ({ group, arrivals: rankArrivalsByGroup(d.arrivals, group) }));
+  const groupEntries = summarizeGroupEntries(d.arrivals);
+  const attentionAlerts = [...d.alerts].sort((a, b) =>
+    ({ critico: 0, atencao: 1, info: 2 })[a.severity] -
+    ({ critico: 0, atencao: 1, info: 2 })[b.severity],
+  );
   const lateHistory = useMemo(
     () => countMonthlyLateArrivals(date, d.arrivals.map((arrival) => arrival.employee)),
     [date, d.arrivals],
@@ -106,61 +112,110 @@ function Dashboard() {
           ))}
         </section>
 
-        <section className="grid gap-6 lg:grid-cols-5">
-          <div className="rounded-2xl border border-border/80 bg-card p-6 shadow-card lg:col-span-3">
-            <div className="flex items-center justify-between gap-3"><h2 className="formosa-section-title"><Users aria-hidden="true" />Cobertura dos grupos</h2><span className="rounded-full border border-primary/15 bg-accent px-3 py-1 text-[11px] font-bold text-primary">A · B · C</span></div>
-            <p className="text-sm text-muted-foreground">Escalados x necessidade operacional (configurável).</p>
-            <div className="mt-5 space-y-5">
-              {d.coverage.map((c) => {
-                const pct = Math.min(100, (c.scheduled / Math.max(c.required, 1)) * 100);
-                const tone = c.balance < 0 ? "bg-destructive" : c.balance > 0 ? "bg-info" : "bg-success";
-                const label = c.balance < 0 ? `Déficit de ${-c.balance}` : c.balance > 0 ? `Excedente de ${c.balance}` : "Cobertura adequada";
-                const g = GROUPS[c.group];
+        <section aria-label="Monitoramento de equipes e pendências" className="grid items-stretch gap-4 xl:grid-cols-[minmax(0,0.92fr)_minmax(0,1.08fr)]">
+          <div className="formosa-readiness-panel overflow-hidden rounded-2xl border border-border bg-card shadow-card">
+            <div className="formosa-monitor-heading flex flex-wrap items-center justify-between gap-3 px-5 py-4">
+              <div className="flex items-center gap-3">
+                <span className="formosa-monitor-icon flex h-10 w-10 shrink-0 items-center justify-center rounded-xl">
+                  <Users className="h-5 w-5" aria-hidden="true" />
+                </span>
+                <div>
+                  <h2 className="font-display text-[15px] font-bold text-foreground">Cobertura e entradas por grupo</h2>
+                  <p className="mt-0.5 text-xs text-muted-foreground">Escala prevista x marcações recebidas</p>
+                </div>
+              </div>
+              <div className="formosa-monitor-total rounded-xl px-3 py-2 text-right">
+                <span className="block font-display text-xl font-extrabold tabular-nums">{d.kpis.entries}/{d.kpis.scheduled}</span>
+                <span className="block text-[10px] font-semibold">entradas registradas</span>
+              </div>
+            </div>
+            <div className="grid gap-3 px-4 py-4 sm:px-5">
+              {groupEntries.map((entry) => {
+                const cov = d.coverage.find((c) => c.group === entry.group);
+                const config = GROUPS[entry.group];
+                const pct = entry.scheduled ? Math.round((entry.registered / entry.scheduled) * 100) : 0;
+                const deficit = cov ? Math.max(0, cov.required - cov.scheduled) : 0;
                 return (
-                  <div key={c.group}>
-                    <div className="flex items-baseline justify-between text-sm">
-                      <span className="font-medium">
-                        {c.group} — {g.name}{" "}
-                        <span className="text-muted-foreground">
-                          ({g.shift.start}–{g.shift.breakStart} · {g.shift.breakEnd}–{g.shift.end})
-                        </span>
-                      </span>
-                      <span className="font-semibold">
-                        {c.scheduled}/{c.required}
+                  <div key={entry.group} className={`formosa-readiness-row rounded-xl border px-3.5 py-3 ${entry.pending ? "formosa-readiness-pending" : "formosa-readiness-okay"}`}>
+                    <div className="flex items-center gap-2.5">
+                      <span className="formosa-readiness-letter flex h-9 w-9 shrink-0 items-center justify-center rounded-lg font-display text-lg font-bold">{entry.group}</span>
+                      <div className="min-w-0 flex-1">
+                        <p className="font-semibold text-sm text-foreground">{config.name}</p>
+                        <p className="text-[11px] text-muted-foreground">Entrada prevista às {config.shift.start}</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="font-display text-lg font-extrabold tabular-nums text-foreground">{entry.registered}<span className="text-sm font-medium text-muted-foreground">/{entry.scheduled}</span></p>
+                        <p className="text-[10px] text-muted-foreground">entradas · {pct}%</p>
+                      </div>
+                    </div>
+                    <div className="formosa-readiness-meter mt-2.5 h-2.5 overflow-hidden rounded-full" role="meter"
+                      aria-label={`Entradas registradas no grupo ${entry.group}`} aria-valuenow={entry.registered}
+                      aria-valuemin={0} aria-valuemax={entry.scheduled || 1}>
+                      <div className={`h-full rounded-full ${entry.pending ? "formosa-readiness-fill-pending" : "formosa-readiness-fill-okay"}`} style={{ width: `${pct}%` }} />
+                    </div>
+                    <div className="mt-2 flex flex-wrap items-center justify-between gap-1.5 text-[11px]">
+                      <span className="text-muted-foreground">{cov?.scheduled ?? entry.scheduled}/{cov?.required ?? entry.scheduled} escalados previstos</span>
+                      <span className={`inline-flex items-center gap-1 font-bold ${entry.pending || deficit ? "text-amber-800" : "text-emerald-700"}`}>
+                        {entry.pending || deficit ? <AlertTriangle className="h-3.5 w-3.5" aria-hidden="true" /> : <CheckCircle2 className="h-3.5 w-3.5" aria-hidden="true" />}
+                        {deficit ? `${deficit} vaga(s) não coberta(s)` : entry.pending ? `${entry.pending} registro(s) pendente(s)` : "Registros completos"}
                       </span>
                     </div>
-                    <div className="mt-2 h-3 overflow-hidden rounded-full bg-muted ring-1 ring-inset ring-border/70">
-                      <div className={`h-full ${tone}`} style={{ width: `${pct}%` }} />
-                    </div>
-                    <p className="mt-1 text-xs text-muted-foreground">{label}</p>
+                    {entry.pending > 0 && (
+                      <div className="formosa-readiness-pending-note mt-2 flex items-start gap-1.5 rounded-lg px-2.5 py-2 text-[11px] leading-snug">
+                        <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                        <span><strong>Conferir:</strong> {entry.pendingNames.join(", ")}. Sem entrada registrada não confirma falta.</span>
+                      </div>
+                    )}
                   </div>
                 );
               })}
             </div>
+            <p className="formosa-monitor-footnote border-t border-border px-5 py-3 text-[11px] leading-relaxed text-muted-foreground">
+              A escala planejada não comprova presença. Registros de entrada não confirmam permanência durante todo o turno.
+            </p>
           </div>
 
-          <div className="rounded-2xl border border-border/80 bg-card p-6 shadow-card lg:col-span-2">
-            <div className="flex items-center justify-between gap-3"><h2 className="formosa-section-title"><BellRing aria-hidden="true" />Central de atenção</h2><span className="rounded-full bg-accent px-2 py-1 text-[11px] font-bold text-primary">{d.alerts.length} aviso(s)</span></div>
-            <ul className="mt-4 space-y-3">
-              {d.alerts.map((a) => {
+          <div className="formosa-attention-panel overflow-hidden rounded-2xl border border-border bg-card shadow-card">
+            <div className="formosa-monitor-heading flex flex-wrap items-center justify-between gap-3 px-5 py-4">
+              <div className="flex items-center gap-3">
+                <span className="formosa-attention-icon flex h-10 w-10 shrink-0 items-center justify-center rounded-xl">
+                  <BellRing className="h-5 w-5" aria-hidden="true" />
+                </span>
+                <div>
+                  <h2 className="font-display text-[15px] font-bold text-foreground">Central de atenção</h2>
+                  <p className="mt-0.5 text-xs text-muted-foreground">Ocorrências a conferir na data selecionada</p>
+                </div>
+              </div>
+              <span className="formosa-attention-count rounded-full px-3 py-1 text-xs font-bold">{d.alerts.length} avisos</span>
+            </div>
+            <div className="grid grid-cols-2 gap-3 px-5 pt-4">
+              <div className="formosa-attention-stat formosa-attention-stat-pending rounded-xl p-3">
+                <div className="flex items-center gap-1.5 text-xs font-bold"><UserX className="h-4 w-4" aria-hidden="true" /> A conferir</div>
+                <p className="mt-1 font-display text-3xl font-extrabold tabular-nums">{d.kpis.missing}</p>
+                <p className="text-[11px]">entrada(s) sem registro</p>
+              </div>
+              <div className="formosa-attention-stat formosa-attention-stat-late rounded-xl p-3">
+                <div className="flex items-center gap-1.5 text-xs font-bold"><Clock className="h-4 w-4" aria-hidden="true" /> Atrasos</div>
+                <p className="mt-1 font-display text-3xl font-extrabold tabular-nums">{d.kpis.aboveAlert}</p>
+                <p className="text-[11px]">acima de {RULES.lateAlertMinutes} min</p>
+              </div>
+            </div>
+            <div className="space-y-2 px-5 pb-4 pt-3">
+              {attentionAlerts.map((a) => {
                 const Icon = a.severity === "info" ? Info : AlertTriangle;
-                const tone =
-                  a.severity === "critico"
-                    ? "border-destructive text-destructive"
-                    : a.severity === "atencao"
-                      ? "border-warning text-warning-foreground"
-                      : "border-info text-info";
                 return (
-                  <li key={a.id} className={`formosa-alert formosa-alert-${a.severity} rounded-xl border-l-2 p-3.5 ${tone}`}>
-                    <p className="flex items-center gap-2 text-sm font-semibold">
-                      <Icon className="h-4 w-4" />
-                      {a.title}
-                    </p>
-                    <p className="mt-1 text-xs text-muted-foreground">{a.detail}</p>
-                  </li>
+                  <div key={a.id} className={`formosa-attention-item formosa-attention-item-${a.severity} flex gap-2.5 rounded-xl px-3.5 py-3`}>
+                    <span className="formosa-attention-item-icon mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg">
+                      <Icon className="h-4 w-4" aria-hidden="true" />
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-[12px] font-bold leading-snug">{a.title}</p>
+                      <p className="mt-1 text-[11px] leading-relaxed text-muted-foreground">{a.detail}</p>
+                    </div>
+                  </div>
                 );
               })}
-            </ul>
+            </div>
           </div>
         </section>
 

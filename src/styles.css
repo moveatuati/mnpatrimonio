@@ -467,3 +467,111 @@
     box-shadow: none !important;
   }
 }
+
+
+/* Monitoramento da operação: escala prevista e entradas confirmadas, sem falsos indicadores de presença. */
+.formosa-readiness-panel, .formosa-attention-panel {
+  background: linear-gradient(168deg, #fff 0%, #fffbfc 100%);
+  box-shadow: 0 2px 6px rgb(66 14 30 / 4%), 0 17px 28px -18px rgb(65 17 37 / 22%);
+}
+.formosa-monitor-heading {
+  background: linear-gradient(120deg, #fff8fa 0%, #fff 65%, #fff5f7 100%);
+  border-bottom: 1px solid #f0e2e5;
+}
+.formosa-monitor-icon {
+  color: #c82f52;
+  background: linear-gradient(135deg, #ffe9ee, #ffd6e0);
+  border: 1px solid #f5c9d3;
+  box-shadow: inset 0 1px 0 #fff, 0 7px 13px -10px #a3274b;
+}
+.formosa-monitor-total {
+  color: #9b2144;
+  background: linear-gradient(140deg, #fff7f8, #ffe1e9);
+  border: 1px solid #f6cbd5;
+  box-shadow: inset 0 1px 0 #fff;
+}
+.formosa-readiness-row {
+  background: linear-gradient(110deg, #fff, #fffcfd);
+  border-color: #eee2e7;
+  box-shadow: 0 3px 11px -10px rgb(55 16 32 / 20%);
+}
+.formosa-readiness-pending {
+  border-color: #ecc58c;
+  background: linear-gradient(110deg, #fffefa, #fff8ee);
+}
+.formosa-readiness-letter {
+  color: #a51c43;
+  background: linear-gradient(135deg, #ffdee7, #fff4f6);
+  border: 1px solid #f4ccd6;
+}
+.formosa-readiness-meter { background: #efe9ed; }
+.formosa-readiness-fill-okay {
+  background: linear-gradient(90deg, #0e9d70, #21c69a);
+  box-shadow: 0 0 9px rgb(13 170 120 / 26%);
+}
+.formosa-readiness-fill-pending {
+  background: linear-gradient(90deg, #f1a73a, #f6c56b);
+  box-shadow: 0 0 9px rgb(232 154 48 / 22%);
+}
+.formosa-readiness-pending-note {
+  color: #7b4b18;
+  background: #fff0d7;
+  border: 1px solid #f3d7ac;
+}
+.formosa-monitor-footnote { background: linear-gradient(100deg, #fff9fa, #fff); }
+.formosa-attention-icon {
+  color: #b42247;
+  background: linear-gradient(135deg, #ffe4eb, #ffd4df);
+  border: 1px solid #f3c2cf;
+  box-shadow: inset 0 1px 0 #fff;
+}
+.formosa-attention-count {
+  color: #9d2443;
+  background: #ffeaf0;
+  border: 1px solid #f5c7d3;
+}
+.formosa-attention-stat {
+  border: 1px solid transparent;
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 90%);
+}
+.formosa-attention-stat-pending {
+  color: #9b2645;
+  border-color: #f5c7d3;
+  background: linear-gradient(135deg, #fff1f4, #ffe1e8);
+}
+.formosa-attention-stat-late {
+  color: #86500e;
+  border-color: #efd6a8;
+  background: linear-gradient(135deg, #fff8e8, #ffebc7);
+}
+.formosa-attention-item {
+  border: 1px solid #eee2e6;
+  border-left: 3px solid #d4bbc2;
+  background: linear-gradient(120deg, #fff, #fbf9fa);
+}
+.formosa-attention-item-critico {
+  border-left-color: #d82e57;
+  background: #fff5f7;
+  color: #ae2547;
+}
+.formosa-attention-item-atencao {
+  border-left-color: #e5a12f;
+  background: #fffbf2;
+  color: #8b570d;
+}
+.formosa-attention-item-info {
+  border-left-color: #448ad8;
+  background: #f4f9ff;
+  color: #20569a;
+}
+.formosa-attention-item-icon {
+  background: color-mix(in oklch, currentColor 11%, white);
+  border: 1px solid color-mix(in oklch, currentColor 17%, white);
+}
+@media print {
+  .formosa-readiness-panel, .formosa-attention-panel,
+  .formosa-readiness-row, .formosa-attention-item {
+    box-shadow: none !important;
+    background: #fff !important;
+  }
+}
