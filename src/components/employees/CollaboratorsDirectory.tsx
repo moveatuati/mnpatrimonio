@@ -1,5 +1,5 @@
 import { useMemo, useRef, useState } from "react";
-import { CalendarDays, ChevronLeft, ChevronRight, Eye, Info, Search, ShieldCheck, Users, X } from "lucide-react";
+import { CalendarDays, ChevronLeft, ChevronRight, Eye, Info, Printer, Search, ShieldCheck, Users, X } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { GROUPS, GROUP_IDS, RULES, UNIT } from "@/domain/config";
 import { buildDashboard } from "@/domain/dashboard";
@@ -203,42 +203,73 @@ export function CollaboratorsDirectory() {
       </div>
     </section>
     <Dialog open={Boolean(selected)} onOpenChange={open => { if (!open) setSelectedId(null); }}>
-      {selected && <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-2xl" onCloseAutoFocus={e => { e.preventDefault(); detailTrigger.current?.focus(); }}>
+      {selected && <DialogContent className="rh-employee-dialog max-h-[88vh] overflow-y-auto sm:max-w-2xl"
+        onCloseAutoFocus={e => { e.preventDefault(); detailTrigger.current?.focus(); }}>
         <DialogHeader>
-          <DialogTitle>{selected.employee.name}</DialogTitle>
-          <DialogDescription>{selected.employee.id} · Grupo {selected.employee.group} — {GROUPS[selected.employee.group].name} · Registro fictício</DialogDescription>
+          <DialogTitle className="text-xl">{selected.employee.name}</DialogTitle>
+          <DialogDescription>
+            {selected.employee.id} · Grupo {selected.employee.group} — {GROUPS[selected.employee.group].name}<br />
+            Unidade {UNIT.unit} · {UNIT.city} · Registro fictício
+          </DialogDescription>
         </DialogHeader>
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-800">Ativo · demo</span>
-          <EntryStatus value={selected.status} />
-          <span className="rounded-full bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-800">{monthly[selected.employee.id] ?? 0} atraso(s) no mês</span>
+        <div className="rh-employee-modal-toolbar flex flex-wrap items-center justify-between gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-800">Ativo · demo</span>
+            <EntryStatus value={selected.status} />
+            <span className="rounded-full bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-800">
+              {monthly[selected.employee.id] ?? 0} atraso(s) no mês
+            </span>
+          </div>
+          <a
+            className="rh-employee-print-button inline-flex min-h-10 items-center justify-center gap-2 rounded-lg border px-3 py-2 text-xs font-bold"
+            href={`/ficha-colaborador?id=${encodeURIComponent(selected.employee.id)}&date=${encodeURIComponent(date)}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label={`Abrir ficha A4 de ${selected.employee.name} para impressão`}
+          >
+            <Printer size={16} aria-hidden="true" /> Imprimir ficha A4
+          </a>
         </div>
-        <dl className="grid grid-cols-2 gap-2 text-sm sm:grid-cols-3">
+        <dl className="rh-employee-details-grid grid grid-cols-1 gap-2 sm:grid-cols-3">
           {[
             ["Entrada-base", GROUPS[selected.employee.group].shift.start],
             ["Saída-base", GROUPS[selected.employee.group].shift.end],
             ["Intervalo", `${GROUPS[selected.employee.group].shift.breakStart}–${GROUPS[selected.employee.group].shift.breakEnd}`],
-            [`Entrada simulada em ${showDate(date)}`, selected.entry ?? "Sem marcação"],
+            [`Entrada simulada (${showDate(date)})`, selected.entry ?? "Sem marcação"],
             ["Admissão", "Não informada"],
             ["Banco de horas", "Não implantado"],
           ].map(([label,value]) =>
-            <div key={label} className="rounded-lg bg-muted/60 p-3">
+            <div key={label} className="rh-employee-field rounded-xl border border-border/60 bg-muted/60 px-3 py-2.5">
               <dt className="text-xs text-muted-foreground">{label}</dt>
-              <dd className="mt-1 font-semibold">{value}</dd>
+              <dd className="font-semibold tabular-nums text-foreground">{value}</dd>
             </div>)}
         </dl>
         <section aria-label="Histórico demonstrativo">
-          <h3 className="text-sm font-semibold">Últimas cinco datas simuladas</h3>
-          <p className="mt-1 text-xs text-muted-foreground">Dados ilustrativos, sem considerar folgas, domingos ou escala real por data.</p>
-          <div className="mt-2 space-y-1">
+          <div className="flex flex-wrap items-end justify-between gap-2">
+            <div>
+              <h3 className="font-display text-sm font-semibold">Últimas cinco datas simuladas</h3>
+              <p className="mt-1 text-xs text-muted-foreground">Sem considerar folgas, domingos ou escala efetiva.</p>
+            </div>
+            <span className="text-[11px] font-medium text-muted-foreground">Entrada-base: {GROUPS[selected.employee.group].shift.start}</span>
+          </div>
+          <div className="rh-employee-records mt-3" role="table" aria-label="Últimas cinco entradas fictícias">
+            <div role="row" className="rh-employee-record-head">
+              <span role="columnheader">Data</span>
+              <span role="columnheader">Entrada</span>
+              <span role="columnheader">Situação</span>
+            </div>
             {demoHistory(selected.employee, date).map(row =>
-              <div key={row.day} className="flex flex-wrap items-center justify-between gap-2 rounded-lg border px-3 py-2 text-xs">
-                <span>{showDate(row.day)}</span><strong>{row.entry ?? "—"}</strong><EntryStatus value={row.status} />
+              <div role="row" key={row.day} className="rh-employee-record-line">
+                <span role="cell">{showDate(row.day)}</span>
+                <strong role="cell" className="tabular-nums">{row.entry ?? "—"}</strong>
+                <span role="cell" className="rh-employee-record-status"><EntryStatus value={row.status} /></span>
               </div>)}
           </div>
         </section>
         <p className="flex items-start gap-2 rounded-lg bg-accent p-3 text-xs leading-relaxed text-accent-foreground">
-          <Info size={15} className="mt-0.5 shrink-0" aria-hidden="true" /> Ficha apenas de consulta. Nenhuma alteração de cadastro, validação de ponto ou solicitação de férias é gravada.
+          <Info size={15} className="mt-0.5 shrink-0" aria-hidden="true" />
+          Ficha apenas de consulta. O relatório A4 mostra todos os dias simulados do mês até a data escolhida.
+          Nenhuma alteração de cadastro, validação oficial de ponto ou solicitação de férias é gravada.
         </p>
       </DialogContent>}
     </Dialog>
