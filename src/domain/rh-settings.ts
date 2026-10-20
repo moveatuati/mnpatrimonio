@@ -91,8 +91,8 @@ export function readRhSettingsStore(): RhSettingsStore {
       const pointRaw=window.localStorage.getItem(RH_POINT_KEY);
       if(pointRaw){
         const point=JSON.parse(pointRaw) as Record<string,unknown>;
-        const alert=point.alertMinutes;
-        if(point.version===1 && typeof alert==="number" && Number.isInteger(alert) && alert>=0 && alert<=60)
+        const alert=point["alertMinutes"];
+        if(point["version"]===1 && typeof alert==="number" && Number.isInteger(alert) && alert>=0 && alert<=60)
           fallback.settings.lateAlertMinutes=alert;
       }
     } catch { /* fallback demonstrativo sem armazenamento */ }
@@ -151,8 +151,8 @@ export function saveRhSettings(next: RhSettings, actor: string, note: string): {
     const raw=window.localStorage.getItem(RH_POINT_KEY);
     if(raw){
       const point=JSON.parse(raw) as Record<string,unknown>;
-      if(point && point.version===1 && point.records && Array.isArray(point.history)){
-        point.alertMinutes=next.lateAlertMinutes;
+      if(point && point["version"]===1 && point["records"] && Array.isArray(point["history"])){
+        point["alertMinutes"]=next.lateAlertMinutes;
         window.localStorage.setItem(RH_POINT_KEY,JSON.stringify(point));
       }
     }

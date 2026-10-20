@@ -14,4 +14,7 @@
 - Stage 1 is demo-only (fictional data, no backend/auth); why: spec forbids connecting a database or production migrations without authorization.
 - The 5×2 simulator must never share state with the real 6×1 schedule; why: explicit spec constraint.
 - Full spec is in `docs/FORMOSA-REQUISITOS.md`; read it before changing scheduling logic.
+- Operational references are pure, versioned 28-day snapshots in `src/domain/schedule-reference.ts`; validation requires explicit nominal assignments and daily targets with boundary context, never writes storage or grants homologation, because managerial approval is external to the demo.
+- Schedule changes are validated atomically by employee/date across all changed dates; explicit daily targets may replace legacy headcount targets, because weekly replanning must not silently invent leave or waive coverage.
+- Saturday policy is prospective from the reliability delivery date; historical dates keep legacy derivation and the simulator explicitly retains its legacy baseline until approved integration, because logs are not historical roster snapshots and Stage 1 must not silently rewrite prior comparisons.
 - Shared shell materials and dashboard presentation use semantic CSS tokens in `src/styles.css`, with dashboard-specific classes scoped to the operation view; why: visual refinements must not alter domain rules or other module content.

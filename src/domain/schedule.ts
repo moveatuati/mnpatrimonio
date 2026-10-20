@@ -46,6 +46,8 @@ export const DEFAULT_SCHEDULE: ScheduleStore = {
   requests: [],
   history: [],
 };
+/** Correção prospectiva: datas anteriores conservam a interpretação histórica do demo. */
+export const SATURDAY_POLICY_START = "2026-10-20";
 
 export function dateOffset(date: ISODate, n: number): ISODate {
   const time = Date.parse(date + "T12:00:00Z");
@@ -64,7 +66,8 @@ export function holidayTargetsFor(rules: ScheduleRules, date: ISODate) {
 }
 export function shiftFor(date: ISODate, group: GroupId, rules: ScheduleRules) {
   if (dayOfWeek(date) === 0 || rules.holidays.includes(date)) {
-    const shift = SUNDAY_SHIFTS[GROUP_IDS.indexOf(group)]!;
+    const shift = SUNDAY_SHIFTS[GROUP_IDS.indexOf(group)];
+    if (!shift) throw new Error("Turno especial não cadastrado para " + group);
     return { start: shift.start, end: shift.end, label: shift.name };
   }
   const shift = GROUPS[group].shift;
@@ -77,12 +80,13 @@ function rotatingSelection(employees: Employee[], date: ISODate, count: number) 
   const round = Math.floor(days / 7);
   const n = Math.min(Math.max(0, Math.trunc(count)), employees.length);
   const start = ((round * n) % employees.length + employees.length) % employees.length;
-  return new Set(Array.from({ length: n }, (_, k) => employees[(start + k) % employees.length]!.id));
+  return new Set(Array.from({ length: n }, (_, k) => employees[(start + k) % employees.length]?.id)
+    .filter((id): id is string => typeof id === "string"));
 }
-/** Escala-base: segunda a sábado. Quem trabalha no domingo folga no sábado anterior,
- * Feriado: contingente próprio, sem transformar automaticamente hora extra/folga em direito liquidado.
+/** Rascunho demonstrativo: preserva sábados; folgas úteis exigem alterações explícitas da gerência.
+ * Não é referência homologada: domingos sem folga confirmada podem gerar conflitos.
  */
-export function baseAssignment(store: ScheduleStore, employee: Employee, date: ISODate): Assignment {
+export function baseAssignment(store: ScheduleStore, employee: Employee, date: ISODate, policyStart = SATURDAY_POLICY_START): Assignment {
   if (employee.status !== "ativo") return null;
   const group = employee.group;
   const members = DEMO_EMPLOYEES.filter(e => e.group === group && e.status === "ativo");
@@ -90,21 +94,19 @@ export function baseAssignment(store: ScheduleStore, employee: Employee, date: I
   if (weekday === 0) {
     return rotatingSelection(members, date, store.rules.sunday[group]).has(employee.id) ? group : null;
   }
-  if (weekday === 6) {
-    // Evita sete dias seguidos: quem trabalha no domingo recebe o sábado anterior como folga.
-    if (assignmentFor(store, employee, dateOffset(date, 1)) !== null) return null;
-  }
+  if (date < policyStart && weekday === 6 &&
+      assignmentFor(store, employee, dateOffset(date, 1), policyStart) !== null) return null;
   if (store.rules.holidays.includes(date)) {
-    const eligible = members.filter(e =>
-      !(weekday === 6 && assignmentFor(store, e, dateOffset(date, 1)) !== null));
+    const eligible = date < policyStart && weekday === 6
+      ? members.filter(e => assignmentFor(store,e,dateOffset(date,1),policyStart) === null) : members;
     return rotatingSelection(eligible, date, holidayTargetsFor(store.rules, date)[group]).has(employee.id) ? group : null;
   }
   return group;
 }
-export function assignmentFor(store: ScheduleStore, employee: Employee, date: ISODate): Assignment {
+export function assignmentFor(store: ScheduleStore, employee: Employee, date: ISODate, policyStart = SATURDAY_POLICY_START): Assignment {
   const key = overrideKey(date, employee.id);
   return Object.prototype.hasOwnProperty.call(store.overrides, key)
-    ? store.overrides[key]! : baseAssignment(store, employee, date);
+    ? store.overrides[key] ?? null : baseAssignment(store, employee, date, policyStart);
 }
 export function withChanges(store: ScheduleStore, changes: AssignmentChange[]): ScheduleStore {
   const overrides = { ...store.overrides };
@@ -130,7 +132,7 @@ export function coverageFor(store: ScheduleStore, date: ISODate) {
     assigned: roster.filter(row => row.group === group).length,
   }));
 }
-function adjacentRestProblems(store: ScheduleStore, employee: Employee, date: ISODate): string[] {
+export function adjacentRestProblems(store: ScheduleStore, employee: Employee, date: ISODate): string[] {
   const rows = Array.from({ length: 17 }, (_, i) => {
     const d = dateOffset(date, i - 8);
     const g = assignmentFor(store, employee, d);
@@ -138,7 +140,8 @@ function adjacentRestProblems(store: ScheduleStore, employee: Employee, date: IS
   }).filter((row): row is NonNullable<typeof row> => Boolean(row));
   const errors: string[] = [];
   for (let i = 1; i < rows.length; i++) {
-    const prev = rows[i - 1]!, curr = rows[i]!;
+    const prev = rows[i - 1], curr = rows[i];
+    if (!prev || !curr) continue;
     const rest = checkRestBetween(prev.date, prev.end, curr.date, curr.start, RULES.minRestHours);
     if (!rest.ok && (prev.date === date || curr.date === date))
       errors.push(employee.name + ": " + rest.message);
@@ -148,20 +151,27 @@ function adjacentRestProblems(store: ScheduleStore, employee: Employee, date: IS
     const days = Array.from({ length: 7 }, (_, n) =>
       assignmentFor(store, employee, dateOffset(date, first + n)) !== null);
     if (days.every(Boolean)) {
-      errors.push(employee.name + ": sete dias consecutivos previstos; programar descanso compensatório.");
+      errors.push(employee.name + " em " + date + ": sete dias consecutivos previstos; programar descanso compensatório confirmado pela gerência.");
       break;
     }
   }
   return errors;
 }
 export type Validation = { ok: boolean; errors: string[]; coverageBefore: ReturnType<typeof coverageFor>; coverageAfter: ReturnType<typeof coverageFor> };
-export function validateChanges(store: ScheduleStore, changes: AssignmentChange[]): Validation {
+export type DailyCoverageTargets = Record<ISODate, Record<GroupId, number>>;
+export function isScheduleDate(date: string): boolean {
+  return /^\d{4}-\d{2}-\d{2}$/.test(date) && Number.isFinite(Date.parse(date + "T12:00:00Z")) &&
+    new Date(date + "T12:00:00Z").toISOString().slice(0, 10) === date;
+}
+/** Validação atômica de uma ou mais datas. Metas informadas são parâmetros, não homologação. */
+export function validateChanges(store: ScheduleStore, changes: AssignmentChange[], targets: DailyCoverageTargets = {}): Validation {
   const date = changes[0]?.date ?? "";
-  const before = coverageFor(store, date);
+  const before = isScheduleDate(date) ? coverageFor(store, date) : [];
   const errors: string[] = [];
-  if (!changes.length || changes.some(change => change.date !== date)) errors.push("Use uma única data por operação.");
-  if (new Set(changes.map(change => change.employeeId)).size !== changes.length)
-    errors.push("Um colaborador não pode receber dois destinos na mesma operação.");
+  if (!changes.length) errors.push("Informe ao menos uma alteração.");
+  if (changes.some(change => !isScheduleDate(change.date))) errors.push("Data inválida na operação.");
+  if (new Set(changes.map(change => overrideKey(change.date, change.employeeId))).size !== changes.length)
+    errors.push("Um colaborador não pode receber dois destinos na mesma data.");
   for (const change of changes) {
     const employee = DEMO_EMPLOYEES.find(item => item.id === change.employeeId);
     if (!employee || employee.status !== "ativo") errors.push("Colaborador inexistente ou indisponível.");
@@ -170,24 +180,34 @@ export function validateChanges(store: ScheduleStore, changes: AssignmentChange[
   if (errors.length) return { ok: false, errors, coverageBefore: before, coverageAfter: before };
   const next = withChanges(store, changes);
   const after = coverageFor(next, date);
-  // Folga do sábado anterior depende dos colaboradores realmente escalados no domingo.
-  // Validar também a cobertura do sábado ao alterar a composição do domingo.
-  const affectedDates = dayOfWeek(date) === 0 ? [date, dateOffset(date, -1)] : [date];
+  const affectedDates = [...new Set(changes.flatMap(change => dayOfWeek(change.date) === 0 &&
+    dateOffset(change.date,-1) < SATURDAY_POLICY_START ? [change.date,dateOffset(change.date,-1)] : [change.date]))];
   for (const checkDate of affectedDates) {
     const oldCoverage = checkDate === date ? before : coverageFor(store, checkDate);
     const newCoverage = checkDate === date ? after : coverageFor(next, checkDate);
     for (let i = 0; i < oldCoverage.length; i++) {
-      const b = oldCoverage[i]!, a = newCoverage[i]!;
-      if (a.assigned < Math.min(b.assigned, a.required)) {
+      const b = oldCoverage[i], a = newCoverage[i];
+      if (!b || !a) continue;
+      const required = targets[checkDate]?.[a.group];
+      if (required !== undefined && (!Number.isInteger(required) || required < 0)) {
+        errors.push("Meta de cobertura inválida em " + checkDate + ", Grupo " + a.group + ".");
+        continue;
+      }
+      const minimum = required ?? Math.min(b.assigned, a.required);
+      if (a.assigned < minimum) {
         errors.push("Em " + checkDate + ", Grupo " + a.group +
           ": troca reduziria cobertura de " + b.assigned + " para " +
-          a.assigned + " (necessidade " + a.required + ").");
+          a.assigned + " (necessidade " + minimum + ").");
       }
     }
   }
   for (const change of changes) {
-    const employee = DEMO_EMPLOYEES.find(item => item.id === change.employeeId)!;
-    errors.push(...adjacentRestProblems(next, employee, date));
+    const employee = DEMO_EMPLOYEES.find(item => item.id === change.employeeId);
+    if (employee) {
+      const existing = adjacentRestProblems(store,employee,change.date);
+      errors.push(...adjacentRestProblems(next, employee, change.date).filter(error =>
+        !error.includes("sete dias") || !existing.includes(error)));
+    }
   }
   return { ok: errors.length === 0, errors: [...new Set(errors)], coverageBefore: before, coverageAfter: after };
 }
@@ -204,8 +224,8 @@ export function requestStillCurrent(store: ScheduleStore, request: SwapRequest) 
   const source = DEMO_EMPLOYEES.find(e => e.id === request.sourceId);
   const target = DEMO_EMPLOYEES.find(e => e.id === request.targetId);
   return Boolean(source && target &&
-    assignmentFor(store, source!, request.date) === request.sourceGroup &&
-    assignmentFor(store, target!, request.date) === request.targetGroup);
+    assignmentFor(store, source, request.date) === request.sourceGroup &&
+    assignmentFor(store, target, request.date) === request.targetGroup);
 }
 export function hasPendingConflict(store: ScheduleStore, date: ISODate, ids: string[]) {
   return store.requests.some(r => r.status === "pendente" && r.date === date &&

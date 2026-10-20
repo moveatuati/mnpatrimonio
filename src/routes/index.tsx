@@ -10,6 +10,10 @@ export const Route = createFileRoute("/")({
         content:
           "Visão gerencial demonstrativa de equipes, entradas e pendências da Formosa, unidade Augusto Montenegro.",
       },
+      { property: "og:title", content: "Visão da operação — Formosa | Augusto Montenegro" },
+      { property: "og:description", content: "Visão gerencial demonstrativa de equipes, entradas e pendências da Formosa, unidade Augusto Montenegro." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
     ],
   }),
   component: OperationDashboard,

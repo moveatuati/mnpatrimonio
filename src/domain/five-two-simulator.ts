@@ -289,7 +289,8 @@ export function simulate5x2(schedule:ScheduleStore,absences:AbsenceStore,setting
       const available=planned.length-absent;
       const required=requiredFor(schedule,date,group);
       const deficit=Math.max(0,required-available);
-      const base=DEMO_EMPLOYEES.filter(p=>p.group===group&&assignmentFor(schedule,p,date)!==null);
+      // Preserve the legacy comparison until Stage 4 explicitly adopts the homologated reference.
+      const base=DEMO_EMPLOYEES.filter(p=>p.group===group&&assignmentFor(schedule,p,date,"9999-12-31")!==null);
       const baseAbsent=base.filter(p=>absences.entries.some(a=>a.employeeId===p.id&&a.status==="aprovado"&&
         a.start<=date&&a.end>=date)).length;
       const baseline=base.length-baseAbsent;

@@ -6,6 +6,10 @@ export const Route = createFileRoute("/ferias")({
     meta: [
       { title: "Férias & afastamentos — Formosa | Augusto Montenegro" },
       { name: "description", content: "Controle demonstrativo de férias, afastamentos, retorno previsto e cobertura de equipe." },
+      { property: "og:title", content: "Férias & afastamentos — Formosa | Augusto Montenegro" },
+      { property: "og:description", content: "Controle demonstrativo de férias, afastamentos, retorno previsto e cobertura de equipe." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
     ],
   }),
   component: AbsenceWorkspace,

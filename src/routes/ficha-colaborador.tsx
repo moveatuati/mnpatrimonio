@@ -13,6 +13,10 @@ export const Route = createFileRoute("/ficha-colaborador")({
   head: () => ({ meta: [
     { title: "Ficha individual A4 — Formosa | Gestão de Pessoas" },
     { name: "description", content: "Ficha e histórico mensal fictício de colaborador para impressão A4." },
+      { property: "og:title", content: "Ficha individual A4 — Formosa | Gestão de Pessoas" },
+      { property: "og:description", content: "Ficha e histórico mensal fictício de colaborador para impressão A4." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
   ] }),
   component: EmployeePrintableRoute,
 });
