@@ -25,6 +25,7 @@ export interface Absence {
   updatedAt: string;
   responsible: string; // identificação demonstrativa, não autorização autenticada
   decisionNote?: string;
+  supersedesId?: string; // alteração proposta de ausência já aprovada
 }
 export interface AbsenceEvent {
   id: string;
@@ -88,6 +89,7 @@ export function restoreAbsences(raw: unknown): AbsenceStore {
       createdAt: typeof item.createdAt === "string" ? item.createdAt : "",
       updatedAt: typeof item.updatedAt === "string" ? item.updatedAt : "",
       decisionNote: typeof item.decisionNote === "string" ? tidy(item.decisionNote) : undefined,
+      supersedesId: typeof item.supersedesId === "string" ? item.supersedesId.slice(0,60) : undefined,
     });
   }
   const history = input.history.filter(h => h && typeof h.id === "string" &&
@@ -139,23 +141,32 @@ function event(absenceId: string, description: string, now: string): AbsenceEven
 }
 export function saveAbsence(store: AbsenceStore, draft: AbsenceDraft, currentId?: string,
   now: string = new Date().toISOString()) {
-  const errors = validateAbsence(store, draft, currentId);
-  if (errors.length) return { ok: false as const, errors, store };
   const existing = store.entries.find(e => e.id === currentId);
   if (currentId && (!existing || ["recusado", "cancelado"].includes(existing.status)))
     return { ok: false as const, errors: ["O registro não pode ser editado neste estado."], store };
+  const errors = validateAbsence(store, draft, currentId);
+  if (existing?.status === "aprovado" &&
+      store.entries.some(e => e.supersedesId === existing.id && e.status === "pendente"))
+    errors.push("Existe uma alteração pendente deste período. Analise-a antes de alterar novamente.");
+  if (errors.length) return { ok: false as const, errors, store };
+  const proposal = existing?.status === "aprovado";
   const record: Absence = {
-    id: existing?.id ?? "AUS-"+Date.now().toString(36)+"-"+Math.random().toString(36).slice(2,6),
+    id: proposal || !existing
+      ? "AUS-"+Date.now().toString(36)+"-"+Math.random().toString(36).slice(2,6) : existing.id,
     employeeId: draft.employeeId, type: draft.type, start: draft.start, end: draft.end,
     note: tidy(draft.note),
-    status: "pendente", // uma alteração de período aprovado requer nova análise
+    status: "pendente",
     responsible: DEMO_ACTOR,
-    createdAt: existing?.createdAt ?? now, updatedAt: now,
+    createdAt: proposal || !existing ? now : existing.createdAt, updatedAt: now,
+    supersedesId: proposal ? existing!.id : existing?.supersedesId,
   };
-  const entries = existing ? store.entries.map(e => e.id === existing.id ? record : e) : [...store.entries, record];
+  // Período aprovado permanece ativo enquanto a alteração ainda não foi autorizada.
+  const entries = !existing || proposal ? [...store.entries, record]
+    : store.entries.map(e => e.id === existing.id ? record : e);
   return { ok: true as const, errors: [], store: { version: 1 as const, entries,
     history: [...store.history, event(record.id,
-      (existing ? "Período alterado e reenviado para análise" : "Pedido de ausência registrado")+
+      (proposal ? "Alteração proposta; período original preservado" :
+       existing ? "Pedido pendente alterado" : "Pedido de ausência registrado")+
       ": "+record.type+" "+record.start+" a "+record.end, now)].slice(-750) } };
 }
 export function decideAbsence(store: AbsenceStore, id: string, action: "aprovar"|"recusar"|"cancelar",
@@ -168,17 +179,28 @@ export function decideAbsence(store: AbsenceStore, id: string, action: "aprovar"
     return { ok: false as const, message: "Não é possível cancelar esse estado.", store };
   if ((action === "recusar" || action === "cancelar") && reason.trim().length < 5)
     return { ok: false as const, message: "Informe o motivo da decisão (mínimo 5 caracteres).", store };
-  if (action === "aprovar" && store.entries.some(e => isConflicting(e, original, original.id)))
-    return { ok: false as const, message: "Há outra ausência no mesmo período.", store };
+  const oldApproved = original.supersedesId
+    ? store.entries.find(e => e.id === original.supersedesId && e.status === "aprovado") : undefined;
+  if (action === "aprovar" && original.supersedesId && !oldApproved)
+    return { ok: false as const, message: "O período original mudou; a alteração deve ser refeita.", store };
+  if (action === "aprovar" && store.entries.some(e =>
+    e.id !== original.supersedesId && isConflicting(e, original, original.id)))
+    return { ok: false as const, message: "Há outra ausência pendente ou aprovada no mesmo período.", store };
   const status: AbsenceStatus = action === "aprovar" ? "aprovado" : action === "recusar" ? "recusado" : "cancelado";
-  const updated = { ...original, status, updatedAt: now, responsible: DEMO_ACTOR,
+  const updated: Absence = { ...original, status, supersedesId: undefined,
+    updatedAt: now, responsible: DEMO_ACTOR,
     decisionNote: tidy(reason || "Aprovação demonstrativa") };
+  const entries = store.entries.map(e =>
+    e.id === id ? updated : action === "aprovar" && oldApproved && e.id === oldApproved.id
+      ? { ...e, status:"cancelado" as const, updatedAt:now,
+          decisionNote:"Substituído pelo pedido "+id } : e);
+  const changes = [event(id, "Pedido "+status+" · "+original.start+" a "+original.end+
+    " · Parecer: "+updated.decisionNote, now)];
+  if(action==="aprovar"&&oldApproved)
+    changes.push(event(oldApproved.id,"Período original substituído pelo pedido "+id,now));
   return { ok: true as const, message: "Decisão registrada somente na demonstração.",
-    store: { version: 1 as const,
-      entries: store.entries.map(e => e.id === id ? updated : e),
-      history: [...store.history, event(id,
-        "Pedido "+status+" · "+original.start+" a "+original.end+
-        " · Parecer: "+updated.decisionNote, now)].slice(-750) } };
+    store: { version: 1 as const, entries,
+      history: [...store.history, ...changes].slice(-750) } };
 }
 export function dailyAbsences(store: AbsenceStore, date: ISODate) {
   return store.entries.filter(item => isActive(item,date));
