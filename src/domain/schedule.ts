@@ -46,6 +46,8 @@ export const DEFAULT_SCHEDULE: ScheduleStore = {
   requests: [],
   history: [],
 };
+/** Correção prospectiva: datas anteriores conservam a interpretação histórica do demo. */
+export const SATURDAY_POLICY_START = "2026-10-20";
 
 export function dateOffset(date: ISODate, n: number): ISODate {
   const time = Date.parse(date + "T12:00:00Z");
@@ -92,8 +94,12 @@ export function baseAssignment(store: ScheduleStore, employee: Employee, date: I
   if (weekday === 0) {
     return rotatingSelection(members, date, store.rules.sunday[group]).has(employee.id) ? group : null;
   }
+  if (date < SATURDAY_POLICY_START && weekday === 6 &&
+      assignmentFor(store, employee, dateOffset(date, 1)) !== null) return null;
   if (store.rules.holidays.includes(date)) {
-    return rotatingSelection(members, date, holidayTargetsFor(store.rules, date)[group]).has(employee.id) ? group : null;
+    const eligible = date < SATURDAY_POLICY_START && weekday === 6
+      ? members.filter(e => assignmentFor(store,e,dateOffset(date,1)) === null) : members;
+    return rotatingSelection(eligible, date, holidayTargetsFor(store.rules, date)[group]).has(employee.id) ? group : null;
   }
   return group;
 }
@@ -174,7 +180,8 @@ export function validateChanges(store: ScheduleStore, changes: AssignmentChange[
   if (errors.length) return { ok: false, errors, coverageBefore: before, coverageAfter: before };
   const next = withChanges(store, changes);
   const after = coverageFor(next, date);
-  const affectedDates = [...new Set(changes.map(change => change.date))];
+  const affectedDates = [...new Set(changes.flatMap(change => dayOfWeek(change.date) === 0 &&
+    dateOffset(change.date,-1) < SATURDAY_POLICY_START ? [change.date,dateOffset(change.date,-1)] : [change.date]))];
   for (const checkDate of affectedDates) {
     const oldCoverage = checkDate === date ? before : coverageFor(store, checkDate);
     const newCoverage = checkDate === date ? after : coverageFor(next, checkDate);
@@ -196,7 +203,11 @@ export function validateChanges(store: ScheduleStore, changes: AssignmentChange[
   }
   for (const change of changes) {
     const employee = DEMO_EMPLOYEES.find(item => item.id === change.employeeId);
-    if (employee) errors.push(...adjacentRestProblems(next, employee, change.date));
+    if (employee) {
+      const existing = adjacentRestProblems(store,employee,change.date);
+      errors.push(...adjacentRestProblems(next, employee, change.date).filter(error =>
+        !error.includes("sete dias") || !existing.includes(error)));
+    }
   }
   return { ok: errors.length === 0, errors: [...new Set(errors)], coverageBefore: before, coverageAfter: after };
 }
