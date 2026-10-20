@@ -9,10 +9,10 @@ import { DEMO_EMPLOYEES } from "@/domain/demo-data";
 import { isValidReferenceDate } from "@/domain/operation-query";
 import { DEFAULT_SCHEDULE, dateOffset, reviseStore, type ScheduleStore } from "@/domain/schedule";
 import {
-  ABSENCE_DEMO_DATE, ABSENCE_LABELS, ABSENCE_STATUS_LABELS, ABSENCE_STORAGE_KEY,
-  DEMO_ACTOR, SCHEDULE_STORAGE_KEY, absenceSummary, coverageWithAbsences, dailyAbsences,
+  ABSENCE_DEMO_DATE, ABSENCE_LABELS, ABSENCE_STORAGE_KEY,
+  SCHEDULE_STORAGE_KEY, absenceSummary, coverageWithAbsences,
   decideAbsence, demoAbsences, nextWorkDate, restoreAbsences, saveAbsence, validateAbsence,
-  type Absence, type AbsenceDraft, type AbsenceStatus, type AbsenceStore, type AbsenceType,
+  type Absence, type AbsenceDraft, type AbsenceStore, type AbsenceType,
 } from "@/domain/absences";
 import type { GroupId } from "@/domain/types";
 import "./AbsenceWorkspace.css";
