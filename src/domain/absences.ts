@@ -120,7 +120,7 @@ export function isConflicting(entry: Absence, draft: AbsenceDraft, exclude?: str
     (entry.status === "pendente" || entry.status === "aprovado") &&
     entry.start <= draft.end && draft.start <= entry.end;
 }
-export function validateAbsence(store: AbsenceStore, draft: AbsenceDraft, exclude?: string) {
+export function validateAbsence(store: AbsenceStore, draft: AbsenceDraft, exclude?: string, originalApproved?: string) {
   const errors: string[] = [];
   if (!employeeSet.has(draft.employeeId)) errors.push("Selecione um colaborador válido.");
   if (!types.includes(draft.type)) errors.push("Tipo de ausência inválido.");
@@ -130,7 +130,7 @@ export function validateAbsence(store: AbsenceStore, draft: AbsenceDraft, exclud
     else if (Math.round((Date.parse(draft.end+"T12:00:00Z")-Date.parse(draft.start+"T12:00:00Z"))/86400000)>366)
       errors.push("Período superior a 367 dias; confirme com o RH antes de registrar.");
   }
-  if (store.entries.some(entry => isConflicting(entry, draft, exclude)))
+  if (store.entries.some(entry => entry.id !== originalApproved && isConflicting(entry, draft, exclude)))
     errors.push("Já existe um pedido pendente ou aprovado para este colaborador em período sobreposto.");
   if (draft.note.length > 240) errors.push("Observação muito longa.");
   return errors;
@@ -144,7 +144,7 @@ export function saveAbsence(store: AbsenceStore, draft: AbsenceDraft, currentId?
   const existing = store.entries.find(e => e.id === currentId);
   if (currentId && (!existing || ["recusado", "cancelado"].includes(existing.status)))
     return { ok: false as const, errors: ["O registro não pode ser editado neste estado."], store };
-  const errors = validateAbsence(store, draft, currentId);
+  const errors = validateAbsence(store, draft, currentId, existing?.supersedesId);
   if (existing?.status === "aprovado" &&
       store.entries.some(e => e.supersedesId === existing.id && e.status === "pendente"))
     errors.push("Existe uma alteração pendente deste período. Analise-a antes de alterar novamente.");
