@@ -93,7 +93,9 @@
 .rm-group-snapshot{grid-template-columns:1fr}.rm-focus-grid{grid-template-columns:1fr}.rm-paper-footer{padding:10px;flex-wrap:wrap}}
 /* Only report body goes to PDF. @page counter is supported in modern Chromium print engines;
  * the browser may also add its own configurable page numbers. */
-@page{size:A4 portrait;margin:14mm 11mm 16mm}
+@page{size:A4 portrait;margin:14mm 11mm 16mm;
+  @bottom-right{content:"Página " counter(page);font-family:Arial,sans-serif;font-size:8pt;color:#876278}
+}
 @media print{
   html,body{background:#fff!important;color:#222!important;font-family:Arial,sans-serif!important}
   .no-print,.formosa-shell-sidebar,.formosa-shell-nav,.formosa-shell-header{display:none!important}
