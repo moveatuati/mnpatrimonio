@@ -10,6 +10,16 @@ describe("EC 141/2026 · simulador 5×2",()=>{
    expect(LEGAL_SOURCES.firstPhase).toBe("2026-12-16");
    expect(LEGAL_SOURCES.finalPhase).toBe("2027-12-16");
  });
+ it("permite realocar reforços por grupo sem transferir empregados existentes",()=>{
+   const allocation={A:6,B:34,C:36};
+   const r=simulate5x2(DEFAULT_SCHEDULE,demoAbsences(),{
+     ...DEFAULT_PARAMETERS,people:76,allocation,
+   });
+   expect(r.groups.map(g=>g.headcount)).toEqual([6,34,36]);
+   expect(()=>simulate5x2(DEFAULT_SCHEDULE,demoAbsences(),{
+     ...DEFAULT_PARAMETERS,people:76,allocation:{A:4,B:40,C:30},
+   })).toThrow(/Distribuição inválida/);
+ });
  it("mantém base A/B/C e adiciona reforços fictícios únicos",()=>{
    expect(groupAllocation(63)).toEqual({A:4,B:29,C:30});
    for(const n of [63,76,79,90,140]){
