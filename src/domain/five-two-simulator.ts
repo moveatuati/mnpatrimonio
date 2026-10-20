@@ -28,6 +28,7 @@ export interface ScenarioPerson {
   group: GroupId;
   hired: boolean;
 }
+/** Métricas legadas por grupo: não descrevem cobertura integrada de caixas. */
 export interface DayCoverage {
   date: ISODate;
   weekday: number;
@@ -57,9 +58,12 @@ export const DAYS = ["Seg","Ter","Qua","Qui","Sex","Sáb","Dom"] as const;
 export const FUTURE_START = "2026-12-21";
 export const BASE_PEOPLE = 63;
 /** Hipótese gerencial editável, não resultado do dimensionamento. */
-export const COMPARISON_PEOPLE = 78;
+export const PROJECTED_PEOPLE = 83;
+/** Projeção de trabalho com operadores do mesmo setor distribuídos entre os horários. */
+export const PROJECTED_ALLOCATION:Record<GroupId,number> = {A:6,B:38,C:39};
 export const DEFAULT_PARAMETERS:SimulatorParameters = {
-  start:FUTURE_START,people:COMPARISON_PEOPLE,weeklyLimit:40,
+  start:FUTURE_START,people:PROJECTED_PEOPLE,weeklyLimit:40,
+  allocation:{...PROJECTED_ALLOCATION},
 };
 export type ScenarioResult = ReturnType<typeof simulate5x2>;
 const localWeekday=(iso:ISODate)=>(dayOfWeek(iso)+6)%7; // Monday=0
@@ -72,12 +76,12 @@ export const PROPOSED_SHIFTS = {
   40:{
     A:{start:"07:00",breakStart:"12:00",breakEnd:"13:00",end:"16:00"},
     B:{start:"08:00",breakStart:"13:00",breakEnd:"14:00",end:"17:00"},
-    C:{start:"13:00",breakStart:"17:00",breakEnd:"18:00",end:"22:00"},
+    C:{start:"13:00",breakStart:"16:00",breakEnd:"17:00",end:"22:00"},
   },
   42:{
     A:{start:"07:00",breakStart:"12:00",breakEnd:"13:00",end:"16:24"},
     B:{start:"08:00",breakStart:"13:00",breakEnd:"14:00",end:"17:24"},
-    C:{start:"12:36",breakStart:"17:00",breakEnd:"18:00",end:"22:00"},
+    C:{start:"12:36",breakStart:"16:00",breakEnd:"17:00",end:"22:00"},
   },
 } as const;
 export function proposedShift(group:GroupId,limit:WeeklyLimit,date:ISODate) {

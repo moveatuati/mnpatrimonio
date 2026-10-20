@@ -8,8 +8,8 @@ import { ABSENCE_STORAGE_KEY,demoAbsences,restoreAbsences,type AbsenceStore } fr
 import { SCHEDULE_STORAGE_KEY } from "@/domain/absences";
 import { DEFAULT_SCHEDULE,dateOffset,reviseStore,startOfWeek,type ScheduleStore } from "@/domain/schedule";
 import {
-  DAYS,DEFAULT_PARAMETERS,COMPARISON_PEOPLE,FUTURE_START,LEGAL_SOURCES,PROPOSED_SHIFTS,groupAllocation,
-  proposedShift,simulate5x2,theoreticalMinimum,
+  DAYS,DEFAULT_PARAMETERS,BASE_PEOPLE,PROJECTED_PEOPLE,PROJECTED_ALLOCATION,FUTURE_START,LEGAL_SOURCES,PROPOSED_SHIFTS,groupAllocation,
+  proposedShift,simulate5x2,
   type SimulatorParameters,type ScenarioResult,
 } from "@/domain/five-two-simulator";
 import type { GroupId } from "@/domain/types";
@@ -66,17 +66,17 @@ const SOURCES=[
   desc:"Experiências mencionadas no Senado; condições específicas não comprovadas para replicação."},
 ];
 const STEPS=[
- {n:"01",name:"Auditar quadro e demanda",desc:"Validar os 63 funcionários, funções, cobertura mínima por hora e os picos do supermercado. Os números A/B/C atuais são apenas um ponto de partida."},
+ {n:"01",name:"Conferir a operação atual",desc:"Confirmar a suficiência dos 63 operadores em 6×1, horários, intervalos, folgas e domingos."},
  {n:"02",name:"Validar norma coletiva",desc:"Confirmar com RH e sindicato jornadas, folgas, domingos, feriados, intervalos e eventual ampliação diária na fase transitória de 42h."},
- {n:"03",name:"Testar escalas de quatro semanas",desc:"Comparar o quadro de referência, a hipótese de ampliação e o piso calculado. Conferir folgas, cobertura por data/grupo e restrições antes de decidir contratações."},
+ {n:"03",name:"Testar a projeção de 83 operadores",desc:"Comparar a presença integrada dos caixas por horário, respeitando folgas, sábados, domingos, feriados e descanso."},
  {n:"04",name:"Implantar piloto controlado",desc:"Começar por setores/unidades selecionadas, registrar preferências e monitorar pontualidade, vendas, filas, custo e satisfação por algumas semanas."},
  {n:"05",name:"Corrigir déficit e revisar",desc:"Ajustar reforços, realocar responsabilidades, treinar substitutos e refazer a simulação. Nunca depender de hora extra automática para cobrir quadro insuficiente."},
  {n:"06",name:"Aprovar e só depois operacionalizar",desc:"Formalizar com gestão, DP, jurídico e sindicato; configurar jornadas reais e integrar ao ponto oficial apenas após validação das condições."},
 ];
 const INSIGHTS:[string,string][]=[
  ["O que muda para o trabalhador?","Na simulação da Formosa, cada pessoa trabalha 5 dias e descansa 2 por semana. Todo sábado é escalado, enquanto o domingo alterna rigorosamente entre trabalho e folga. Férias e ausências aprovadas continuam reduzindo a presença efetiva."],
- ["A ampliação simulada é uma recomendação de contratação?","Não. O cenário intermediário de 78 pessoas é uma hipótese editável para comparação. Não deriva do cálculo do piso nem de orçamento aprovado. A decisão exige validar demanda, escala, funções e custos."],
- ["Por que atingir o piso pode deixar déficits?","O piso verifica capacidade agregada. A escala precisa distribuir essa capacidade por data e grupo, descontando ausências aprovadas. A heurística pode deixar lacunas mesmo quando o total alcança o piso; isso não prova que contratar mais seja a única solução."],
+ ["83 é o quadro definitivo?","Não. É a projeção gerencial de 63 atuais mais 20 hipotéticos (+31,7%). O número final só será comprovado após comparação da presença nos horários do 6×1 e do 5×2."],
+ ["Por que não há postos-dia descobertos por grupo?","A, B e C são turnos de um só setor de caixas. O cálculo antigo tratava cada turno como demanda independente, ignorando a sobreposição e a cobertura cruzada."],
  ["Como ficam as folgas e os feriados?","Para a Formosa, as folgas são obrigatoriamente separadas. Quem trabalha domingo folga duas vezes de segunda a sexta; quem folga domingo recebe mais uma folga útil. Feriado pode ser trabalhado ou coincidir com a folga, mas não gera descanso adicional automático. Evitamos folgar terça quando a segunda-feira feriada foi folga."],
  ["Como fica a fase de 42 horas?","No período de transição, 5 × 8h24 ultrapassa 8 horas diárias e exige autorização por acordo ou convenção coletiva. A tela marca essa hipótese como CONDICIONAL; não publica jornada."],
  ["E os colaboradores que saem às 22h?","O simulador propõe turnos A/B/C ajustados para preservar fechamento, em vez de estender automaticamente o grupo C além das 22h. Qualquer nova entrada deve respeitar 11 horas de descanso."],
@@ -113,11 +113,6 @@ export function FiveTwoWorkspace(){
     if(!dateIsMonday||parameters.people<63||parameters.people>140)return null;
     try{return simulate5x2(sources.schedule,sources.absences,parameters);}catch{return null;}
   },[sources,parameters,dateIsMonday]);
-  const preview=useMemo(()=>{
-    if(!result)return null;
-    const other=parameters.people===63?COMPARISON_PEOPLE:63;
-    try{return simulate5x2(sources.schedule,sources.absences,{...parameters,people:other,allocation:undefined});}catch{return null;}
-  },[sources,parameters,result]);
   const daily=result?.coverage.filter(r=>r.date>=dateOffset(parameters.start,week*7)&&
     r.date<=dateOffset(parameters.start,week*7+6)&&
     (group==="all"||r.group===group))??[];
@@ -127,11 +122,9 @@ export function FiveTwoWorkspace(){
   const daysWeek=Array.from({length:7},(_,i)=>dateOffset(safeStart,week*7+i));
   const legalFirst=parameters.start>=LEGAL_SOURCES.firstPhase;
   const legalForty=parameters.start>=LEGAL_SOURCES.finalPhase;
-  const currentMin=theoreticalMinimum(sources.schedule,safeStart);
   const selectors=[
-    {id:"base",value:63,title:"Atual · 63 pessoas",desc:"Quadro de referência em 5×2"},
-    {id:"comparison",value:COMPARISON_PEOPLE,title:`Ampliação · ${COMPARISON_PEOPLE} pessoas`,desc:"Hipótese editável de comparação"},
-    {id:"minimum",value:currentMin.total,title:`Piso teórico · ${currentMin.total} pessoas`,desc:currentMin.total>140?"Acima do limite de 140 deste simulador":"Piso calculado, sem garantia de cobertura"},
+    {id:"base",value:BASE_PEOPLE,title:"Atual · 63 pessoas",desc:"Quadro de referência no 6×1"},
+    {id:"projection",value:PROJECTED_PEOPLE,title:"Projeção ideal · 83 pessoas",desc:"+31,7% no quadro · estudo"},
   ];
   function change<K extends keyof SimulatorParameters>(key:K,value:SimulatorParameters[K]){
     setParameters(p=>({...p,[key]:value}));setExpanded(null);
@@ -157,7 +150,7 @@ export function FiveTwoWorkspace(){
     <header className="ft-top no-print"><div>
       <p className="op-eyebrow">FORMOSA · GESTÃO DE PESSOAS · {UNIT.unit.toUpperCase()}</p>
       <h1>Simulador <span>5×2</span></h1>
-      <p>Planejamento de folgas, quadro necessário e cobertura operacional em quatro semanas.</p></div>
+      <p>Planejamento para preservar a cobertura dos operadores de caixa na transição 6×1 → 5×2.</p></div>
       <div className="ft-top-actions">
         <button type="button" className="ft-secondary" onClick={()=>setSources(storeSources())}><RefreshCw size={15}/> Atualizar bases</button>
         <button type="button" className="ft-primary" disabled={!result} onClick={csv}><Download size={16}/> Exportar simulação</button>
@@ -171,14 +164,13 @@ export function FiveTwoWorkspace(){
       <button type="button" aria-label="Fechar aviso" onClick={()=>setMessage("")}>×</button></div>}
     <section className="ft-panel no-print">
       <div className="ft-heading"><div><p className="op-eyebrow">LABORATÓRIO DE CENÁRIOS</p>
-        <h2>Configure a futura operação</h2><p>Altere o quadro e veja a cobertura recalculada, sem modificar a escala real.</p></div>
+        <h2>Configure a futura operação</h2><p>Projeção gerencial de 83 pessoas (+31,7%). Ajuste o quadro sem alterar a escala real.</p></div>
         <span className="ft-pill">{ready?"Base fictícia carregada":"Carregando referências"}</span></div>
       <div className="ft-scenario-options">{selectors.map(o=><button key={o.id} type="button"
         className={parameters.people===o.value&&headcountMode==="preset"?"ft-selected":""}
         disabled={o.value>140}
-        onClick={()=>{setHeadcountMode("preset");if(o.id==="minimum"){
-          setParameters(p=>({...p,people:currentMin.total,allocation:{...currentMin.groups}}));
-        }else applyPeople(o.value);}}> 
+        onClick={()=>{setHeadcountMode("preset");setParameters(p=>({...p,people:o.value,
+           allocation:o.id==="projection"?{...PROJECTED_ALLOCATION}:undefined}));}}> 
         <span>{o.title}</span><small>{o.desc}</small>
         <strong>{o.value}</strong></button>)}
         <button type="button" className={headcountMode==="custom"?"ft-selected":""}
@@ -226,16 +218,16 @@ export function FiveTwoWorkspace(){
     </section>
     {result&&summary&&<>
       <section className="ft-stats" aria-label="Indicadores do cenário">
-        <MiniMetric name="Equipe simulada" value={integer(summary.headcount)} detail={"63 atuais + "+summary.newHires+" hipotéticos"}
-        explanation="Total do cenário: 63 funcionários fictícios cadastrados e reforços simulados. Nenhuma contratação é realizada."/>
-        <MiniMetric name="Cobertura prevista" value={percent(summary.coverageRate)} detail="Postos-dia · não mede cobertura horária" tone={summary.deficitCount?"amber":"green"}
-        explanation={`Postos-dia atendidos ÷ demanda × 100: (${integer(summary.totalRequired)} − ${integer(summary.deficitCount)}) ÷ ${integer(summary.totalRequired)}. Calculado por data e grupo em 28 dias; excedentes não compensam faltas em outro recorte. Não comprova cobertura por hora ou função.`}/>
-        <MiniMetric name="Postos-dia descobertos" value={integer(summary.deficitCount)} detail="Diferença acumulada da necessidade" tone={summary.deficitCount?"amber":"green"}
-        explanation="Soma de trabalhadores que faltam para as metas diárias dos grupos. Se faltam dois funcionários por três dias, são seis postos-dia descobertos."/>
-        <MiniMetric name="Dias com déficit" value={integer(summary.uncoveredDays)} detail="Em um ou mais grupos" tone={summary.uncoveredDays?"red":"green"}
-        explanation="Número de datas em que pelo menos um grupo não possui o quantitativo mínimo previsto, considerando afastamentos aprovados."/>
+        <MiniMetric name="Quadro atual · 6×1" value="63" detail="100% da operação · referência informada"
+          explanation="A gestão considera a operação atual suficiente com 63 operadores de caixa. Os turnos A, B e C se complementam no mesmo setor."/>
+        <MiniMetric name="Projeção de equipe · 5×2" value={integer(summary.headcount)} detail="Projeção gerencial de planejamento"
+          explanation="83 é a projeção escolhida para estudo, ainda não certificada como quadro necessário ou cobertura equivalente por horário."/>
+        <MiniMetric name="Reforço hipotético" value={"+"+integer(summary.newHires)} detail="Pessoas adicionais projetadas" tone="blue"
+          explanation={`Quadro simulado ${summary.headcount} menos 63 atuais = ${summary.newHires} operadores. Nenhuma contratação foi efetuada.`}/>
+        <MiniMetric name="Crescimento percentual" value={percent(summary.newHires/BASE_PEOPLE*100)} detail="Ampliação sobre 63 colaboradores" tone="green"
+          explanation={`(${summary.headcount} − 63) ÷ 63 × 100. Com 83 colaboradores, o crescimento seria 31,7%.`}/>
       </section>
-      <ScenarioExplanation result={result} schedule={sources.schedule}/>
+      <ScenarioExplanation result={result}/>
       <nav className="ft-tabs no-print" aria-label="Seções do simulador">
         <button className={tab==="cenario"?"ft-tab-active":""} onClick={()=>setTab("cenario")} type="button"><LayoutIcon/> Viabilidade e cobertura</button>
         <button className={tab==="escala"?"ft-tab-active":""} onClick={()=>setTab("escala")} type="button"><CalendarDays size={16}/> Escala por pessoa</button>
@@ -244,19 +236,16 @@ export function FiveTwoWorkspace(){
       {tab==="cenario"&&<>
         <div className="ft-two">
           <section className="ft-panel"><div className="ft-heading"><div><p className="op-eyebrow">DIAGNÓSTICO</p>
-            <h2>Quanto pessoal seria necessário?</h2><p>Capacidade matemática versus cobertura por data e grupo.</p></div>
+            <h2>O que representa a projeção?</h2><p>Comparação de capacidade em jornadas, não certificado de cobertura por horário.</p></div>
             <span className="ft-pill">4 semanas</span></div>
             <div className="ft-diagnostics">
-              <div><span>Capacidade semanal em jornadas</span><strong>{integer(summary.weeklyCapacity)}</strong><small>{summary.headcount} × 5 dias</small></div>
-              <div><span>Demanda semanal inicial</span><strong>{integer(summary.requiredFirstWeek)}</strong><small>Metas A/B/C por dia</small></div>
-              <div><span>Piso matemático do quadro <HelpBubble label="Dimensionamento" description="Novo cálculo com sábado integral para todos e dois domingos trabalhados por pessoa em quatro semanas; cada funcionário fica com 14 dias úteis disponíveis no período. É um mínimo necessário, não suficiente."/></span><strong>{currentMin.total}</strong><small>A {currentMin.groups.A} · B {currentMin.groups.B} · C {currentMin.groups.C}</small></div>
-              <div><span>Déficit na escala atual (28 dias)</span><strong>{summary.totalBaselineDeficit}</strong><small>Referência 6×1 com regras existentes</small></div>
+              <div><span>6×1 atual · cobertura de referência</span><strong>100%*</strong><small>Premissa informada pela gestão</small></div>
+              <div><span>Jornadas por semana · 6×1</span><strong>{BASE_PEOPLE*6}</strong><small>63 × 6 dias</small></div>
+              <div><span>Jornadas por semana · 5×2</span><strong>{summary.weeklyCapacity}</strong><small>{summary.headcount} × 5 dias</small></div>
+              <div><span>Cobertura horária · 5×2</span><strong className="ft-evaluation-pending">A validar</strong><small>Turnos integrados, intervalos e folgas</small></div>
             </div>
-            <div className={"ft-message-note "+(summary.deficitCount?"ft-message-warn":"")}>
-              {summary.deficitCount?<AlertTriangle size={17}/>:<CheckCircle2 size={17}/>}
-              <p><b>{summary.deficitCount?"Cobertura ainda insuficiente":"Sem déficit para as metas informadas"}</b>
-                {" "}O estudo encontrou {summary.deficitCount} posto(s)-dia descoberto(s) com {summary.headcount} pessoas.
-                {summary.deficitCount?" Ajuste quantidade, distribuição por grupo ou regras de funcionamento.":" Confirme horários, funções e demanda horária real antes de aprovar."}</p>
+            <div className="ft-message-note ft-message-warn"><Info size={17}/>
+              <p><b>83 é uma projeção, não cobertura certificada.</b> Os grupos são operadores de caixa com horários sobrepostos. Retiramos o antigo déficit de postos-dia e o piso por grupo, que não consideravam essa integração.</p>
             </div>
           </section>
           <section className="ft-panel"><div className="ft-heading"><div><p className="op-eyebrow">QUALIDADE DA ESCALA</p>
@@ -271,19 +260,19 @@ export function FiveTwoWorkspace(){
           </section>
         </div>
         <section className="ft-panel">
-          <div className="ft-heading"><div><p className="op-eyebrow">EQUIPES · A / B / C</p>
-            <h2>Como o reforço é distribuído</h2><p>Distribuição proporcional inicial. Gestão pode reavaliar funções e necessidades reais.</p></div></div>
+          <div className="ft-heading"><div><p className="op-eyebrow">MESMO SETOR · OPERADORES DE CAIXA</p>
+            <h2>Distribuição nos três turnos</h2><p>Os grupos se sobrepõem e se apoiam sem distinção de função.</p></div></div>
           <div className="ft-group-grid">{result.groups.map(g=><div key={g.group}>
             <div className="ft-group-title"><b>Grupo {g.group} · {GROUPS[g.group].name}</b><strong>{g.headcount} pessoas</strong></div>
-            <div className="ft-group-detail"><span>Jornadas necessárias/semana</span><b>{g.neededWeek}</b></div>
-            <div className="ft-group-detail"><span>Capacidade/semana</span><b>{g.capacityWeek}</b></div>
-            <div className="ft-group-detail"><span>Déficit em 4 semanas</span><b className={g.unmet?"ft-danger":""}>{g.unmet} postos-dia</b></div>
-            <div className="ft-progress"><i style={{width:Math.min(100,g.neededWeek?g.capacityWeek/g.neededWeek*100:100)+"%"}}/></div>
+            <div className="ft-group-detail"><span>Equipe atual</span><b>{GROUPS[g.group].requiredStaff}</b></div>
+            <div className="ft-group-detail"><span>Reforço hipotético</span><b>+{g.headcount-GROUPS[g.group].requiredStaff}</b></div>
+            <div className="ft-group-detail"><span>Horário atual</span><b>{GROUPS[g.group].shift.start}–{GROUPS[g.group].shift.end}</b></div>
           </div>)}</div>
+          <div className="ft-note"><Info size={16}/> Todos exercem a mesma função. Não existe déficit independente de A, B ou C sem verificar a cobertura integrada por horário e descontar intervalos.</div>
         </section>
         <section className="ft-panel">
-          <div className="ft-heading"><div><p className="op-eyebrow">MAPA DE COBERTURA SEMANAL</p>
-            <h2>Quem cobre cada dia?</h2><p>Vermelho indica falta de pessoal para a meta do grupo. Clique na semana para analisar outra janela.</p></div>
+          <div className="ft-heading"><div><p className="op-eyebrow">PRESENÇA SIMULADA</p>
+            <h2>Quem está escalado na semana?</h2><p>Total presente por dia, sem confundir com cobertura horária.</p></div>
             <select aria-label="Semana da cobertura" className="ft-week-select"
               value={week} onChange={e=>setWeek(Number(e.target.value))}>
               {[0,1,2,3].map(w=><option key={w} value={w}>Semana {w+1}: {dBR(dateOffset(parameters.start,w*7))}</option>)}
@@ -291,26 +280,25 @@ export function FiveTwoWorkspace(){
           <div className="ft-week-grid">
             {daysWeek.map((date,i)=>{
               const items=result.coverage.filter(r=>r.date===date);
-              const missing=items.reduce((n,r)=>n+r.deficit,0);
-              const available=items.reduce((n,r)=>n+r.available,0);
-              const needed=items.reduce((n,r)=>n+r.required,0);
-              return <div key={date} className={"ft-day "+(missing?"ft-day-risk":"")}>
-                <span>{DAYS[i]} · {dBR(date).slice(0,5)}</span><strong>{available}/{needed}</strong>
-                <small>{missing?missing+" descobertos":"Cobertura mínima atingida"}</small>
+              const available=items.reduce((n,x)=>n+x.available,0);
+              const planned=items.reduce((n,x)=>n+x.planned,0);
+              const absent=items.reduce((n,x)=>n+x.absent,0);
+              return <div key={date} className="ft-day">
+                <span>{DAYS[i]} · {dBR(date).slice(0,5)}</span><strong>{available} presentes</strong>
+                <small>{planned} escalados · {absent} ausência(s)</small>
               </div>;
             })}
           </div>
-          <div className="ft-scroll-table" role="region" aria-label="Detalhes diários de cobertura" tabIndex={0}>
-            <table className="ft-table"><thead><tr><th>Data</th><th>Grupo</th><th>Necessários</th><th>Escalados</th>
-              <th>Ausências aprovadas</th><th>Disponíveis</th><th>Déficit</th><th>6×1 referência</th></tr></thead>
+          <div className="ft-scroll-table" role="region" aria-label="Detalhes diários de presença" tabIndex={0}>
+            <table className="ft-table"><thead><tr><th>Data</th><th>Turno</th><th>Escalados</th>
+              <th>Ausências aprovadas</th><th>Disponíveis</th></tr></thead>
               <tbody>{daily.map(r=><tr key={r.date+r.group}>
                 <td>{dBR(r.date)}{r.sunday?" · Domingo":r.holiday?" · Feriado":""}</td>
-                <td><b>Grupo {r.group}</b></td><td>{r.required}</td><td>{r.planned}</td>
-                <td>{r.absent}</td><td>{r.available}</td>
-                <td><span className={"ft-status "+(r.deficit?"ft-status-red":"ft-status-green")}>{r.deficit?("−"+r.deficit):"OK"}</span></td>
-                <td>{r.baseline}/{r.required}</td></tr>)}</tbody>
+                <td><b>Grupo {r.group}</b></td><td>{r.planned}</td><td>{r.absent}</td><td>{r.available}</td>
+              </tr>)}</tbody>
             </table>
           </div>
+          <div className="ft-note"><Info size={16}/> Presença diária não mede cobertura em cada horário: validar a referência individual 6×1 e as pausas antes de confirmar a projeção.</div>
         </section>
         <section className="ft-panel">
           <div className="ft-heading"><div><p className="op-eyebrow">PROPOSTA DE JORNADAS</p><h2>Como ficam os horários de trabalho</h2>
@@ -324,7 +312,7 @@ export function FiveTwoWorkspace(){
                 <td>{current.start}–{current.breakStart} / {current.breakEnd}–{current.end}</td>
                 <td>{proposal.start}–{proposal.breakStart} / {proposal.breakEnd}–{proposal.end}</td>
                 <td><b>{minutes(typical.minutes)} por jornada</b></td>
-                <td>{g==="C"?"Preserva encerramento às 22h": "Intervalo proposto de 1h; validar acordo e funcionamento"}</td>
+                <td>{g==="C"?"Retorna às 17h e encerra às 22h": "Intervalo proposto de 1h; validar acordo e funcionamento"}</td>
               </tr>;
             })}</tbody></table></div>
           <div className="ft-note"><Info size={16}/> Domingos e feriados exigem dimensionamento próprio. Turnos dominicais
@@ -348,14 +336,7 @@ export function FiveTwoWorkspace(){
             O resultado é apenas a multiplicação do reforço pelo custo informado; não contempla produtividade,
             alterações de horário, treinamento, despesas extraordinárias ou negociação coletiva.</div>
         </section>
-        {preview&&<section className="ft-panel">
-          <div className="ft-heading"><div><p className="op-eyebrow">COMPARAÇÃO RÁPIDA</p><h2>Diferença entre cenários</h2>
-            <p>Quantidades não substituem qualificação, treinamento nem produtividade real.</p></div></div>
-          <div className="ft-comparison">
-            <div><b>Com {result.people.length} pessoas</b><strong>{summary.deficitCount} postos-dia em déficit</strong></div>
-            <ArrowRight size={20}/><div><b>Com {preview.people.length} pessoas</b>
-              <strong>{preview.metrics.deficitCount} postos-dia em déficit</strong></div></div>
-        </section>}
+        
       </>}
       {tab==="escala"&&<section className="ft-panel">
         <div className="ft-heading"><div><p className="op-eyebrow">PROPOSTA INDIVIDUAL · 4 SEMANAS</p>
