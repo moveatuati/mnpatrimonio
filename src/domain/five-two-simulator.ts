@@ -22,6 +22,7 @@ export interface SimulatorParameters {
   weeklyLimit: WeeklyLimit;
   restMode: RestMode;
   sundayPriority: boolean;
+  allocation?: Record<GroupId,number>; // distribuição manual opcional; nunca altera grupos cadastrados
 }
 export interface ScenarioPerson {
   id: string;
@@ -102,8 +103,8 @@ export function groupAllocation(headcount:number):Record<GroupId,number> {
   }
   return counts;
 }
-export function makeScenarioPeople(count:number):ScenarioPerson[]{
-  const totals=groupAllocation(count);
+export function makeScenarioPeople(count:number,allocation?:Record<GroupId,number>):ScenarioPerson[]{
+  const totals=allocation??groupAllocation(count);
   const original=DEMO_EMPLOYEES.map(e=>({id:e.id,name:e.name,group:e.group,hired:false}));
   for(const group of GROUP_IDS){
     const existing=original.filter(e=>e.group===group).length;
@@ -168,7 +169,13 @@ function restTimeOK(people:ScenarioPerson[],workingById:Map<string,Set<ISODate>>
 export function simulate5x2(schedule:ScheduleStore,absences:AbsenceStore,settings:SimulatorParameters){
   if(settings.start!==startOfWeek(settings.start))throw new Error("O início da simulação deve ser uma segunda-feira.");
   if(settings.people<63||settings.people>140||!Number.isInteger(settings.people))throw new Error("Escolha entre 63 e 140 colaboradores.");
-  const weeks=4,people=makeScenarioPeople(settings.people);
+  if(settings.allocation){
+    if(GROUP_IDS.some(g=>!Number.isInteger(settings.allocation![g])||
+      settings.allocation![g] < DEMO_EMPLOYEES.filter(e=>e.group===g).length) ||
+      GROUP_IDS.reduce((n,g)=>n+settings.allocation![g],0)!==settings.people)
+      throw new Error("Distribuição inválida: os grupos devem somar o quadro, sem remover funcionários atuais.");
+  }
+  const weeks=4,people=makeScenarioPeople(settings.people,settings.allocation);
   const dates=Array.from({length:weeks*7},(_,i)=>dateOffset(settings.start,i));
   const byWeek:PersonWeek[]=[];
   const workingById=new Map<string,Set<ISODate>>(people.map(e=>[e.id,new Set<ISODate>()]));
