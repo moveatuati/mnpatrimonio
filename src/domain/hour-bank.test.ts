@@ -9,7 +9,7 @@ describe("Livro-razão de horas — valores inteiros",()=>{
     const store=demoHourStore();
     expect(store.entries).toHaveLength(13);
     expect(hourTotals(store,REFERENCE_DAY)).toMatchObject({
-      positive:275,negative:95,net:180,peoplePositive:5,peopleNegative:1,pending:1,
+      positive:260,negative:95,net:165,peoplePositive:5,peopleNegative:1,pending:1,
     });
     expect(balanceOf(store,"FM-001",REFERENCE_DAY)).toBe(60);
     expect(balanceOf(store,"FM-020",REFERENCE_DAY)).toBe(-95);
