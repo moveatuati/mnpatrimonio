@@ -127,8 +127,10 @@ export function AbsenceWorkspace(){
     .map(entry=>({...entry,returnDate:nextWorkDate(schedule,entry.employeeId,entry.end)}))
     .filter(entry=>entry.returnDate&&entry.returnDate>=date&&entry.returnDate<=dateOffset(date,14))
     .sort((a,b)=>(a.returnDate??"").localeCompare(b.returnDate??""));
-  const errors=validateAbsence(store,draft,editing??undefined,
-    store.entries.find(e=>e.id===editing)?.supersedesId);
+  const editingRecord=store.entries.find(e=>e.id===editing);
+  const errors=validateAbsence(store,draft,editing??undefined,editingRecord?.supersedesId);
+  if(editingRecord?.status==="aprovado"&&editingRecord.employeeId!==draft.employeeId)
+    errors.push("O colaborador de um período aprovado não pode ser alterado.");
   function formStart(item?:Absence){
     if(item){
       setEditing(item.id);
@@ -296,7 +298,9 @@ export function AbsenceWorkspace(){
       </div>
       <div className="fa-form-grid">
         <label className="fa-field"><span>Colaborador</span>
-          <select aria-label="Colaborador" value={draft.employeeId} onChange={e=>writeDraft("employeeId",e.target.value)}>
+          <select aria-label="Colaborador" value={draft.employeeId}
+            disabled={editingRecord?.status==="aprovado"}
+            onChange={e=>writeDraft("employeeId",e.target.value)}>
             {DEMO_EMPLOYEES.map(e=><option key={e.id} value={e.id}>{e.name} · {e.id} · Grupo {e.group}</option>)}
           </select></label>
         <label className="fa-field"><span>Tipo do pedido</span>
