@@ -9,8 +9,8 @@ import { DEMO_EMPLOYEES } from "@/domain/demo-data";
 import { isValidReferenceDate } from "@/domain/operation-query";
 import {
   DEFAULT_DRAFT, ENTRY_STATUSES, HOUR_KEY, KINDS, REFERENCE_DAY,
-  balanceOf, decideEntry, demoHourStore, duration, hourSnapshot, hourTotals,
-  monthWindow, movementsOf, parseMinutes, proposeEntry, restoreHours,
+  decideEntry, demoHourStore, duration, hourSnapshot, hourTotals,
+  monthWindow, parseMinutes, proposeEntry, restoreHours,
   reverseEntry, validateDraft, type EntryDraft, type EntryStatus, type HourEntry, type HourKind,
   type HourStore,
 } from "@/domain/hour-bank";
@@ -126,10 +126,6 @@ export function HourBankWorkspace(){
       " "+e.employeeId).toLocaleLowerCase("pt-BR").includes(ledgerQuery.trim().toLocaleLowerCase("pt-BR"))))
     .sort((a,b)=>b.date.localeCompare(a.date)||b.createdAt.localeCompare(a.createdAt));
   const errors=validateDraft(draft);
-  const positive=store.entries.filter(e=>e.status==="aprovado"&&e.date<=date&&e.minutes>0)
-    .reduce((sum,e)=>sum+e.minutes,0);
-  const negative=store.entries.filter(e=>e.status==="aprovado"&&e.date<=date&&e.minutes<0)
-    .reduce((sum,e)=>sum-e.minutes,0);
   const canReverse=(entry:HourEntry)=>entry.status==="aprovado"&&entry.kind!=="estorno"&&
     !store.entries.some(item=>item.reversalOf===entry.id&&item.status==="aprovado");
   function openPerson(id:string){setEmployeeId(id);setReverseTarget(null);setTab("statement");}
@@ -169,8 +165,9 @@ export function HourBankWorkspace(){
     try{exportLedger(store.entries,date);setFeedback("Extrato CSV demonstrativo gerado, incluindo todas as situações e competências.");}
     catch{setFeedback("Não foi possível gerar o CSV neste navegador.");}
   }
-  const updateDraft=<T extends keyof EntryDraft>(key:T,value:EntryDraft[T])=>
+  function updateDraft<T extends keyof EntryDraft>(key:T,value:EntryDraft[T]){
     setDraft(prev=>({...prev,[key]:value}));
+  }
   return <div className="bh-app formosa-operation">
     <header className="bh-head">
       <div><p className="op-eyebrow">FORMOSA · GESTÃO DE PESSOAS · {UNIT.unit.toUpperCase()}</p>
