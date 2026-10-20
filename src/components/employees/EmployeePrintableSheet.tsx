@@ -37,7 +37,7 @@ export function EmployeePrintableSheet({ employeeId, date }: { employeeId: strin
     { label: "Sem registro", value: report.totals.withoutEntry, tone: "danger" },
   ];
   return (
-    <main className="rh-print-screen">
+    <div className="rh-print-screen">
       <div className="rh-print-toolbar no-print">
         <a href="/colaboradores" className="rh-print-back"><ArrowLeft size={17} aria-hidden="true" /> Colaboradores</a>
         <p>Prévia de impressão · A4 retrato</p>
@@ -102,6 +102,6 @@ export function EmployeePrintableSheet({ employeeId, date }: { employeeId: strin
           <div><span>{UNIT.company} · {UNIT.unit} · {UNIT.city}</span><span>Uso demonstrativo · não é documento oficial de ponto</span></div>
         </footer>
       </article>
-    </main>
+    </div>
   );
 }

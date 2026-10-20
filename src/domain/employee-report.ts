@@ -31,7 +31,7 @@ export interface EmployeeDemoReport {
 /** Histórico de demonstração. Não há escala real por dia ou comprovante de presença. */
 export function buildEmployeeDemoReport(employee: Employee, throughDate: ISODate): EmployeeDemoReport {
   if (!isValidReferenceDate(throughDate)) throw new Error("Data de referência inválida");
-  const [year, month, day] = throughDate.split("-").map(Number);
+  const [year = 0, month = 0, day = 0] = throughDate.split("-").map(Number);
   const planned = GROUPS[employee.group].shift.start;
   const periodStart = `${year}-${String(month).padStart(2, "0")}-01`;
   const days: EmployeeDemoDay[] = [];

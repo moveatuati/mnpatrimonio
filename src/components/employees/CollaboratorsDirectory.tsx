@@ -269,7 +269,7 @@ export function CollaboratorsDirectory() {
         <p className="flex items-start gap-2 rounded-lg bg-accent p-3 text-xs leading-relaxed text-accent-foreground">
           <Info size={15} className="mt-0.5 shrink-0" aria-hidden="true" />
           Ficha apenas de consulta. O relatório A4 mostra todos os dias simulados do mês até a data escolhida.
-          Nenhuma alteração ou validação oficial de ponto é registrada.
+          Nenhuma alteração de cadastro, validação oficial de ponto ou solicitação de férias é gravada.
         </p>
       </DialogContent>}
     </Dialog>
