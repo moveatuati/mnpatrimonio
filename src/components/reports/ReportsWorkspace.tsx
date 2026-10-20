@@ -81,7 +81,7 @@ function sheetFor(model:ReportModel,type:ReportId):DisplaySheet{
     headers:["Data","Colaborador","Grupo","Previsto","Entrada","Saída intervalo","Retorno","Saída final","Atraso (min)","Situação"],
     rows:model.dailyPoint.map(r=>[dateBR(r.date),r.name+" · "+r.employeeId,r.group,r.planned,r.entry??"—",
       r.breakOut??"—",r.breakIn??"—",r.exit??"—",r.lateness===null?"—":String(r.lateness),r.status]),
-    note:"A tabela contém somente jornadas com alguma marcação simulada. Dias sem entrada constam nos indicadores, não são faltas comprovadas."};
+    note:"A tabela lista também jornadas previstas sem entrada simulada, priorizando exceções. Sem registro não constitui falta comprovada."};
   if(type==="ausencias")return {title:"Controle de férias e afastamentos",
     headers:["Colaborador","Grupo","Tipo","Início","Fim (inclusive)","Situação","Retorno previsto"],
     rows:model.absenceRows.map(r=>[r.name+" · "+r.employeeId,r.group,r.kind,dateBR(r.start),dateBR(r.end),
@@ -266,6 +266,17 @@ export function ReportsWorkspace(){
               <Metric label="Débitos aprovados" value={duration(-model.summary.debited)} sub="Movimentações do intervalo" tone="amber"/>
               <Metric label="Saldo acumulado líquido" value={duration(model.summary.netBalance)} sub="Até o fim selecionado"/>
               <Metric label="Pendentes no período" value={num(model.summary.pendingHours)} sub="Não entram no saldo" tone="blue"/>
+            </div>}
+            {selected==="horas"&&<div className="rm-focus-grid">
+              <div><b>Reconciliação do saldo acumulado</b>
+                <p>{duration(model.summary.openingBalance)} (anterior ao intervalo) +
+                  {" "+duration(model.summary.credited)} (créditos) −
+                  {" "+duration(model.summary.debited)} (débitos) =
+                  {" "+duration(model.summary.netBalance)} (saldo até {dateBR(filters.end)}).</p></div>
+              <div><b>Separação por pessoa</b>
+                <p>Créditos líquidos individuais: {duration(model.summary.positiveBalances)}.
+                  Débitos líquidos individuais: {duration(-model.summary.negativeBalances)}.
+                  Um saldo não apaga o outro na análise.</p></div>
             </div>}
             {selected==="escalas"&&<div className="rm-metrics">
               <Metric label="Jornadas previstas" value={num(model.summary.plannedShifts)} sub="Somatório de escalados"/>
