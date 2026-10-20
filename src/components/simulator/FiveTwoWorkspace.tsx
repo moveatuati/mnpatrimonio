@@ -10,7 +10,7 @@ import { DEFAULT_SCHEDULE,dateOffset,reviseStore,startOfWeek,type ScheduleStore 
 import {
   DAYS,DEFAULT_PARAMETERS,LEGAL_SOURCES,PROPOSED_SHIFTS,groupAllocation,
   proposedShift,simulate5x2,theoreticalMinimum,
-  type SimulatorParameters,type RestMode,type ScenarioResult,
+  type SimulatorParameters,type ScenarioResult,
 } from "@/domain/five-two-simulator";
 import type { GroupId } from "@/domain/types";
 import "./FiveTwoWorkspace.css";
@@ -47,7 +47,7 @@ function storeSources(){
 const SELECTORS=[
   {value:63,title:"Atual · 63 pessoas",desc:"Sem reforço"},
   {value:76,title:"Reforço · 76 pessoas",desc:"+13 contratações hipotéticas"},
-  {value:79,title:"Base teórica · 79 pessoas",desc:"Mínimo global aproximado"},
+  {value:91,title:"Piso teórico · 91 pessoas",desc:"Sábado integral e domingos alternados"},
 ] as const;
 const PILOT_METRICS=[
   {name:"Cobertura por faixa horária",cadence:"Diária · abertura, pico e fechamento",signal:"Qualquer posto descoberto no pico",action:"Rever folgas, reforço ou horário de funcionamento"},
@@ -85,8 +85,13 @@ const INSIGHTS=[
  ["Como fica a fase de 42 horas?","No período de transição, 5 × 8h24 ultrapassa 8 horas diárias e exige autorização por acordo ou convenção coletiva. A tela marca essa hipótese como CONDICIONAL; não publica jornada."],
  ["E os colaboradores que saem às 22h?","O simulador propõe turnos A/B/C ajustados para preservar fechamento, em vez de estender automaticamente o grupo C além das 22h. Qualquer nova entrada deve respeitar 11 horas de descanso."],
 ];
-function MiniMetric({name,value,detail,tone="wine"}:{name:string;value:string;detail:string;tone?:"wine"|"green"|"amber"|"red"|"blue"}){
-  return <div className={"ft-metric ft-"+tone}><span>{name}</span><strong>{value}</strong><small>{detail}</small></div>;
+function HelpBubble({label,description}:{label:string;description:string}){
+  return <span className="ft-help" tabIndex={0} role="note" aria-label={label+": "+description}
+    title={description}><Info size={14}/><span className="ft-help-pop" role="tooltip">{description}</span></span>;
+}
+function MiniMetric({name,value,detail,tone="wine",explanation}:{name:string;value:string;detail:string;tone?:"wine"|"green"|"amber"|"red"|"blue";explanation:string}){
+  return <div className={"ft-metric ft-"+tone}><div className="ft-metric-label"><span>{name}</span>
+    <HelpBubble label={name} description={explanation}/></div><strong>{value}</strong><small>{detail}</small></div>;
 }
 export function FiveTwoWorkspace(){
   const [sources,setSources]=useState<{schedule:ScheduleStore;absences:AbsenceStore}>(()=>({schedule:DEFAULT_SCHEDULE,absences:demoAbsences()}));
@@ -200,14 +205,11 @@ export function FiveTwoWorkspace(){
             <option value={42}>Transição · até 42h (condicional)</option>
             <option value={40}>Definitiva · até 40h</option>
           </select></label>
-        <label className="ft-field"><span>Distribuição das folgas</span>
-          <select aria-label="Formato das folgas" value={parameters.restMode}
-            onChange={e=>change("restMode",e.target.value as RestMode)}>
-            <option value="consecutivas">2 folgas consecutivas</option>
-            <option value="intercaladas">2 folgas intercaladas (estudo)</option>
-          </select></label>
-        <label className="ft-check"><input type="checkbox" checked={parameters.sundayPriority}
-          onChange={e=>change("sundayPriority",e.target.checked)}/> Preferir descanso aos domingos</label>
+        <div className="ft-fixed-rules"><ShieldCheck size={17}/>
+          <span><b>Regras obrigatórias da Formosa</b>
+            <small>Sábado com todos escalados · Domingo sim, domingo não · Duas folgas separadas por semana</small></span>
+          <HelpBubble label="Revezamento 5×2" description="Na semana em que trabalha domingo: duas folgas úteis intercaladas. Quando folga domingo: uma folga útil adicional. Todos são escalados sábado, independentemente do grupo. Não são permitidos seis dias seguidos de trabalho nem folgas em dias consecutivos."/>
+        </div>
       </div>
       {!dateIsMonday&&<div className="ft-warning" role="alert"><AlertTriangle size={16}/>
         Escolha uma segunda-feira válida para iniciar as quatro semanas.</div>}
@@ -224,10 +226,14 @@ export function FiveTwoWorkspace(){
     </section>
     {result&&summary&&<>
       <section className="ft-stats" aria-label="Indicadores do cenário">
-        <MiniMetric name="Equipe simulada" value={integer(summary.headcount)} detail={"63 atuais + "+summary.newHires+" hipotéticos"}/>
-        <MiniMetric name="Cobertura prevista" value={percent(summary.coverageRate)} detail="28 dias · A, B e C" tone="green"/>
-        <MiniMetric name="Postos-dia descobertos" value={integer(summary.deficitCount)} detail="Diferença acumulada da necessidade" tone={summary.deficitCount?"amber":"green"}/>
-        <MiniMetric name="Dias com déficit" value={integer(summary.uncoveredDays)} detail="Em um ou mais grupos" tone={summary.uncoveredDays?"red":"green"}/>
+        <MiniMetric name="Equipe simulada" value={integer(summary.headcount)} detail={"63 atuais + "+summary.newHires+" hipotéticos"}
+        explanation="Total do cenário: 63 funcionários fictícios cadastrados e reforços simulados. Nenhuma contratação é realizada."/>
+        <MiniMetric name="Cobertura prevista" value={percent(summary.coverageRate)} detail="28 dias · A, B e C" tone="green"
+        explanation="Postos-dia atendidos sobre a demanda configurada nas quatro semanas, calculados por data e grupo. Excesso em outro grupo não elimina uma falta."/>
+        <MiniMetric name="Postos-dia descobertos" value={integer(summary.deficitCount)} detail="Diferença acumulada da necessidade" tone={summary.deficitCount?"amber":"green"}
+        explanation="Soma de trabalhadores que faltam para as metas diárias dos grupos. Se faltam dois funcionários por três dias, são seis postos-dia descobertos."/>
+        <MiniMetric name="Dias com déficit" value={integer(summary.uncoveredDays)} detail="Em um ou mais grupos" tone={summary.uncoveredDays?"red":"green"}
+        explanation="Número de datas em que pelo menos um grupo não possui o quantitativo mínimo previsto, considerando afastamentos aprovados."/>
       </section>
       <nav className="ft-tabs no-print" aria-label="Seções do simulador">
         <button className={tab==="cenario"?"ft-tab-active":""} onClick={()=>setTab("cenario")} type="button"><LayoutIcon/> Viabilidade e cobertura</button>
@@ -242,7 +248,7 @@ export function FiveTwoWorkspace(){
             <div className="ft-diagnostics">
               <div><span>Capacidade semanal em jornadas</span><strong>{integer(summary.weeklyCapacity)}</strong><small>{summary.headcount} × 5 dias</small></div>
               <div><span>Demanda semanal inicial</span><strong>{integer(summary.requiredFirstWeek)}</strong><small>Metas A/B/C por dia</small></div>
-              <div><span>Limite inferior teórico de pessoas</span><strong>{currentMin.total}</strong><small>A {currentMin.groups.A} · B {currentMin.groups.B} · C {currentMin.groups.C}</small></div>
+              <div><span>Piso matemático do quadro <HelpBubble label="Dimensionamento" description="Novo cálculo com sábado integral para todos e dois domingos trabalhados por pessoa em quatro semanas; cada funcionário fica com 14 dias úteis disponíveis no período. É um mínimo necessário, não suficiente."/></span><strong>{currentMin.total}</strong><small>A {currentMin.groups.A} · B {currentMin.groups.B} · C {currentMin.groups.C}</small></div>
               <div><span>Déficit na escala atual (28 dias)</span><strong>{summary.totalBaselineDeficit}</strong><small>Referência 6×1 com regras existentes</small></div>
             </div>
             <div className={"ft-message-note "+(summary.deficitCount?"ft-message-warn":"")}>
@@ -255,14 +261,12 @@ export function FiveTwoWorkspace(){
           <section className="ft-panel"><div className="ft-heading"><div><p className="op-eyebrow">QUALIDADE DA ESCALA</p>
             <h2>Folgas, limites e alertas</h2><p>Indicadores de proteção e viabilidade do cenário.</p></div></div>
             <div className="ft-rule-grid">
-              <div><span><CalendarDays size={16}/> Folgas programadas</span><strong>{summary.headcount*8}</strong><small>2 por semana × 4 semanas</small></div>
-              <div><span><Clock3 size={16}/> Domingos livres por pessoa</span><strong>{summary.monthlyAverageSundaysOff.toFixed(1)}</strong><small>Média no período simulado</small></div>
-              <div><span><ShieldCheck size={16}/> Conflitos de 11h</span><strong>{summary.daysWith11hConflicts}</strong><small>Entre jornadas consecutivas</small></div>
-              <div><span><AlertTriangle size={16}/> Alertas de sequência/limite</span><strong>{summary.restViolations+summary.badHours}</strong><small>Descanso consecutivo ou horas semanais</small></div>
+              <div><span><CalendarDays size={16}/> Folgas programadas <HelpBubble label="Folgas semanais" description="Duas folgas não consecutivas em cada semana por colaborador, sempre fora do sábado. Quem descansa domingo folga mais uma vez em dia útil; quem trabalha domingo folga duas vezes em dias úteis."/></span><strong>{summary.headcount*8}</strong><small>2 por semana × 4 semanas</small></div>
+              <div><span><Clock3 size={16}/> Domingos livres por pessoa <HelpBubble label="Domingos alternados" description="Cada pessoa folga dois dos quatro domingos, trabalhando um e folgando o seguinte, em rodízio com outros colegas do mesmo grupo."/></span><strong>{summary.monthlyAverageSundaysOff.toFixed(1)}</strong><small>Dois domingos livres no ciclo</small></div>
+              <div><span><ShieldCheck size={16}/> Conflitos de 11h <HelpBubble label="Descanso entre jornadas" description="Confere intervalo mínimo de 11 horas entre a saída de uma jornada e a entrada da seguinte. Ainda requer validação das regras aplicáveis."/></span><strong>{summary.daysWith11hConflicts}</strong><small>Entre jornadas consecutivas</small></div>
+              <div><span><AlertTriangle size={16}/> Alertas de regras <HelpBubble label="Alertas do revezamento" description="Soma conflitos de folgas próximas, seis dias trabalhados em sequência, excesso de horas, falta de sábado escalado e erro no rodízio dominical. Não oculta os casos que não têm solução."/></span><strong>{summary.restViolations+summary.badHours+summary.saturdayUnscheduled+summary.sundayAlternationErrors}</strong><small>Folgas · horas · sábados · domingos</small></div>
             </div>
-            <div className="ft-note">A verificação de 11 horas usa os turnos propostos A/B/C e a programação dominical existente.
-              O motor também sinaliza sequências de mais de cinco dias trabalhados, mesmo quando cruzam duas semanas.
-              Um resultado sem alertas <b>não é validação jurídica</b> nem garante cobertura dentro de cada hora de funcionamento.</div>
+            <div className="ft-note"><Info size={16}/><span>O sábado permanece integralmente escalado, mesmo quando a data for feriado. A equipe trabalha domingos alternados; folgas úteis são distribuídas sem dois dias seguidos. Aferição por dia não substitui a conferência de cobertura por hora nem aprovação do RH.</span></div>
           </section>
         </div>
         <section className="ft-panel">
@@ -366,6 +370,12 @@ export function FiveTwoWorkspace(){
             {[0,1,2,3].map(w=><option key={w} value={w}>Semana {w+1}</option>)}
           </select>
           <span className="ft-pill">{staff.length} pessoas</span></div>
+        <div className="ft-roster-legend"><span className="ft-work-chip ft-working">Trabalha</span>
+          <span className="ft-work-chip ft-resting">Folga</span>
+          <span className="ft-work-chip ft-holiday-work">Trabalha · feriado</span>
+          <span className="ft-work-chip ft-holiday-rest">Folga · feriado</span>
+          <HelpBubble label="Legenda da escala" description="Sábado todos trabalham. Domingos são alternados. Os demais descansos são em dias úteis não consecutivos. No feriado, o trabalhador pode estar escalado ou em folga; as obrigações de compensação dependem da legislação e acordo aplicável."/>
+        </div>
         <div className="ft-scroll-table ft-roster" role="region" aria-label="Escala individual semanal" tabIndex={0}>
           <table className="ft-table"><thead><tr><th>Colaborador</th><th>Grupo</th>
             {daysWeek.map((d,i)=><th key={d}>{DAYS[i]}<small>{dBR(d).slice(0,5)}</small></th>)}
@@ -375,15 +385,18 @@ export function FiveTwoWorkspace(){
               return <tr key={p.employee.id}>
                 <td><b>{p.employee.name}</b><small>{p.employee.id}{p.employee.hired?" · Reforço proposto":""}</small></td>
                 <td>{p.employee.group}</td>
-                {daysWeek.map(day=><td key={day}><span className={"ft-work-chip "+(w.workingDates.includes(day)?"ft-working":"ft-resting")}>
-                  {w.workingDates.includes(day)?"Trabalha":"Folga"}</span></td>)}
+                {daysWeek.map(day=>{
+                  const works=w.workingDates.includes(day);
+                  const holiday=sources.schedule.rules.holidays.includes(day);
+                  return <td key={day}><span className={"ft-work-chip "+(holiday?(works?"ft-holiday-work":"ft-holiday-rest"):(works?"ft-working":"ft-resting"))}
+                    title={holiday?(works?"Trabalho no feriado: validar regras coletivas.":"Folga coincidente com feriado; evitar folga adjacente."):(works?"Trabalha no dia previsto.":"Folga semanal prevista, sem dia consecutivo.")}>
+                    {holiday?(works?"Feriado · trabalha":"Feriado · folga"):(works?"Trabalha":"Folga")}</span></td>;
+                })}
                 <td className={w.overWeeklyLimit?"ft-danger":""}><b>{minutes(w.hours)}</b></td>
                 <td>{p.sundaysOff}</td></tr>;
             })}</tbody></table>
         </div>
-        <div className="ft-note"><CalendarDays size={16}/> Cada pessoa possui cinco dias previstos de trabalho
-          e dois de descanso por semana. Datas específicas, turnos, folgas dominicais e exceções devem ser confirmados pelo RH.
-          Nenhum reforço hipotético representa contratação realizada.</div>
+        <div className="ft-note"><CalendarDays size={16}/> Em cada uma das quatro semanas, cada colaborador possui cinco jornadas e duas folgas não consecutivas. Sábado é sempre dia escalado e domingo alterna trabalho e descanso. Feriados não geram uma terceira folga automática; consultar regras de compensação com RH. Nenhum reforço hipotético representa contratação realizada.</div>
       </section>}
       {tab==="orientacoes"&&<>
         <section className="ft-panel"><div className="ft-heading"><div>
