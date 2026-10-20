@@ -43,4 +43,13 @@ describe("Referência operacional sujeita à homologação", () => {
     expect(result.weeklyMinutes.some(row=>row.weeks.some(minutes=>minutes>2640))).toBe(true);
     expect(DEFAULT_SCHEDULE.overrides).toEqual({});
   });
+  it("bloqueia jornada semanal acima do limite informado sem presumir regra legal", () => {
+    const reference = prepareOperationalReference(DEFAULT_SCHEDULE,"2026-10-19");
+    const changes:AssignmentChange[] = Array.from({length:40},(_,i)=>dateOffset(reference.start,i-6))
+      .flatMap(date=>scheduleForDate(DEFAULT_SCHEDULE,date).map(row=>({date,employeeId:row.employee.id,group:row.group})));
+    const result = reviewOperationalProposal(reference,changes,
+      Object.fromEntries(reference.dates.map(date=>[date,{A:0,B:0,C:0}])),2640);
+    expect(result.errors.some(error=>error.includes("jornada semanal excedida"))).toBe(true);
+    expect(reviewOperationalProposal(reference,[],{}).errors).toContain("Limite semanal não confirmado pelo RH/jurídico.");
+  });
 });
