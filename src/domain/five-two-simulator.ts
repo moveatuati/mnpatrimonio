@@ -212,7 +212,10 @@ export function simulate5x2(schedule:ScheduleStore,absences:AbsenceStore,setting
       const requirement=days.map(day=>requiredFor(schedule,day,group));
       for(let index=0;index<groupPeople.length;index++){
         const person=groupPeople[index]!;
-        const sundayWorks=(index+weekNumber)%2===0;
+        // Fixar a fase em uma semana-âncora, evitando inverter o rodízio
+        // quando o usuário altera a data inicial da consulta.
+        const absoluteWeek=Math.floor((dateUTC(days[0]!) - dateUTC(FUTURE_START))/(7*86400000));
+        const sundayWorks=(index+absoluteWeek)%2===0;
         const priorWork=workingById.get(person.id)!;
         const priorRest=restHistory.get(person.id)!;
         const covered=availableByGroup.get(group)!;
