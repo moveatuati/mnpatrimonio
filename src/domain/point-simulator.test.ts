@@ -79,7 +79,7 @@ describe("Ponto demonstrativo separado da escala e do relógio real",()=>{
     expect(filled.records[pointKey(day,employee.id)]?.marks.entry).toBe("07:09");
     expect(pointSummary(DEFAULT_SCHEDULE,filled,day).started).toBe(63);
     expect(Object.keys(filled.records)).toHaveLength(63);
-    expect(pointSummary(DEFAULT_SCHEDULE,filled,day).attention).toBeGreaterThan(0);
+    expect(pointSummary(DEFAULT_SCHEDULE,filled,day).attention).toBe(2); // 61/63 no limite: 96,8%
     expect(seedPointDay(filled,DEFAULT_SCHEDULE,day)).toBe(filled);
     const empty=clearPointDay(filled,day);
     expect(Object.keys(empty.records)).toHaveLength(0);
