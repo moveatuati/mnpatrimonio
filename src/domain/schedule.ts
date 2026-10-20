@@ -9,6 +9,7 @@ export type AssignmentChange = { employeeId: string; date: ISODate; group: Assig
 export type ScheduleRules = {
   sunday: Record<GroupId, number>;
   holiday: Record<GroupId, number>;
+  holidayByDate: Record<ISODate, Record<GroupId, number>>;
   holidays: ISODate[];
 };
 export type SwapRequest = {
@@ -38,7 +39,7 @@ export type ScheduleStore = {
 };
 export const DEFAULT_SCHEDULE: ScheduleStore = {
   version: 1,
-  rules: { sunday: { A: 1, B: 6, C: 6 }, holiday: { A: 1, B: 6, C: 6 }, holidays: [] },
+  rules: { sunday: { A: 1, B: 6, C: 6 }, holiday: { A: 1, B: 6, C: 6 }, holidayByDate: {}, holidays: [] },
   overrides: {},
   requests: [],
   history: [],
@@ -51,14 +52,14 @@ export function dateOffset(date: ISODate, n: number): ISODate {
 export function dayOfWeek(date: ISODate) {
   return new Date(date + "T12:00:00Z").getUTCDay();
 }
-export function mondayOf(date: ISODate) {
-  return dateOffset(date, (8 - dayOfWeek(date)) % 7 - 7 === -7 ? 0 : -(dayOfWeek(date) + 6) % 7);
-}
 export function startOfWeek(date: ISODate) {
   const weekday = dayOfWeek(date);
   return dateOffset(date, weekday === 0 ? -6 : 1 - weekday);
 }
 export function sundayOf(date: ISODate) { return dateOffset(startOfWeek(date), 6); }
+export function holidayTargetsFor(rules: ScheduleRules, date: ISODate) {
+  return rules.holidayByDate[date] ?? rules.holiday;
+}
 export function shiftFor(date: ISODate, group: GroupId, rules: ScheduleRules) {
   if (dayOfWeek(date) === 0 || rules.holidays.includes(date)) {
     const shift = SUNDAY_SHIFTS[GROUP_IDS.indexOf(group)]!;
@@ -95,7 +96,7 @@ export function baseAssignment(store: ScheduleStore, employee: Employee, date: I
   if (store.rules.holidays.includes(date)) {
     const eligible = members.filter(e =>
       !(weekday === 1 && baseAssignment(store, e, dateOffset(date, -1)) !== null));
-    return rotatingSelection(eligible, date, store.rules.holiday[group]).has(employee.id) ? group : null;
+    return rotatingSelection(eligible, date, holidayTargetsFor(store.rules, date)[group]).has(employee.id) ? group : null;
   }
   return group;
 }
@@ -117,7 +118,7 @@ export function scheduleForDate(store: ScheduleStore, date: ISODate) {
 }
 export function requiredFor(store: ScheduleStore, date: ISODate, group: GroupId) {
   if (dayOfWeek(date) === 0) return store.rules.sunday[group];
-  if (store.rules.holidays.includes(date)) return store.rules.holiday[group];
+  if (store.rules.holidays.includes(date)) return holidayTargetsFor(store.rules, date)[group];
   // Quadro completo é o alvo de cobertura configurado para dias regulares.
   return GROUPS[group].requiredStaff;
 }
@@ -217,6 +218,10 @@ export function reviseStore(raw: unknown): ScheduleStore {
     rules: {
       sunday: targets(v.rules.sunday, DEFAULT_SCHEDULE.rules.sunday),
       holiday: targets(v.rules.holiday, DEFAULT_SCHEDULE.rules.holiday),
+      holidayByDate: Object.fromEntries(Object.entries(
+        v.rules.holidayByDate && typeof v.rules.holidayByDate === "object" ? v.rules.holidayByDate : {},
+      ).filter(([date]) => /^d{4}-d{2}-d{2}$/.test(date)).slice(0, 70)
+        .map(([date, values]) => [date, targets(values, DEFAULT_SCHEDULE.rules.holiday)])),
       holidays: Array.isArray(v.rules.holidays)
         ? [...new Set(v.rules.holidays.filter(d => typeof d === "string" && /^\d{4}-\d{2}-\d{2}$/.test(d)))].slice(0, 70)
         : [],
