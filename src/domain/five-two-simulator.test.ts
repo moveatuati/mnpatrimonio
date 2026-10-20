@@ -3,7 +3,7 @@ import {GROUP_IDS} from "./config";
 import {demoAbsences} from "./absences";
 import {DEFAULT_SCHEDULE,dateOffset} from "./schedule";
 import {DEFAULT_PARAMETERS,LEGAL_SOURCES,FUTURE_START,PROPOSED_SHIFTS,
-  groupAllocation,makeScenarioPeople,proposedShift,simulate5x2,theoreticalMinimum} from "./five-two-simulator";
+  groupAllocation,makeScenarioPeople,minimumBreakdown,proposedShift,simulate5x2,theoreticalMinimum} from "./five-two-simulator";
 describe("EC 141/2026 · simulador 5×2",()=>{
  it("preserva as datas oficiais de transição",()=>{
    expect(LEGAL_SOURCES.promulgation).toBe("2026-10-16");
@@ -12,18 +12,18 @@ describe("EC 141/2026 · simulador 5×2",()=>{
    expect(LEGAL_SOURCES.url).toBe("https://www.planalto.gov.br/ccivil_03/constituicao/emendas/emc/emc141.htm");
  });
  it("permite realocar reforços por grupo sem transferir empregados existentes",()=>{
-   const allocation={A:6,B:34,C:36};
+   const allocation={A:6,B:35,C:37};
    const r=simulate5x2(DEFAULT_SCHEDULE,demoAbsences(),{
-     ...DEFAULT_PARAMETERS,people:76,allocation,
+     ...DEFAULT_PARAMETERS,people:78,allocation,
    });
-   expect(r.groups.map(g=>g.headcount)).toEqual([6,34,36]);
+   expect(r.groups.map(g=>g.headcount)).toEqual([6,35,37]);
    expect(()=>simulate5x2(DEFAULT_SCHEDULE,demoAbsences(),{
-     ...DEFAULT_PARAMETERS,people:76,allocation:{A:4,B:40,C:30},
+     ...DEFAULT_PARAMETERS,people:78,allocation:{A:4,B:40,C:30},
    })).toThrow(/Distribuição inválida/);
  });
  it("mantém base A/B/C e adiciona reforços fictícios únicos",()=>{
    expect(groupAllocation(63)).toEqual({A:4,B:29,C:30});
-   for(const n of [63,76,79,90,140]){
+   for(const n of [63,78,79,90,140]){
      const list=makeScenarioPeople(n);
      expect(list).toHaveLength(n);
      expect(new Set(list.map(x=>x.id)).size).toBe(n);
@@ -44,12 +44,23 @@ describe("EC 141/2026 · simulador 5×2",()=>{
      groups:{A:6,B:42,C:43},total:91,
    });
  });
+ it("expõe a memória exata e recalcula o piso com domingo ou feriado configurado",()=>{
+   const rows=minimumBreakdown(DEFAULT_SCHEDULE,FUTURE_START);
+   expect(rows.map(r=>[r.weekdayNeed,r.weekdayCapacity,r.weekdayFloor,r.minimum]))
+     .toEqual([[80,14,6,6],[580,14,42,42],[600,14,43,43]]);
+   const higherSunday={...DEFAULT_SCHEDULE,rules:{...DEFAULT_SCHEDULE.rules,sunday:{A:4,B:22,C:22}}};
+   expect(theoreticalMinimum(higherSunday,FUTURE_START)).toEqual({groups:{A:8,B:44,C:44},total:96});
+   const holiday={...DEFAULT_SCHEDULE,rules:{...DEFAULT_SCHEDULE.rules,
+     holidays:[FUTURE_START],holidayByDate:{[FUTURE_START]:{A:1,B:6,C:6}}}};
+   expect(minimumBreakdown(holiday,FUTURE_START).map(r=>r.weekdayNeed)).toEqual([77,557,576]);
+   expect(theoreticalMinimum(holiday,FUTURE_START).total).toBe(88);
+ });
  it("gera quatro semanas sem repetir dia ou perder descanso",()=>{
    const r=simulate5x2(DEFAULT_SCHEDULE,demoAbsences(),DEFAULT_PARAMETERS);
    expect(r.dates).toHaveLength(28);
    expect(r.coverage).toHaveLength(84);
-   expect(r.people).toHaveLength(76);
-   expect(r.byWeek).toHaveLength(304);
+   expect(r.people).toHaveLength(78);
+   expect(r.byWeek).toHaveLength(312);
    for(const w of r.byWeek){
      expect(w.workingDates).toHaveLength(5);
      expect(w.restDates).toHaveLength(2);
@@ -60,7 +71,7 @@ describe("EC 141/2026 · simulador 5×2",()=>{
    expect(r.coverage.every(c=>c.deficit===Math.max(0,c.required-c.available))).toBe(true);
  });
  it("sábado jamais é folga, domingo alterna, e cada semana tem duas folgas",()=>{
-   for(const size of [63,76,91,140]){
+   for(const size of [63,78,91,140]){
      const result=simulate5x2(DEFAULT_SCHEDULE,demoAbsences(),{
        ...DEFAULT_PARAMETERS,people:size,
      });
@@ -112,7 +123,7 @@ describe("EC 141/2026 · simulador 5×2",()=>{
    }
  });
  it("mantém deficiência por grupo e compara cenários sem misturar pessoas",()=>{
-   for(const n of [63,76,79]){
+   for(const n of [63,78,79]){
      const r=simulate5x2(DEFAULT_SCHEDULE,demoAbsences(),{...DEFAULT_PARAMETERS,people:n});
      expect(r.metrics.headcount).toBe(n);
      expect(r.metrics.deficitCount).toBe(r.coverage.reduce((v,c)=>v+c.deficit,0));

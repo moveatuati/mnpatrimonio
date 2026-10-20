@@ -13,7 +13,7 @@ Referência gerencial: ADP Workforce Management — centralização de escalas, 
 - Relatório cobertura = escalados - ausentes aprovados (entre os escalados), versus meta diária por grupo. Déficit em postos-dia; pessoas extras em outros dias/grupos não eliminam o déficit de um período diferente.
 - Datas personalizadas limitadas a 93 dias consecutivos; pesquisa por grupo e por funcionário. Ao filtrar por um funcionário, não comparar sua escala com a meta completa do grupo.
 - Relatório de escalas mostra domingos/feriados/folgas e solicitações de trocas; o de horas lista aprovados, pendentes, recusados, estornos e responsável.
-- 6×1/5×2: simples capacidade teórica semanal 63×6=378, 63×5=315, 76×5=380 jornadas-pessoa. Hipóteses, não implantação de escala, parecer legal, distribuição de turnos ou custos.
+- 6×1/5×2: simples capacidade teórica semanal 63×6=378, 63×5=315, 78×5=390 jornadas-pessoa. Hipóteses, não implantação de escala, parecer legal, distribuição de turnos ou custos.
 
 ## Layout e exportação
 Identidade visual com a marca Formosa em cabeçalho, período, unidade, indicadores, tabela completa e rodapé demonstrativo. Botão IMPRIMIR / PDF invoca o navegador para impressão A4; não gera arquivo fiscal.
