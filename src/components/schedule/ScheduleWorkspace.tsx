@@ -322,7 +322,7 @@ export function ScheduleWorkspace() {
           </div>)}
         </div>
         <p className="fs-note"><Info size={14}/> Escalados e metas são planejados, não presenças confirmadas.
-          Trabalhadores do domingo recebem segunda-feira compensatória automaticamente nesta simulação.</p>
+          Quem trabalha no domingo tem o sábado anterior reservado para descanso nesta simulação.</p>
       </section>
       <section className="fs-panel">
         <div className="fs-panel-heading">
@@ -460,7 +460,7 @@ export function ScheduleWorkspace() {
         <div className="fs-config-grid">
           {(["sunday","holiday"] as const).map(kind => <div className="fs-config-card" key={kind}>
             <h3>{kind==="sunday"?"Revezamento aos domingos":"Efetivo especial dos feriados"}</h3>
-            <p>{kind==="sunday"?"Turnos de 08:00, 09:00 e 15:15. Escalados descansam na segunda seguinte.":
+            <p>{kind==="sunday"?"Turnos de 08:00, 09:00 e 15:15. Escalados descansam no sábado anterior.":
               "Padrão inicial para novos feriados; cada data cadastrada permite alterar os três grupos."}</p>
             <div className="fs-targets">{GROUP_IDS.map(g => <label key={g}>
               <span>Grupo {g}</span>
