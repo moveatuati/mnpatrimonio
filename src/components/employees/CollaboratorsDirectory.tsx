@@ -1,5 +1,5 @@
-import { useMemo, useRef, useState } from "react";
-import { CalendarDays, ChevronLeft, ChevronRight, Eye, Info, Printer, Search, ShieldCheck, Users, X } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { CalendarDays, Eye, Info, Printer, Search, ShieldCheck, Users, X } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { GROUPS, GROUP_IDS, RULES, UNIT } from "@/domain/config";
 import { buildDashboard } from "@/domain/dashboard";
@@ -10,7 +10,6 @@ import { classifyArrival } from "@/domain/rules/punctuality";
 import type { ArrivalStatus, Employee, GroupId } from "@/domain/types";
 
 const REFERENCE_DATE = "2026-10-20";
-const PAGE_SIZE = 12;
 const FILTERS: { value: EntryFilter; label: string }[] = [
   { value: "all", label: "Todas as situações" },
   { value: "registered", label: "Com entrada simulada" },
@@ -49,9 +48,9 @@ export function CollaboratorsDirectory() {
   const [group, setGroup] = useState<"all" | GroupId>("all");
   const [status, setStatus] = useState<EntryFilter>("all");
   const [query, setQuery] = useState("");
-  const [page, setPage] = useState(1);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const detailTrigger = useRef<HTMLButtonElement | null>(null);
+  const tableScroll = useRef<HTMLDivElement | null>(null);
   const dashboard = useMemo(() => buildDashboard(date), [date]);
   const monthly = useMemo(() => countMonthlyLateArrivals(date, DEMO_EMPLOYEES), [date]);
   const rowsFiltered = useMemo(() =>
@@ -59,20 +58,20 @@ export function CollaboratorsDirectory() {
       (a, b) => a.employee.name.localeCompare(b.employee.name, "pt-BR") ||
         a.employee.id.localeCompare(b.employee.id),
     ), [dashboard, group, status, query]);
-  const lastPage = Math.max(1, Math.ceil(rowsFiltered.length / PAGE_SIZE));
-  const start = (page - 1) * PAGE_SIZE;
-  const visible = rowsFiltered.slice(start, start + PAGE_SIZE);
   const selected = selectedId ? dashboard.arrivals.find(row => row.employee.id === selectedId) : undefined;
   const dateInvalid = !isValidReferenceDate(dateInput);
+  useEffect(() => {
+    if (tableScroll.current) tableScroll.current.scrollTop = 0;
+  }, [date, group, status, query]);
   const hasFilters = group !== "all" || status !== "all" || Boolean(query.trim());
-  const chooseGroup = (value: "all" | GroupId) => { setGroup(value); setPage(1); };
+  const chooseGroup = (value: "all" | GroupId) => { setGroup(value); };
   const reset = () => { chooseGroup("all"); setStatus("all"); setQuery(""); };
   const updateDate = (value: string) => {
     setDateInput(value);
-    if (isValidReferenceDate(value)) { setDate(value); setSelectedId(null); setPage(1); }
+    if (isValidReferenceDate(value)) { setDate(value); setSelectedId(null); }
   };
 
-  return <div className="formosa-operation max-w-[1680px]">
+  return <div className="formosa-operation formosa-employee-directory max-w-[1680px]">
     <header className="flex flex-wrap items-end justify-between gap-5">
       <div>
         <p className="op-eyebrow">Formosa <span>·</span> Gestão de Pessoas <span>·</span> {UNIT.unit}</p>
@@ -92,9 +91,9 @@ export function CollaboratorsDirectory() {
       <span><strong>Demonstração.</strong> Os 63 colaboradores e as entradas são fictícios. Sem cadastro editável nem ponto oficial.</span>
     </div>
 
-    <section aria-label="Quadro por grupo" className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+    <section aria-label="Quadro por grupo" className="rh-group-overview mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
       <button type="button" aria-pressed={group === "all"} onClick={() => chooseGroup("all")}
-        className={`rounded-xl border bg-card p-4 text-left shadow-card transition hover:border-primary/50 ${group === "all" ? "border-primary ring-1 ring-primary/20" : "border-border"}`}>
+        className={`rh-group-card rounded-xl border bg-card p-4 text-left shadow-card transition ${group === "all" ? "rh-group-card-active" : ""}`}>
         <span className="flex items-center gap-2 text-xs font-semibold text-muted-foreground"><Users size={17} className="text-primary" /> Quadro completo</span>
         <strong className="mt-2 block font-display text-4xl tabular-nums text-primary">{DEMO_EMPLOYEES.length}</strong>
         <small className="mt-1 block text-muted-foreground">Ativos no cenário demonstrativo</small>
@@ -102,7 +101,7 @@ export function CollaboratorsDirectory() {
       {GROUP_IDS.map(id => {
         const count = DEMO_EMPLOYEES.filter(e => e.group === id).length;
         return <button key={id} type="button" aria-pressed={group === id} onClick={() => chooseGroup(id)}
-          className={`rounded-xl border bg-card p-4 text-left shadow-card transition hover:border-primary/50 ${group === id ? "border-primary ring-1 ring-primary/20" : "border-border"}`}>
+          className={`rh-group-card rounded-xl border bg-card p-4 text-left shadow-card transition ${group === id ? "rh-group-card-active" : ""}`}>
           <span className="flex items-center gap-2 text-xs font-semibold text-muted-foreground">
             <span className="flex h-6 w-6 items-center justify-center rounded-md bg-accent font-bold text-primary">{id}</span>
             Grupo {id} · {GROUPS[id].name}
@@ -113,31 +112,31 @@ export function CollaboratorsDirectory() {
       })}
     </section>
 
-    <section className="mt-6 overflow-hidden rounded-xl border border-border bg-card shadow-card" aria-label="Consulta de colaboradores">
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border px-5 py-4">
+    <section className="rh-directory-panel mt-6 overflow-hidden rounded-xl border border-border bg-card shadow-card" aria-label="Consulta de colaboradores">
+      <div className="rh-directory-heading flex flex-wrap items-center justify-between gap-3 border-b border-border px-5 py-4">
         <div>
           <p className="op-eyebrow">Consulta nominal</p>
           <h2 className="mt-1 font-display text-lg font-semibold">Quadro de colaboradores</h2>
           <p className="mt-1 text-xs text-muted-foreground">Clique em “Ficha” para consultar informações individuais.</p>
         </div>
-        <span className="rounded-lg bg-accent px-3 py-2 text-xs font-bold text-primary">{rowsFiltered.length} resultado(s)</span>
+        <span className="rh-directory-result-count rounded-lg px-3 py-2 text-xs font-bold">{rowsFiltered.length} resultado(s)</span>
       </div>
-      <div className="flex flex-wrap gap-2.5 px-4 py-3">
-        <label className="flex min-w-[210px] flex-1 items-center gap-2 rounded-lg border border-input bg-background px-3 py-2.5">
+      <div className="rh-directory-toolbar flex flex-wrap gap-2.5 px-4 py-3">
+        <label className="rh-directory-search flex min-w-[210px] flex-1 items-center gap-2 rounded-lg border border-input bg-background px-3 py-2.5">
           <Search size={16} className="text-muted-foreground" aria-hidden="true" />
           <input type="search" className="w-full bg-transparent text-sm outline-none" aria-label="Buscar por nome ou código"
             placeholder="Nome ou código FM-..." value={query}
-            onChange={e => { setQuery(e.target.value); setPage(1); }} />
+            onChange={e => setQuery(e.target.value)} />
         </label>
         <select aria-label="Filtrar por grupo" value={group}
           onChange={e => chooseGroup(e.target.value as "all" | GroupId)}
-          className="min-h-10 rounded-lg border border-input bg-background px-3 text-sm">
+          className="rh-directory-select min-h-10 rounded-lg border border-input bg-background px-3 text-sm">
           <option value="all">Todos os grupos</option>
           {GROUP_IDS.map(id => <option key={id} value={id}>Grupo {id} · {GROUPS[id].name}</option>)}
         </select>
         <select aria-label="Filtrar por situação da entrada" value={status}
-          onChange={e => { setStatus(e.target.value as EntryFilter); setPage(1); }}
-          className="min-h-10 rounded-lg border border-input bg-background px-3 text-sm">
+          onChange={e => setStatus(e.target.value as EntryFilter)}
+          className="rh-directory-select min-h-10 rounded-lg border border-input bg-background px-3 text-sm">
           {FILTERS.map(item => <option key={item.value} value={item.value}>{item.label}</option>)}
         </select>
         {hasFilters && <button className="flex items-center gap-1 rounded-lg border border-border px-3 text-xs font-semibold text-primary"
@@ -146,8 +145,9 @@ export function CollaboratorsDirectory() {
       <p className="border-y border-border bg-muted/40 px-5 py-2 text-[11px] text-muted-foreground">
         <span role="status">{rowsFiltered.length} de 63 colaboradores</span> · Consulta {showDate(date)} · Entrada é simulação, não presença confirmada.
       </p>
-      <div className="overflow-x-auto" role="region" tabIndex={0} aria-label="Tabela do quadro com rolagem horizontal em telas pequenas">
-        <table className="w-full min-w-[870px] text-left text-xs">
+      <div ref={tableScroll} className="rh-directory-scroll" role="region" tabIndex={0}
+        aria-label="Tabela de colaboradores com rolagem vertical; em telas pequenas também horizontal">
+        <table className="rh-directory-table w-full min-w-[870px] text-left text-xs">
           <caption className="sr-only">Colaboradores fictícios da Formosa em {showDate(date)}</caption>
           <thead className="bg-muted/60 text-[11px] uppercase tracking-wide text-muted-foreground">
             <tr>{["Colaborador", "Grupo", "Jornada-base", "Cadastro", "Entrada simulada", "Atrasos/mês*"].map(label =>
@@ -156,7 +156,7 @@ export function CollaboratorsDirectory() {
             </tr>
           </thead>
           <tbody>
-            {visible.map(({ employee, entry, status: entryStatus }) => {
+            {rowsFiltered.map(({ employee, entry, status: entryStatus }) => {
               const shift = GROUPS[employee.group].shift;
               return <tr key={employee.id} className="border-t border-border/70 even:bg-muted/30 hover:bg-accent/40">
                 <td className="px-4 py-3"><strong className="block text-foreground">{employee.name}</strong><small className="text-muted-foreground">{employee.id}</small></td>
@@ -184,11 +184,11 @@ export function CollaboratorsDirectory() {
       </div>}
       <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border px-4 py-3">
         <p className="text-[11px] text-muted-foreground">* Entradas acima de {RULES.lateAlertMinutes} min no mês; sem marcação não significa falta.</p>
-        <nav className="flex items-center gap-2 no-print" aria-label="Paginação do quadro">
-          <span className="mr-1 text-xs text-muted-foreground">{rowsFiltered.length ? `${start + 1}–${Math.min(start + PAGE_SIZE, rowsFiltered.length)} de ${rowsFiltered.length}` : "0 registros"}</span>
-          <button type="button" aria-label="Página anterior" disabled={page <= 1} onClick={() => setPage(page - 1)} className="rounded-lg border p-2 disabled:opacity-30"><ChevronLeft size={17} /></button>
-          <button type="button" aria-label="Próxima página" disabled={page >= lastPage} onClick={() => setPage(page + 1)} className="rounded-lg border p-2 disabled:opacity-30"><ChevronRight size={17} /></button>
-        </nav>
+        <span className="rh-directory-scroll-count no-print text-xs">
+          {rowsFiltered.length === 0
+            ? "Nenhum registro"
+            : `${rowsFiltered.length} ${rowsFiltered.length === 1 ? "colaborador" : "colaboradores"} na lista · role para consultar todos`}
+        </span>
       </div>
     </section>
     <section className="mt-4 flex flex-wrap items-start justify-between gap-3 rounded-xl border bg-card p-5" aria-label="Funcionalidades previstas">
