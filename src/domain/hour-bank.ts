@@ -130,7 +130,7 @@ export function validateDraft(draft:EntryDraft):string[]{
   const errors:string[]=[];
   if(!known.has(draft.employeeId))errors.push("Selecione um colaborador válido.");
   if(!isValidReferenceDate(draft.date))errors.push("Informe uma data válida.");
-  if(!kinds.includes(draft.kind)||draft.kind==="estorno")errors.push("Tipo de lançamento inválido.");
+  if(!kinds.includes(draft.kind)||(draft.kind as string)==="estorno")errors.push("Tipo de lançamento inválido.");
   if(parseMinutes(draft.hours,draft.minutes)===null)
     errors.push("Use horas e minutos válidos (minutos de 00 a 59 e duração maior que zero).");
   if(draft.description.trim().length<8)errors.push("Informe justificativa de pelo menos 8 caracteres.");
@@ -209,7 +209,7 @@ export function movementsOf(store:HourStore,employeeId:string,first:ISODate,last
 export function monthWindow(date:ISODate){
   const month=date.slice(0,7);
   const first=month+"-01";
-  const [year,monthN]=month.split("-").map(Number);
+  const [year=0,monthN=1]=month.split("-").map(Number);
   const end=new Date(Date.UTC(year,monthN,0)).toISOString().slice(0,10);
   return {first,end};
 }

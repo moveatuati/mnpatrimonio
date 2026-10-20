@@ -20,7 +20,7 @@ export interface SimulatorParameters {
   start: ISODate; // first Monday of a 4-week simulation
   people: number;
   weeklyLimit: WeeklyLimit;
-  allocation?: Record<GroupId,number>; // distribuição manual opcional; nunca altera grupos cadastrados
+  allocation?: Record<GroupId,number> | undefined; // distribuição manual opcional; nunca altera grupos cadastrados
 }
 export interface ScenarioPerson {
   id: string;
@@ -158,7 +158,7 @@ function validRollingRest(prior:Set<ISODate>,week:ISODate[],daysOff:number[]) {
       const start=dateOffset(date,-k);
       const end=dateOffset(start,5);
       const seq=Array.from({length:6},(_,j)=>dateOffset(start,j));
-      if(end>=week[0]&&seq.every(d=>currentSet.has(d)))return false;
+      if(end>=week[0]!&&seq.every(d=>currentSet.has(d)))return false;
     }
   }
   return true;
@@ -244,7 +244,7 @@ export function simulate5x2(schedule:ScheduleStore,absences:AbsenceStore,setting
         assignments.set(person.id,selected);
         days.forEach((day,dayIndex)=>{
           if(selected!.includes(dayIndex))restHistory.get(person.id)!.add(day);
-          else {covered[dayIndex]++;priorWork.add(day);}
+          else {covered[dayIndex]=(covered[dayIndex]??0)+1;priorWork.add(day);}
         });
       }
     }

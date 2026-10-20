@@ -24,8 +24,8 @@ export interface Absence {
   createdAt: string;
   updatedAt: string;
   responsible: string; // identificação demonstrativa, não autorização autenticada
-  decisionNote?: string;
-  supersedesId?: string; // alteração proposta de ausência já aprovada
+  decisionNote?: string | undefined;
+  supersedesId?: string | undefined; // alteração proposta de ausência já aprovada
 }
 export interface AbsenceEvent {
   id: string;
