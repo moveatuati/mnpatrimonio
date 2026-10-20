@@ -127,7 +127,8 @@ export function AbsenceWorkspace(){
     .map(entry=>({...entry,returnDate:nextWorkDate(schedule,entry.employeeId,entry.end)}))
     .filter(entry=>entry.returnDate&&entry.returnDate>=date&&entry.returnDate<=dateOffset(date,14))
     .sort((a,b)=>(a.returnDate??"").localeCompare(b.returnDate??""));
-  const errors=validateAbsence(store,draft,editing??undefined);
+  const errors=validateAbsence(store,draft,editing??undefined,
+    store.entries.find(e=>e.id===editing)?.supersedesId);
   function formStart(item?:Absence){
     if(item){
       setEditing(item.id);
@@ -161,8 +162,9 @@ export function AbsenceWorkspace(){
     setStore(demoAbsences());setConfirmedReset(false);
     setBanner("Registros de demonstração restaurados neste navegador.");setTab("overview");
   }
-  const writeDraft=<T extends keyof AbsenceDraft>(key:T,value:AbsenceDraft[T])=>
+  function writeDraft<T extends keyof AbsenceDraft>(key:T,value:AbsenceDraft[T]){
     setDraft(prev=>({...prev,[key]:value}));
+  }
   return <div className="fa-app formosa-operation">
     <header className="fa-head">
       <div><p className="op-eyebrow">FORMOSA · GESTÃO DE PESSOAS · {UNIT.unit.toUpperCase()}</p>
