@@ -56,6 +56,19 @@ describe("Férias e afastamentos — demonstração de gestão",()=>{
     expect(accepted.store.entries.find(e=>e.id==="AUS-004")?.status).toBe("cancelado");
     expect(accepted.store.entries.find(e=>e.id===proposal!.id)?.status).toBe("aprovado");
   });
+  it("preserva o original em caso de recusa da proposta de alteração",()=>{
+    const base=demoAbsences();
+    const changed=saveAbsence(base,{employeeId:"FM-032",type:"ferias",
+      start:"2026-10-24",end:"2026-10-31",note:"Mudança de datas"},"AUS-004");
+    expect(changed.ok).toBe(true);
+    const amendment=changed.store.entries.find(e=>e.supersedesId==="AUS-004")!;
+    const refused=decideAbsence(changed.store,amendment.id,"recusar","Manter a programação");
+    expect(refused.ok).toBe(true);
+    expect(refused.store.entries.find(e=>e.id==="AUS-004")?.status).toBe("aprovado");
+    expect(refused.store.entries.find(e=>e.id===amendment.id)?.status).toBe("recusado");
+    expect(saveAbsence(base,{employeeId:"FM-003",type:"ferias",
+      start:"2026-10-23",end:"2026-10-30",note:"Substituição"},"AUS-004").ok).toBe(false);
+  });
   it("recusa e cancelamento exigem motivo e preservam histórico",()=>{
     const base=demoAbsences();
     expect(decideAbsence(base,"AUS-005","recusar","").ok).toBe(false);
