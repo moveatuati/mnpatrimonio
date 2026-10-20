@@ -125,7 +125,8 @@ export function theoreticalMinimum(schedule:ScheduleStore,start:ISODate){
 const candidates=(mode:RestMode):number[][]=>{
   const pairs:number[][]=[];
   for(let i=0;i<7;i++)for(let j=i+1;j<7;j++){
-    const adjacent=(j===i+1)||(i===0&&j===6);
+    // Monday/Sunday of the SAME calendar week are not contiguous rest days.
+    const adjacent=j===i+1;
     if((mode==="consecutivas"&&adjacent)||(mode==="intercaladas"&&!adjacent))
       pairs.push([i,j]);
   }
