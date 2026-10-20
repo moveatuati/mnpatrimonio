@@ -8,7 +8,7 @@ Supernosso: piloto com 500 funcionários em três lojas em março de 2026 e expa
 
 ## Funcionalidades
 - Quatro semanas por cenário, com todos os 63 trabalhadores fictícios dos grupos A (4), B (29) e C (30). Cenários 63, 76, 79 e quadro personalizado até 140 pessoas. Pessoas adicionais SIM-* são hipotéticas.
-- Cinco jornadas e duas folgas programadas por semana, juntas ou intercaladas; opção de priorizar domingo. Mapa de dias, tabela por grupo e escala semanal individual, buscando por pessoa.
+- Cinco jornadas e duas folgas por semana. No modo consecutivo, as folgas são adjacentes no calendário de segunda a domingo; no intercalado, são separadas. Preferência dominical sujeita à demanda.  Mapa de dias, tabela por grupo e escala semanal individual, buscando por pessoa.
 - Cálculo heurístico da melhor cobertura possível a partir das metas presentes na Escala & trocas do mesmo navegador. Não garante otimização global nem direito trabalhista. Calcula postos-dia descobertos e avisos de 11h/descanso/limite semanal.
 - Turnos propostos de 8h/dia (40h) e 8h24/dia (42h sob acordo), incluindo grupos A/B/C e fechamento até 22h. Domingo 6h15 nos exemplos; algumas semanas podem somar menos horas.
 - Compara cobertura hipotética e disponibilidade da escala atual 6×1. Considera apenas afastamentos aprovados da demonstração quando a data coincidir.
