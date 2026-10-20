@@ -6,6 +6,10 @@ export const Route = createFileRoute("/escala")({
     meta: [
       { title: "Escala & trocas — Formosa | Augusto Montenegro" },
       { name: "description", content: "Escalas, revezamento de domingos, feriados e trocas com validação demonstrativa de descanso e cobertura." },
+      { property: "og:title", content: "Escala & trocas — Formosa | Augusto Montenegro" },
+      { property: "og:description", content: "Escalas, revezamento de domingos, feriados e trocas com validação demonstrativa de descanso e cobertura." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
     ],
   }),
   component: ScheduleWorkspace,

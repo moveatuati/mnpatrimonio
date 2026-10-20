@@ -6,6 +6,10 @@ export const Route = createFileRoute("/simulador")({
     meta: [
       { title: "Simulador 5×2 · EC 141/2026 — Formosa | Augusto Montenegro" },
       { name: "description", content: "Estudo de quatro semanas: folgas, jornadas, reforços, cobertura e transição da escala 6×1 para 5×2." },
+      { property: "og:title", content: "Simulador 5×2 · EC 141/2026 — Formosa | Augusto Montenegro" },
+      { property: "og:description", content: "Estudo de quatro semanas: folgas, jornadas, reforços, cobertura e transição da escala 6×1 para 5×2." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
     ],
   }),
   component: FiveTwoWorkspace,
