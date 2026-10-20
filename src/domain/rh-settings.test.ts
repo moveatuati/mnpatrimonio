@@ -47,6 +47,12 @@ describe("Central de regras — persistência e aplicação",()=>{
     expect(stored.records).toEqual(point.records);
     expect(stored.history).toEqual(point.history);
   });
+  it("recupera o alerta anterior do Ponto se ainda não houver central salva",()=>{
+    const legacy={version:1,alertMinutes:25,records:{},history:[]};
+    window.localStorage.setItem(RH_POINT_KEY,JSON.stringify(legacy));
+    expect(readRhSettingsStore().settings.lateAlertMinutes).toBe(25);
+    expect(window.localStorage.getItem(RH_SETTINGS_KEY)).toBeNull();
+  });
   it("não grava dados quando a configuração é inválida",()=>{
     const invalid=defaultRhSettings();invalid.shifts.A.breakEnd="10:00";
     const result=saveRhSettings(invalid,"Gestor","Revisão");
