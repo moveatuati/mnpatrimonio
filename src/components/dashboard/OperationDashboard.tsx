@@ -1,11 +1,10 @@
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   ArrowDownToLine,
   ArrowRight,
   CalendarDays,
   Check,
   CheckCheck,
-  ChevronLeft,
   ChevronRight,
   Clock3,
   Eye,
@@ -33,7 +32,6 @@ import { summarizeGroupEntries } from "@/domain/rules/group-readiness";
 import type { ArrivalStatus, GroupId } from "@/domain/types";
 
 const REFERENCE_DATE = "2026-10-19";
-const PAGE_SIZE = 8;
 const STATUS: Record<ArrivalStatus, { label: string; tone: string }> = {
   no_horario: { label: "No horário", tone: "success" },
   atraso_alerta: { label: `Até ${RULES.lateAlertMinutes} min`, tone: "neutral" },
@@ -82,9 +80,9 @@ export function OperationDashboard() {
   const [group, setGroup] = useState<"all" | GroupId>("all");
   const [status, setStatus] = useState<EntryFilter>("all");
   const [query, setQuery] = useState("");
-  const [page, setPage] = useState(1);
   const [selected, setSelected] = useState<Arrival | null>(null);
   const consultation = useRef<HTMLHeadingElement>(null);
+  const tableScroll = useRef<HTMLDivElement>(null);
   const detailTrigger = useRef<HTMLButtonElement | null>(null);
   const dashboard = useMemo(() => buildDashboard(date), [date]);
   const groups = useMemo(() => summarizeGroupEntries(dashboard.arrivals), [dashboard]);
@@ -100,10 +98,11 @@ export function OperationDashboard() {
     () => filterArrivals(dashboard.arrivals, { group, status, query }),
     [dashboard, group, status, query],
   );
-  const pageCount = Math.max(1, Math.ceil(rows.length / PAGE_SIZE));
-  const first = (page - 1) * PAGE_SIZE;
   const hasFilters = group !== "all" || status !== "all" || query !== "";
   const dateError = !isValidReferenceDate(dateInput);
+  useEffect(() => {
+    if (tableScroll.current) tableScroll.current.scrollTop = 0;
+  }, [date, group, status, query]);
   const registrationRate = dashboard.kpis.scheduled
     ? Math.round((dashboard.kpis.entries / dashboard.kpis.scheduled) * 100)
     : null;
@@ -112,7 +111,6 @@ export function OperationDashboard() {
     setStatus(nextStatus);
     setGroup(nextGroup);
     setQuery("");
-    setPage(1);
     consultation.current?.focus({ preventScroll: true });
     consultation.current?.scrollIntoView({ block: "start" });
   }
@@ -120,13 +118,11 @@ export function OperationDashboard() {
     setGroup("all");
     setStatus("all");
     setQuery("");
-    setPage(1);
   }
   function changeDate(value: string) {
     setDateInput(value);
     if (isValidReferenceDate(value)) {
       setDate(value);
-      setPage(1);
       setSelected(null);
     }
   }
@@ -396,7 +392,7 @@ export function OperationDashboard() {
       </div>
 
       <section className="op-panel op-consultation" aria-labelledby="consultation-heading">
-        <div className="op-panel-heading">
+        <div className="op-panel-heading op-consultation-heading">
           <div>
             <p className="op-eyebrow">ACOMPANHAMENTO INDIVIDUAL</p>
             <h2 id="consultation-heading" ref={consultation} tabIndex={-1}>
@@ -416,7 +412,6 @@ export function OperationDashboard() {
                 aria-pressed={group === value}
                 onClick={() => {
                   setGroup(value);
-                  setPage(1);
                 }}
               >
                 {value === "all" ? "Todos os grupos" : `Grupo ${value}`}
@@ -433,7 +428,6 @@ export function OperationDashboard() {
                 value={query}
                 onChange={(event) => {
                   setQuery(event.target.value);
-                  setPage(1);
                 }}
               />
             </label>
@@ -444,7 +438,6 @@ export function OperationDashboard() {
                 value={status}
                 onChange={(event) => {
                   setStatus(event.target.value as EntryFilter);
-                  setPage(1);
                 }}
               >
                 {Object.entries(FILTER_LABELS).map(([value, label]) => (
@@ -471,9 +464,10 @@ export function OperationDashboard() {
           )}
         </div>
         <div
-          className="op-table-scroll"
+          className="op-table-scroll op-table-vertical"
+          ref={tableScroll}
           role="region"
-          aria-label="Tabela de entradas; role horizontalmente em telas pequenas"
+          aria-label="Tabela de entradas com rolagem vertical"
           tabIndex={0}
         >
           <table className="op-table">
@@ -502,13 +496,8 @@ export function OperationDashboard() {
               </tr>
             </thead>
             <tbody>
-              {rows.map((arrival, index) => (
-                <tr
-                  key={arrival.employee.id}
-                  className={
-                    index < first || index >= first + PAGE_SIZE ? "op-off-page" : undefined
-                  }
-                >
+              {rows.map((arrival) => (
+                <tr key={arrival.employee.id}>
                   <td>
                     <div className="op-person">
                       <span className="op-avatar" aria-hidden="true">
@@ -573,27 +562,9 @@ export function OperationDashboard() {
             * Atrasos &gt; {RULES.lateAlertMinutes} min, de 01/{date.slice(5, 7)} até{" "}
             {date.split("-").reverse().join("/")}. Sem registro não conta como atraso.
           </p>
-          <div className="op-pagination no-print">
-            <span>
-              {rows.length
-                ? `${first + 1}–${Math.min(first + PAGE_SIZE, rows.length)} de ${rows.length}`
-                : "0 registros"}
-            </span>
-            <button
-              disabled={page <= 1}
-              onClick={() => setPage(page - 1)}
-              aria-label="Página anterior"
-            >
-              <ChevronLeft size={16} />
-            </button>
-            <button
-              disabled={page >= pageCount}
-              onClick={() => setPage(page + 1)}
-              aria-label="Próxima página"
-            >
-              <ChevronRight size={16} />
-            </button>
-          </div>
+          <span className="op-scroll-count no-print">
+            {rows.length === 0 ? "Nenhum registro" : `${rows.length} ${rows.length === 1 ? "registro" : "registros"} na lista · role para consultar todos`}
+          </span>
         </div>
       </section>
       <footer className="op-footer">
