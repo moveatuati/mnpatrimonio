@@ -51,9 +51,11 @@ export function prepareOperationalReference(
 
 /** Checagem técnica de uma proposta integral; nunca homologa nem aplica o lote. */
 export function reviewOperationalProposal(
-  reference: OperationalReference, changes: AssignmentChange[], targets: DailyCoverageTargets,
+  reference: OperationalReference, changes: AssignmentChange[], targets: DailyCoverageTargets, weeklyLimitMinutes?: number,
 ) {
   const errors: string[] = [];
+  if (weeklyLimitMinutes === undefined || !Number.isInteger(weeklyLimitMinutes) || weeklyLimitMinutes <= 0)
+    errors.push("Limite semanal não confirmado pelo RH/jurídico.");
   const requiredDates = Array.from({ length: 40 }, (_, i) => dateOffset(reference.start, i - 6));
   const keys = new Set(changes.map(change => overrideKey(change.date, change.employeeId)));
   for (const date of requiredDates) {
@@ -94,10 +96,16 @@ export function reviewOperationalProposal(
           const shift = reference.sundayShifts[GROUP_IDS.indexOf(group)];
           return total + (shift ? toMinutes(shift.end) - toMinutes(shift.start) : 0);
         }
-        const shift = reference.shifts[group].shift;
+        const shift = reference.shifts[group]?.shift;
+        if (!shift) return total;
         return total + toMinutes(shift.breakStart) - toMinutes(shift.start) + toMinutes(shift.end) - toMinutes(shift.breakEnd);
       }, 0)),
   }));
+  if (weeklyLimitMinutes !== undefined) for (const employee of weeklyMinutes) {
+    employee.weeks.forEach((minutes, week) => {
+      if (minutes > weeklyLimitMinutes) errors.push(employee.employeeId + ": jornada semanal excedida na semana " + (week + 1));
+    });
+  }
   return { technicallyValid: errors.length === 0, errors: [...new Set(errors)], weeklyMinutes,
     status: "aguardando-homologacao" as const };
 }

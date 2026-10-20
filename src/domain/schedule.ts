@@ -86,7 +86,7 @@ function rotatingSelection(employees: Employee[], date: ISODate, count: number) 
 /** Rascunho demonstrativo: preserva sábados; folgas úteis exigem alterações explícitas da gerência.
  * Não é referência homologada: domingos sem folga confirmada podem gerar conflitos.
  */
-export function baseAssignment(store: ScheduleStore, employee: Employee, date: ISODate): Assignment {
+export function baseAssignment(store: ScheduleStore, employee: Employee, date: ISODate, policyStart = SATURDAY_POLICY_START): Assignment {
   if (employee.status !== "ativo") return null;
   const group = employee.group;
   const members = DEMO_EMPLOYEES.filter(e => e.group === group && e.status === "ativo");
@@ -94,19 +94,19 @@ export function baseAssignment(store: ScheduleStore, employee: Employee, date: I
   if (weekday === 0) {
     return rotatingSelection(members, date, store.rules.sunday[group]).has(employee.id) ? group : null;
   }
-  if (date < SATURDAY_POLICY_START && weekday === 6 &&
-      assignmentFor(store, employee, dateOffset(date, 1)) !== null) return null;
+  if (date < policyStart && weekday === 6 &&
+      assignmentFor(store, employee, dateOffset(date, 1), policyStart) !== null) return null;
   if (store.rules.holidays.includes(date)) {
-    const eligible = date < SATURDAY_POLICY_START && weekday === 6
-      ? members.filter(e => assignmentFor(store,e,dateOffset(date,1)) === null) : members;
+    const eligible = date < policyStart && weekday === 6
+      ? members.filter(e => assignmentFor(store,e,dateOffset(date,1),policyStart) === null) : members;
     return rotatingSelection(eligible, date, holidayTargetsFor(store.rules, date)[group]).has(employee.id) ? group : null;
   }
   return group;
 }
-export function assignmentFor(store: ScheduleStore, employee: Employee, date: ISODate): Assignment {
+export function assignmentFor(store: ScheduleStore, employee: Employee, date: ISODate, policyStart = SATURDAY_POLICY_START): Assignment {
   const key = overrideKey(date, employee.id);
   return Object.prototype.hasOwnProperty.call(store.overrides, key)
-    ? store.overrides[key] ?? null : baseAssignment(store, employee, date);
+    ? store.overrides[key] ?? null : baseAssignment(store, employee, date, policyStart);
 }
 export function withChanges(store: ScheduleStore, changes: AssignmentChange[]): ScheduleStore {
   const overrides = { ...store.overrides };
