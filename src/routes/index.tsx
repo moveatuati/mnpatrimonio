@@ -5,7 +5,7 @@ import { PageHeader } from "@/components/layout/AppShell";
 import { buildDashboard } from "@/domain/dashboard";
 import { GROUPS, GROUP_IDS, RULES } from "@/domain/config";
 import { rankArrivalsByGroup, arrivalOffsetMinutes } from "@/domain/rules/arrival-ranking";
-import { countMonthlyLateArrivals } from "@/domain/rules/late-history";
+import { countMonthlyLateArrivals, rankMonthlyLateArrivals } from "@/domain/rules/late-history";
 import type { ArrivalStatus } from "@/domain/types";
 
 export const Route = createFileRoute("/")({
@@ -39,6 +39,13 @@ function Dashboard() {
   const lateHistory = useMemo(
     () => countMonthlyLateArrivals(date, d.arrivals.map((arrival) => arrival.employee)),
     [date, d.arrivals],
+  );
+
+  // O Top 5 reutiliza exatamente o histórico mensal das etiquetas dos funcionários.
+  const monthlyLateTopFive = rankMonthlyLateArrivals(
+    d.arrivals.map((arrival) => arrival.employee),
+    lateHistory,
+    5,
   );
 
   const kpis = [
@@ -195,7 +202,8 @@ function Dashboard() {
             {arrivalGroups.map(({ group, arrivals }) => {
               const config = GROUPS[group];
               return (
-                <section key={group} aria-label={`Ranking de chegadas do grupo ${group}`} className="formosa-arrival-group min-w-0 overflow-hidden rounded-2xl border border-border bg-card">
+                <div key={group} className="flex min-w-0 flex-col gap-4">
+                  <section aria-label={`Ranking de chegadas do grupo ${group}`} className="formosa-arrival-group min-w-0 overflow-hidden rounded-2xl border border-border bg-card">
                   <div className="formosa-arrival-group-header flex flex-wrap items-center justify-between gap-2 px-4 py-3">
                     <div className="flex items-center gap-2.5">
                       <span className="formosa-arrival-letter flex h-10 w-10 shrink-0 items-center justify-center rounded-xl font-display text-xl font-extrabold">{group}</span>
@@ -278,7 +286,51 @@ function Dashboard() {
                   <div className="formosa-arrival-footer border-t border-border px-4 py-3 text-[11px] text-muted-foreground">
                     Ranking diário por turno · atraso mensal &gt; 10 min · sem registro por último
                   </div>
-                </section>
+                  </section>
+                  {group === "A" && (
+                    <section aria-label="Top 5 de atrasos do mês" className="formosa-late-top5 overflow-hidden rounded-2xl border border-border bg-card">
+                      <div className="formosa-late-top5-header flex flex-wrap items-center justify-between gap-2 px-4 py-3">
+                        <div className="flex items-center gap-2.5">
+                          <span className="formosa-late-top5-icon flex h-10 w-10 items-center justify-center rounded-xl">
+                            <Clock className="h-5 w-5" aria-hidden="true" />
+                          </span>
+                          <div>
+                            <h3 className="font-display text-sm font-bold text-white">Top 5 · mais atrasos</h3>
+                            <p className="mt-0.5 text-xs text-white/85">Acumulado dos grupos A, B e C</p>
+                          </div>
+                        </div>
+                        <span className="rounded-full border border-white/25 bg-white/15 px-2.5 py-1 text-[10px] font-semibold text-white">
+                          01–{date.split("-").reverse().join("/")}
+                        </span>
+                      </div>
+                      {monthlyLateTopFive.length > 0 ? (
+                        <ol className="divide-y divide-border/75">
+                          {monthlyLateTopFive.map(({ employee, count }, index) => (
+                            <li key={employee.id} className="formosa-late-top5-row flex items-center gap-3 px-4 py-3">
+                              <span className={`formosa-late-top5-rank formosa-late-top5-rank-${index + 1} flex h-9 w-9 shrink-0 items-center justify-center rounded-xl font-display text-sm font-extrabold`}>
+                                {index + 1}º
+                              </span>
+                              <div className="min-w-0 flex-1">
+                                <span className="block truncate text-xs font-bold text-foreground" title={employee.name}>{employee.name}</span>
+                                <span className="mt-0.5 block text-[11px] text-muted-foreground">Grupo {employee.group} · {employee.id}</span>
+                              </div>
+                              <span className="formosa-late-top5-count shrink-0 rounded-lg px-2.5 py-1.5 text-right">
+                                <span className="block font-display text-base font-extrabold tabular-nums">{count}</span>
+                                <span className="block text-[10px] font-semibold">{count === 1 ? "atraso" : "atrasos"}</span>
+                              </span>
+                            </li>
+                          ))}
+                        </ol>
+                      ) : (
+                        <p className="px-4 py-8 text-center text-sm text-muted-foreground">Nenhum atraso acima do limite no período.</p>
+                      )}
+                      <p className="formosa-late-top5-footer border-t border-border px-4 py-3 text-[11px] leading-relaxed text-muted-foreground">
+                        Ocorrências acima de {RULES.lateAlertMinutes} min desde o início do mês até a data selecionada.
+                        Sem marcação não conta como atraso. Dados fictícios.
+                      </p>
+                    </section>
+                  )}
+                </div>
               );
             })}
           </div>

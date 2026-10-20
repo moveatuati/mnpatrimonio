@@ -34,3 +34,22 @@ export function countMonthlyLateArrivals(
   }
   return result;
 }
+
+/**
+ * Top de reincidência de atrasos do mês considerando os três grupos.
+ * Critério: quantidade de ocorrências acima de 10 minutos, com desempate
+ * por nome e identificador para não variar a ordem ao atualizar a página.
+ */
+export function rankMonthlyLateArrivals<T extends Pick<Employee, "id" | "name" | "group">>(
+  employees: readonly T[],
+  totals: Readonly<Record<string, number>>,
+  limit = 5,
+): Array<{ employee: T; count: number }> {
+  return employees
+    .map((employee) => ({ employee, count: totals[employee.id] ?? 0 }))
+    .filter(({ count }) => Number.isFinite(count) && count > 0)
+    .sort((a, b) => b.count - a.count ||
+      a.employee.name.localeCompare(b.employee.name, "pt-BR") ||
+      a.employee.id.localeCompare(b.employee.id))
+    .slice(0, Math.max(0, Math.trunc(limit)));
+}
