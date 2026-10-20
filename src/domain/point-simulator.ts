@@ -156,7 +156,7 @@ export function seedPointDay(store: PointStore, schedule: ScheduleStore, date: I
     const required = requiredMarks(schedule, employee, date);
     if (!required.length) continue;
     const planned = plannedMarks(schedule, employee, date);
-    const offset = sampleIndex % 31 === 0 ? 14 : sampleIndex % 9 === 0 ? 6 : -(sampleIndex % 4);
+    const offset = (sampleIndex + 1) % 31 === 0 ? 14 : sampleIndex % 9 === 0 ? 6 : -(sampleIndex % 4);
     sampleIndex++;
     const marks: Partial<Record<Mark, string>> = {};
     for (const mark of required) {
