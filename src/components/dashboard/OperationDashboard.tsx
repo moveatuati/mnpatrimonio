@@ -440,7 +440,7 @@ export function OperationDashboard() {
                   setStatus(event.target.value as EntryFilter);
                 }}
               >
-                {Object.entries(FILTER_LABELS).map(([value, label]) => (
+                {Object.entries(getFilterLabels()).map(([value, label]) => (
                   <option key={value} value={value}>
                     {label}
                   </option>
