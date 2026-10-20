@@ -32,20 +32,20 @@ import { summarizeGroupEntries } from "@/domain/rules/group-readiness";
 import type { ArrivalStatus, GroupId } from "@/domain/types";
 
 const REFERENCE_DATE = "2026-10-19";
-const STATUS: Record<ArrivalStatus, { label: string; tone: string }> = {
+function getStatusLabels(): Record<ArrivalStatus, { label: string; tone: string }> { return {
   no_horario: { label: "No horário", tone: "success" },
   atraso_alerta: { label: `Até ${RULES.lateAlertMinutes} min`, tone: "neutral" },
   atraso_acima: { label: `Acima de ${RULES.lateAlertMinutes} min`, tone: "warning" },
   sem_registro: { label: "Sem registro", tone: "danger" },
-};
-const FILTER_LABELS: Record<EntryFilter, string> = {
+}; }
+function getFilterLabels(): Record<EntryFilter, string> { return {
   all: "Todas as situações",
   registered: "Entradas registradas",
   no_horario: "No horário",
   atraso_alerta: `Atraso de até ${RULES.lateAlertMinutes} min`,
   atraso_acima: `Acima de ${RULES.lateAlertMinutes} min`,
   sem_registro: "Sem registro",
-};
+}; }
 type Arrival = ReturnType<typeof buildDashboard>["arrivals"][number];
 
 function displayDate(date: string) {
@@ -64,7 +64,7 @@ function initials(name: string) {
     .join("");
 }
 function StatusBadge({ status }: { status: ArrivalStatus }) {
-  const { label, tone } = STATUS[status];
+  const { label, tone } = getStatusLabels()[status];
   const Icon = status === "no_horario" ? Check : status === "sem_registro" ? UserRoundX : Clock3;
   return (
     <span className={`op-status op-status-${tone}`}>
@@ -453,7 +453,7 @@ export function OperationDashboard() {
           <p>
             {date.split("-").reverse().join("/")} <span>·</span>{" "}
             {group === "all" ? "Todos os grupos" : `Grupo ${group}`} <span>·</span>{" "}
-            {FILTER_LABELS[status]}
+            {getFilterLabels()[status]}
             {query.trim() && ` · Busca: “${query.trim()}”`}
           </p>
           {hasFilters && (

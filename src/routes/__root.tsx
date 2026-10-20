@@ -8,7 +8,8 @@ import {
   Scripts,
   type ErrorComponentProps,
 } from "@tanstack/react-router";
-import { useEffect, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
+import { hydrateRhSettings, RH_SETTINGS_EVENT, RH_SETTINGS_KEY } from "@/domain/rh-settings";
 
 import appCss from "../styles.css?url";
 import { AppShell } from "../components/layout/AppShell";
@@ -122,12 +123,23 @@ function RootShell({ children }: { children: ReactNode }) {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
-
+  const [rulesRevision,setRulesRevision]=useState(0);
+  useEffect(()=>{
+    const refresh=()=>{hydrateRhSettings();setRulesRevision(v=>v+1);};
+    refresh();
+    const fromStorage=(e:StorageEvent)=>{if(e.key===RH_SETTINGS_KEY)refresh();};
+    window.addEventListener(RH_SETTINGS_EVENT,refresh);
+    window.addEventListener("storage",fromStorage);
+    return ()=>{
+      window.removeEventListener(RH_SETTINGS_EVENT,refresh);
+      window.removeEventListener("storage",fromStorage);
+    };
+  },[]);
   return (
     <QueryClientProvider client={queryClient}>
-      {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
+      {/* Nested modules remount when the shared operational policies change. */}
       <AppShell>
-        <Outlet />
+        <Outlet key={rulesRevision} />
       </AppShell>
     </QueryClientProvider>
   );

@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { Link } from "@tanstack/react-router";
+import { RULES } from "@/domain/config";
 import {
   AlertTriangle, CalendarDays, Check, Clock3, Fingerprint, History, Info,
   Pencil, Play, RotateCcw, Search, ShieldCheck, Users, X,
@@ -63,6 +65,7 @@ export function PointSimulator() {
     try {
       const raw = window.localStorage.getItem(POINT_STORAGE);
       if (raw) setStore(readPointStore(JSON.parse(raw)));
+      else setStore({...EMPTY_POINT_STORE, alertMinutes:RULES.lateAlertMinutes});
     } catch { /* apenas demonstração local */ }
     setSchedule(readSchedule());
     setReady(true);
@@ -231,11 +234,9 @@ export function PointSimulator() {
           <p><b>Intervalo:</b> saída e retorno seguem ordem cronológica. O sistema não considera intervalo fictício para os turnos especiais.</p>
           <p><b>Saída:</b> antes do previsto gera atenção. Sem marcação, não significa falta confirmada.</p>
         </div>
-        <label className="fp-field fp-alert-setting"><span>Alerta de entrada após (minutos)</span>
-          <input aria-label="Limite de alerta em minutos" type="number" min={0} max={60} value={store.alertMinutes}
-            onChange={e => { if(e.target.value==="") return; const n=Number(e.target.value);
-              if(!Number.isFinite(n))return;setStore(p=>({...p,alertMinutes:Math.min(60,Math.max(0,Math.trunc(n)))})); }}/>
-        </label>
+        <p className="fp-explain"><Info size={15}/> Alerta operacional: <b>{store.alertMinutes} minutos</b>.
+          Para mudar esse limite de forma integrada, acesse <Link to="/regras">Regras & histórico</Link>.
+          As marcações existentes são preservadas.</p>
         <div className="fp-tools">
           <button className="fp-outline" type="button" onClick={generate} disabled={!ready}><Play size={15}/> Gerar amostra do dia</button>
           <button className="fp-outline fp-danger" type="button" onClick={resetDay} disabled={!ready}><RotateCcw size={15}/> Limpar data</button>

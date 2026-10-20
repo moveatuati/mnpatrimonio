@@ -1,11 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
-import { AlertTriangle, CalendarDays, CheckCircle2, Clock3, History, Info, RotateCcw, Save, Settings2, ShieldCheck, SlidersHorizontal } from "lucide-react";
+import { AlertTriangle, CalendarDays, Clock3, Info, RotateCcw, Save, ShieldCheck, SlidersHorizontal } from "lucide-react";
 import { PageHeader } from "@/components/layout/AppShell";
-import { GROUPS, GROUP_IDS, RULES } from "@/domain/config";
+import { GROUPS, GROUP_IDS } from "@/domain/config";
 import { DEFAULT_SCHEDULE, reviseStore, type ScheduleStore } from "@/domain/schedule";
 import type { GroupId } from "@/domain/types";
 import { RH_SETTINGS_EVENT, defaultRhSettings, describeChanges, readRhSettingsStore,
-  saveRhSettings, validateRhSettings, isClock, type RhSettings } from "@/domain/rh-settings";
+  saveRhSettings, validateRhSettings, type RhSettings } from "@/domain/rh-settings";
 import "./RulesWorkspace.css";
 
 const SCHEDULE_KEY="formosa:augusto-montenegro:escala-demo:v1";
