@@ -31,11 +31,20 @@ describe("Simulador 5×2 · tela",()=>{
    expect(screen.getByRole("alert")).toHaveTextContent(/segunda-feira/);
    expect(screen.getByRole("button",{name:"Exportar simulação"})).toBeDisabled();
  });
+ it("apresenta indicadores do piloto e checklist sem registrar aprovação real",()=>{
+   render(<FiveTwoWorkspace/>);
+   fireEvent.click(screen.getByRole("button",{name:/Guia de implementação/}));
+   const table=screen.getByRole("region",{name:"Indicadores de acompanhamento do piloto"});
+   expect(within(table).getAllByRole("row")).toHaveLength(7);
+   expect(screen.getByText(/0 de 6 etapas conferidas/)).toBeInTheDocument();
+   fireEvent.click(screen.getAllByRole("checkbox")[0]!);
+   expect(screen.getByText(/1 de 6 etapas conferidas/)).toBeInTheDocument();
+ });
  it("exibe roteiro e fonte oficial da EC 141",()=>{
    render(<FiveTwoWorkspace/>);
    fireEvent.click(screen.getByRole("button",{name:/Guia de implementação/}));
    expect(screen.getByRole("heading",{name:"Roteiro de transição segura"})).toBeInTheDocument();
    expect(screen.getByRole("link",{name:/Emenda Constitucional 141/})).toHaveAttribute(
-     "href","https://www.presidencia.gov.br/ccivil_03/constituicao/emendas/emc/emc141.htm");
+     "href","https://www.planalto.gov.br/ccivil_03/constituicao/emendas/emc/emc141.htm");
  });
 });

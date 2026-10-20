@@ -49,7 +49,17 @@ const SELECTORS=[
   {value:76,title:"Reforço · 76 pessoas",desc:"+13 contratações hipotéticas"},
   {value:79,title:"Base teórica · 79 pessoas",desc:"Mínimo global aproximado"},
 ] as const;
+const PILOT_METRICS=[
+  {name:"Cobertura por faixa horária",cadence:"Diária · abertura, pico e fechamento",signal:"Qualquer posto descoberto no pico",action:"Rever folgas, reforço ou horário de funcionamento"},
+  {name:"Horas extras e banco de horas",cadence:"Semanal · horas aprovadas",signal:"Crescimento sustentado após mudança",action:"Revisar turnos e avaliar custo real"},
+  {name:"Filas e tempo de atendimento",cadence:"Diária · horários críticos",signal:"Espera acima da meta da loja",action:"Reforçar caixas e ajustar intervalos"},
+  {name:"Vendas por hora e atendimento",cadence:"Semanal · comparar períodos equivalentes",signal:"Queda relevante em horários de maior fluxo",action:"Reavaliar cobertura e abertura/fechamento"},
+  {name:"Absenteísmo, retenção e clima",cadence:"Quinzenal · RH e equipe",signal:"Aumento de faltas ou pedidos de saída",action:"Rever descanso, carga e preferências"},
+  {name:"Custo total de pessoal",cadence:"Mensal · DP e financeiro",signal:"Desvio contra o orçamento aprovado",action:"Comparar reforços, encargos, VT e alimentação"},
+] as const;
 const SOURCES=[
+ {title:"Agência Senado · início de 42h em 15/12",url:LEGAL_SOURCES.implementation,
+  desc:"Esclarecimento oficial de 19/10/2026 sobre a data da primeira etapa da transição."},
  {title:"Emenda Constitucional 141/2026",url:LEGAL_SOURCES.url,
   desc:"Texto promulgado: prazos, descanso, 42h transitórias, 40h definitivas e acordo coletivo."},
  {title:"Agência Senado · promulgação",url:LEGAL_SOURCES.senate,
@@ -89,6 +99,8 @@ export function FiveTwoWorkspace(){
   const [expanded,setExpanded]=useState<string|null>(null);
   const [ready,setReady]=useState(false);
   const [message,setMessage]=useState("");
+  const [pilotChecks,setPilotChecks]=useState<string[]>([]);
+  const [monthlyCost,setMonthlyCost]=useState("");
   useEffect(()=>{
     const refresh=()=>setSources(storeSources());
     refresh();setReady(true);
@@ -137,6 +149,8 @@ export function FiveTwoWorkspace(){
   function csv(){if(result)try{exportCsv(result);setMessage("Escala hipotética das quatro semanas exportada para CSV. Não é autorização de trabalho.");}
     catch{setMessage("Não foi possível exportar neste navegador.");}}
   const summary=result?.metrics;
+  const estimatedCost=Number(monthlyCost);
+  const costValid=monthlyCost.trim()!=="" && Number.isFinite(estimatedCost) && estimatedCost>0;
   return <div className="ft-app formosa-operation">
     <header className="ft-top no-print"><div>
       <p className="op-eyebrow">FORMOSA · GESTÃO DE PESSOAS · {UNIT.unit.toUpperCase()}</p>
@@ -148,8 +162,8 @@ export function FiveTwoWorkspace(){
       </div></header>
     <div className="ft-legal"><ShieldCheck size={18}/>
       <div><b>EC 141/2026 PROMULGADA · REGRAS EM TRANSIÇÃO</b>
-        <p>Dois dias de descanso semanal, sem redução salarial. A partir de <strong>16/12/2026:</strong> teto de 42h/semana.
-          A partir de <strong>16/12/2027:</strong> 40h/semana. Ampliação diária na fase de 42h requer acordo/convenção coletiva.
+        <p>Dois dias de descanso semanal, sem redução salarial. A partir de <strong>15/12/2026:</strong> teto de 42h/semana.
+          A partir de <strong>15/12/2027:</strong> 40h/semana. Ampliação diária na fase de 42h requer acordo/convenção coletiva.
           O quadro abaixo é um <strong>estudo demonstrativo</strong>, não uma escala autorizada.</p></div></div>
     {message&&<div className="ft-alert" role="status"><Info size={15}/><span>{message}</span>
       <button type="button" aria-label="Fechar aviso" onClick={()=>setMessage("")}>×</button></div>}
@@ -198,11 +212,11 @@ export function FiveTwoWorkspace(){
       {!dateIsMonday&&<div className="ft-warning" role="alert"><AlertTriangle size={16}/>
         Escolha uma segunda-feira válida para iniciar as quatro semanas.</div>}
       {legalFirst===false&&<div className="ft-warning"><Info size={15}/> Data anterior à vigência da nova escala:
-        o cenário permanece apenas hipotético. A segunda folga passa a valer em 16/12/2026.</div>}
+        o cenário permanece apenas hipotético. A segunda folga passa a valer em 15/12/2026, conforme esclarecimento do Senado.</div>}
       {parameters.weeklyLimit===40&&!legalForty&&<div className="ft-info"><Info size={15}/>
-        A jornada de 40h pode ser planejada antecipadamente, mas o limite constitucional definitivo só se aplica em 16/12/2027.</div>}
+        A jornada de 40h pode ser planejada antecipadamente, mas o limite constitucional definitivo passa a ser aplicado em 15/12/2027, conforme cronograma do Senado.</div>}
       {parameters.weeklyLimit===42&&legalForty&&<div className="ft-warning" role="alert"><AlertTriangle size={16}/>
-        O teto definitivo de 40h começa em 16/12/2027; usar 42h após essa data não representa uma escala regular.
+        O teto definitivo de 40h começa em 15/12/2027; usar 42h após essa data não representa uma escala regular.
         Escolha 40h para planejar a implementação final.</div>}
       {parameters.weeklyLimit===42&&<div className="ft-warning"><AlertTriangle size={16}/>
         Distribuição de 42h em 5 dias (8h24/dia) é CONDICIONAL a acordo/convenção coletiva durante a transição,
@@ -247,6 +261,7 @@ export function FiveTwoWorkspace(){
               <div><span><AlertTriangle size={16}/> Alertas de sequência/limite</span><strong>{summary.restViolations+summary.badHours}</strong><small>Descanso consecutivo ou horas semanais</small></div>
             </div>
             <div className="ft-note">A verificação de 11 horas usa os turnos propostos A/B/C e a programação dominical existente.
+              O motor também sinaliza sequências de mais de cinco dias trabalhados, mesmo quando cruzam duas semanas.
               Um resultado sem alertas <b>não é validação jurídica</b> nem garante cobertura dentro de cada hora de funcionamento.</div>
           </section>
         </div>
@@ -311,6 +326,23 @@ export function FiveTwoWorkspace(){
             são menores (6h15 nos exemplos), de forma que alguns colaboradores terão menos horas na semana.
             Não completar automaticamente o saldo com banco de horas nem estender jornada além de acordo aprovado.</div>
         </section>
+        <section className="ft-panel">
+          <div className="ft-heading"><div><p className="op-eyebrow">IMPACTO FINANCEIRO HIPOTÉTICO</p>
+            <h2>Quanto custaria o reforço?</h2>
+            <p>Estimativa opcional, para discussão do orçamento. Não calcula folha, adicionais ou encargos automaticamente.</p></div></div>
+          <div className="ft-finance">
+            <label className="ft-field"><span>Custo mensal médio total por novo colaborador (R$)</span>
+              <input aria-label="Custo mensal estimado por contratação" type="number" min={0} step={1}
+                placeholder="Informe o valor de referência" value={monthlyCost}
+                onChange={e=>setMonthlyCost(e.target.value)}/></label>
+            <div><span>Novos colaboradores hipotéticos</span><strong>{summary.newHires}</strong></div>
+            <div><span>Custo adicional ilustrativo / mês</span>
+              <strong>{costValid?(summary.newHires*estimatedCost).toLocaleString("pt-BR",{style:"currency",currency:"BRL"}):"Aguardando custo"}</strong></div>
+          </div>
+          <div className="ft-note"><Info size={16}/> Utilize custo completo validado pelo financeiro (salário, benefícios, encargos e provisões).
+            O resultado é apenas a multiplicação do reforço pelo custo informado; não contempla produtividade,
+            alterações de horário, treinamento, despesas extraordinárias ou negociação coletiva.</div>
+        </section>
         {preview&&<section className="ft-panel">
           <div className="ft-heading"><div><p className="op-eyebrow">COMPARAÇÃO RÁPIDA</p><h2>Diferença entre cenários</h2>
             <p>Quantidades não substituem qualificação, treinamento nem produtividade real.</p></div></div>
@@ -359,6 +391,34 @@ export function FiveTwoWorkspace(){
           <p>Um processo gradual, inspirado em boas práticas de implementação em redes de varejo.</p></div></div>
           <div className="ft-steps">{STEPS.map(item=><div key={item.n}><span>{item.n}</span>
             <div><b>{item.name}</b><p>{item.desc}</p></div></div>)}</div></section>
+        <section className="ft-panel">
+          <div className="ft-heading"><div><p className="op-eyebrow">PRONTIDÃO DO PILOTO</p>
+            <h2>Conferência antes de implantar</h2>
+            <p>Marque os preparativos concluídos. Esta lista é temporária e não substitui as aprovações empresariais.</p></div>
+            <span className="ft-pill">{pilotChecks.length} de {STEPS.length} etapas conferidas</span>
+          </div></div>
+          <div className="ft-checklist">{STEPS.map(step=><label key={step.n}>
+            <input type="checkbox" checked={pilotChecks.includes(step.n)}
+              onChange={e=>setPilotChecks(prev=>e.target.checked?[...prev,step.n]:prev.filter(x=>x!==step.n))}/>
+            <span><b>{step.n} · {step.name}</b><small>{step.desc}</small></span>
+          </label>)}</div>
+          <div className="ft-note"><AlertTriangle size={16}/> Mesmo com todas as etapas assinaladas,
+            o simulador não certifica cumprimento da legislação e não autoriza publicar escalas.</div>
+        </section>
+        <section className="ft-panel">
+          <div className="ft-heading"><div><p className="op-eyebrow">MONITORAMENTO DO PROJETO-PILOTO</p>
+            <h2>Indicadores para acompanhar a transição</h2>
+            <p>Métricas e sinais de atenção recomendados, sem inventar valores de desempenho.</p></div></div>
+          <div className="ft-scroll-table" role="region" aria-label="Indicadores de acompanhamento do piloto" tabIndex={0}>
+            <table className="ft-table"><thead><tr><th>Indicador</th><th>Frequência</th><th>Sinal de atenção</th><th>Ação sugerida</th></tr></thead>
+              <tbody>{PILOT_METRICS.map(item=><tr key={item.name}>
+                <td><b>{item.name}</b></td><td>{item.cadence}</td><td>{item.signal}</td><td>{item.action}</td>
+              </tr>)}</tbody>
+            </table>
+          </div>
+          <div className="ft-note"><Info size={16}/> O quadro indica o que medir durante o piloto.
+            São recomendações de gestão, não medições reais, nem dados extraídos de sistemas de vendas.</div>
+        </section>
         <section className="ft-panel"><div className="ft-heading"><div><p className="op-eyebrow">PERGUNTAS PRÁTICAS</p>
           <h2>O que o gerente precisa compreender</h2></div></div>
           <div className="ft-faq">{INSIGHTS.map(([q,a],i)=><div key={q}>
