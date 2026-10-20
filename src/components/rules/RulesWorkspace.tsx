@@ -82,6 +82,9 @@ export function RulesWorkspace(){
   };
   const addHoliday=()=>{
     if(!validDate(holiday)){setFeedback("Informe uma data de feriado válida.");return;}
+    if(!schedule.rules.holidays.includes(holiday) && schedule.rules.holidays.length>=70){
+      setFeedback("O calendário demonstra até 70 datas de feriado.");return;
+    }
     setSchedule(prev=>({...prev,rules:{...prev.rules,holidays:[...new Set([...prev.rules.holidays,holiday])].sort()}}));
     setHoliday("");setFeedback("");
   };

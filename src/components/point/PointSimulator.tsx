@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Link } from "@tanstack/react-router";
 import { RULES } from "@/domain/config";
 import {
   AlertTriangle, CalendarDays, Check, Clock3, Fingerprint, History, Info,
@@ -235,7 +234,7 @@ export function PointSimulator() {
           <p><b>Saída:</b> antes do previsto gera atenção. Sem marcação, não significa falta confirmada.</p>
         </div>
         <p className="fp-explain"><Info size={15}/> Alerta operacional: <b>{store.alertMinutes} minutos</b>.
-          Para mudar esse limite de forma integrada, acesse <Link to="/regras">Regras & histórico</Link>.
+          Para mudar esse limite de forma integrada, acesse <a href="/regras">Regras & histórico</a>.
           As marcações existentes são preservadas.</p>
         <div className="fp-tools">
           <button className="fp-outline" type="button" onClick={generate} disabled={!ready}><Play size={15}/> Gerar amostra do dia</button>

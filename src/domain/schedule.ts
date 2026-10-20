@@ -236,7 +236,7 @@ export function reviseStore(raw: unknown): ScheduleStore {
       holiday: targets(v.rules.holiday, DEFAULT_SCHEDULE.rules.holiday),
       holidayByDate: Object.fromEntries(Object.entries(
         v.rules.holidayByDate && typeof v.rules.holidayByDate === "object" ? v.rules.holidayByDate : {},
-      ).filter(([date]) => /^d{4}-d{2}-d{2}$/.test(date)).slice(0, 70)
+      ).filter(([date]) => /^\d{4}-\d{2}-\d{2}$/.test(date)).slice(0, 70)
         .map(([date, values]) => [date, targets(values, DEFAULT_SCHEDULE.rules.holiday)])),
       holidays: Array.isArray(v.rules.holidays)
         ? [...new Set(v.rules.holidays.filter(d => typeof d === "string" && /^\d{4}-\d{2}-\d{2}$/.test(d)))].slice(0, 70)
