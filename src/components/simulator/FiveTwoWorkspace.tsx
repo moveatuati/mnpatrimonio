@@ -113,10 +113,11 @@ export function FiveTwoWorkspace(){
     (group==="all"||r.group===group))??[];
   const staff=result?.personSummary.filter(p=>(group==="all"||p.employee.group===group)&&
     (p.employee.name+" "+p.employee.id).toLocaleLowerCase("pt-BR").includes(staffSearch.trim().toLocaleLowerCase("pt-BR")))??[];
-  const daysWeek=Array.from({length:7},(_,i)=>dateOffset(parameters.start,week*7+i));
+  const safeStart=dateIsMonday?parameters.start:FUTURE_START;
+  const daysWeek=Array.from({length:7},(_,i)=>dateOffset(safeStart,week*7+i));
   const legalFirst=parameters.start>=LEGAL_SOURCES.firstPhase;
   const legalForty=parameters.start>=LEGAL_SOURCES.finalPhase;
-  const currentMin=theoreticalMinimum(sources.schedule,parameters.start);
+  const currentMin=theoreticalMinimum(sources.schedule,safeStart);
   function change<K extends keyof SimulatorParameters>(key:K,value:SimulatorParameters[K]){
     setParameters(p=>({...p,[key]:value}));setExpanded(null);
   }
