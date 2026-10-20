@@ -36,3 +36,5 @@ O simulador 5×2 mantém sábado integral, domingos alternados, duas folgas não
 ### Segurança, testes e custos
 
 A central é demonstrativa, sem servidor, autenticação ou auditoria oficial. O usuário deve confirmar acordo coletivo e políticas internas. Foram adicionados testes de armazenamento, validação, integração de ponto, alteração de efetivo, interface e histórico. Testes, tipagem e compilação devem ser executados em ambiente que possua as dependências; GitHub Actions não é acionado manualmente nem configurado para execução automática.
+
+A primeira leitura da central reaproveita o alerta em minutos já salvo no Ponto demonstrativo, quando ainda não existe configuração central. Isso evita perder ajustes anteriores. Turnos especiais acima de seis horas exigem validar o intervalo intrajornada; o protótipo ainda não registra automaticamente pausas dominicais.

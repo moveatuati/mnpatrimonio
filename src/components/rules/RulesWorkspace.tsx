@@ -194,6 +194,7 @@ export function RulesWorkspace(){
             <b>Turno especial {i+1}</b><div className="rh-fields">{(["start","end"] as const).map(key=><label key={key}><span>{key==="start"?"Entrada":"Saída"}</span>
               <input type="time" aria-label={"Domingo turno "+(i+1)+" "+key} value={shift[key]}
                 onChange={e=>sundayField(i,key,e.target.value)}/></label>)}</div></div>)}</div>
+          <p className="rh-footnote"><AlertTriangle size={16}/> Turnos especiais com mais de seis horas exigem verificação do intervalo intrajornada e da norma coletiva. O Ponto simulado ainda não registra intervalos nesses turnos; não utilizar como escala oficial.</p>
           <div className="rh-target-grid">{(["sunday","holiday"] as const).map(kind=><div key={kind}>
             <h4>{kind==="sunday"?"Equipe dominical por turno":"Equipe-padrão nos feriados"}</h4>
             <div className="rh-fields">{GROUP_IDS.map(g=><label key={g}><span>Grupo {g}</span>

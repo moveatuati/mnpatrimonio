@@ -82,13 +82,22 @@ function validStored(input: unknown): RhSettingsStore | null {
   return {version:1,settings:clone(settings),history};
 }
 export function readRhSettingsStore(): RhSettingsStore {
+  const fallback:RhSettingsStore={version:1,settings:defaultRhSettings(),history:[]};
   if (typeof window !== "undefined") {
     try {
       const data = window.localStorage.getItem(RH_SETTINGS_KEY);
-      if (data) return validStored(JSON.parse(data)) ?? {version:1,settings:defaultRhSettings(),history:[]};
+      if (data) return validStored(JSON.parse(data)) ?? fallback;
+      // Compatibilidade com o limite ajustado anteriormente na tela do Ponto.
+      const pointRaw=window.localStorage.getItem(RH_POINT_KEY);
+      if(pointRaw){
+        const point=JSON.parse(pointRaw) as Record<string,unknown>;
+        const alert=point.alertMinutes;
+        if(point.version===1 && typeof alert==="number" && Number.isInteger(alert) && alert>=0 && alert<=60)
+          fallback.settings.lateAlertMinutes=alert;
+      }
     } catch { /* fallback demonstrativo sem armazenamento */ }
   }
-  return {version:1,settings:defaultRhSettings(),history:[]};
+  return fallback;
 }
 export function applyRhSettings(settings: RhSettings): void {
   if (validateRhSettings(settings).length) return;
