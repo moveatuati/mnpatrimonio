@@ -134,10 +134,11 @@ export function ReportsWorkspace(){
       document.removeEventListener("visibilitychange",onVisibility);};
   },[]);
   const errors=reportFilterErrors(filters);
+  const isValidRange=errors.length===0;
   const model=useMemo(()=>{
-    if(errors.length)return null;
+    if(!isValidRange)return null;
     try{return buildReport(sources,filters);}catch{return null;}
-  },[sources,filters,errors.join("|")]);
+  },[sources,filters,isValidRange]);
   const sheet=useMemo(()=>model?sheetFor(model,selected):null,[model,selected]);
   const displayed=sheet?(showAll?sheet.rows:sheet.rows.slice(0,120)):[];
   const printRemainder=sheet&&!showAll?sheet.rows.slice(120):[];
@@ -147,7 +148,7 @@ export function ReportsWorkspace(){
     if(next!=="personalizado")setFilters(p=>({...p,...buildPeriod(refDate,next)}));
   }
   function chooseReference(next:string){
-    if(!next)return;
+    if(!/^\d{4}-\d{2}-\d{2}$/.test(next))return;
     setRefDate(next);
     if(period!=="personalizado")setFilters(p=>({...p,...buildPeriod(next,period)}));
     setShowAll(false);
