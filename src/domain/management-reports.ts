@@ -1,4 +1,4 @@
-import { COMPARISON_PEOPLE } from "./five-two-simulator";
+import { PROJECTED_PEOPLE as COMPARISON_PEOPLE } from "./five-two-simulator";
 import { GROUPS, GROUP_IDS } from "./config";
 import { DEMO_EMPLOYEES } from "./demo-data";
 import { ABSENCE_LABELS, nextWorkDate, type AbsenceStore } from "./absences";
