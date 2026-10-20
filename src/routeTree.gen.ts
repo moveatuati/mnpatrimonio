@@ -14,6 +14,7 @@ import { Route as BancoDeHorasRouteImport } from './routes/banco-de-horas'
 import { Route as ColaboradoresRouteImport } from './routes/colaboradores'
 import { Route as EscalaRouteImport } from './routes/escala'
 import { Route as FeriasRouteImport } from './routes/ferias'
+import { Route as FichaColaboradorRouteImport } from './routes/ficha-colaborador'
 import { Route as PontoRouteImport } from './routes/ponto'
 import { Route as RegrasRouteImport } from './routes/regras'
 import { Route as RelatoriosRouteImport } from './routes/relatorios'
@@ -44,6 +45,11 @@ const FeriasRoute = FeriasRouteImport.update({
   path: '/ferias',
   getParentRoute: () => rootRouteImport,
 } as any)
+const FichaColaboradorRoute = FichaColaboradorRouteImport.update({
+  id: '/ficha-colaborador',
+  path: '/ficha-colaborador',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const PontoRoute = PontoRouteImport.update({
   id: '/ponto',
   path: '/ponto',
@@ -71,6 +77,7 @@ export interface FileRoutesByFullPath {
   '/colaboradores': typeof ColaboradoresRoute
   '/escala': typeof EscalaRoute
   '/ferias': typeof FeriasRoute
+  '/ficha-colaborador': typeof FichaColaboradorRoute
   '/ponto': typeof PontoRoute
   '/regras': typeof RegrasRoute
   '/relatorios': typeof RelatoriosRoute
@@ -82,6 +89,7 @@ export interface FileRoutesByTo {
   '/colaboradores': typeof ColaboradoresRoute
   '/escala': typeof EscalaRoute
   '/ferias': typeof FeriasRoute
+  '/ficha-colaborador': typeof FichaColaboradorRoute
   '/ponto': typeof PontoRoute
   '/regras': typeof RegrasRoute
   '/relatorios': typeof RelatoriosRoute
@@ -94,6 +102,7 @@ export interface FileRoutesById {
   '/colaboradores': typeof ColaboradoresRoute
   '/escala': typeof EscalaRoute
   '/ferias': typeof FeriasRoute
+  '/ficha-colaborador': typeof FichaColaboradorRoute
   '/ponto': typeof PontoRoute
   '/regras': typeof RegrasRoute
   '/relatorios': typeof RelatoriosRoute
@@ -107,6 +116,7 @@ export interface FileRouteTypes {
     | '/colaboradores'
     | '/escala'
     | '/ferias'
+    | '/ficha-colaborador'
     | '/ponto'
     | '/regras'
     | '/relatorios'
@@ -118,6 +128,7 @@ export interface FileRouteTypes {
     | '/colaboradores'
     | '/escala'
     | '/ferias'
+    | '/ficha-colaborador'
     | '/ponto'
     | '/regras'
     | '/relatorios'
@@ -129,6 +140,7 @@ export interface FileRouteTypes {
     | '/colaboradores'
     | '/escala'
     | '/ferias'
+    | '/ficha-colaborador'
     | '/ponto'
     | '/regras'
     | '/relatorios'
@@ -141,6 +153,7 @@ export interface RootRouteChildren {
   ColaboradoresRoute: typeof ColaboradoresRoute
   EscalaRoute: typeof EscalaRoute
   FeriasRoute: typeof FeriasRoute
+  FichaColaboradorRoute: typeof FichaColaboradorRoute
   PontoRoute: typeof PontoRoute
   RegrasRoute: typeof RegrasRoute
   RelatoriosRoute: typeof RelatoriosRoute
@@ -184,6 +197,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof FeriasRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/ficha-colaborador': {
+      id: '/ficha-colaborador'
+      path: '/ficha-colaborador'
+      fullPath: '/ficha-colaborador'
+      preLoaderRoute: typeof FichaColaboradorRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/ponto': {
       id: '/ponto'
       path: '/ponto'
@@ -221,6 +241,7 @@ const rootRouteChildren: RootRouteChildren = {
   ColaboradoresRoute: ColaboradoresRoute,
   EscalaRoute: EscalaRoute,
   FeriasRoute: FeriasRoute,
+  FichaColaboradorRoute: FichaColaboradorRoute,
   PontoRoute: PontoRoute,
   RegrasRoute: RegrasRoute,
   RelatoriosRoute: RelatoriosRoute,
