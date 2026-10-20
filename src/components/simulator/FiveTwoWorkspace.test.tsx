@@ -25,6 +25,25 @@ describe("Simulador 5×2 · tela",()=>{
      {target:{value:"FM-001"}});
    expect(within(table).getAllByRole("row")).toHaveLength(2);
  });
+ it("mostra as regras fixas e os balões explicativos nos quatro cards",()=>{
+   render(<FiveTwoWorkspace/>);
+   expect(screen.getByText(/Regras obrigatórias da Formosa/)).toBeInTheDocument();
+   expect(screen.queryByRole("combobox",{name:"Formato das folgas"})).not.toBeInTheDocument();
+   expect(screen.getByRole("note",{name:/Equipe simulada: Total do cenário/})).toBeInTheDocument();
+   expect(screen.getByRole("note",{name:/Cobertura prevista: Postos-dia atendidos/})).toBeInTheDocument();
+   expect(screen.getByRole("note",{name:/Postos-dia descobertos: Soma de trabalhadores/})).toBeInTheDocument();
+   expect(screen.getByRole("note",{name:/Dias com déficit: Número de datas/})).toBeInTheDocument();
+ });
+ it("destaca sábado obrigatório e domingos alternados na escala individual",()=>{
+   render(<FiveTwoWorkspace/>);
+   fireEvent.click(screen.getByRole("button",{name:/Escala por pessoa/}));
+   const table=screen.getByRole("region",{name:"Escala individual semanal"});
+   const saturday=within(table).getAllByRole("row");
+   expect(saturday).toHaveLength(77);
+   for(const row of saturday.slice(1))
+     expect(within(row).getAllByRole("cell")[7]).toHaveTextContent("Trabalha");
+   expect(screen.getByText(/Sábado é sempre dia escalado e domingo alterna/)).toBeInTheDocument();
+ });
  it("não gera escala com início fora de segunda",()=>{
    render(<FiveTwoWorkspace/>);
    fireEvent.change(screen.getByLabelText("Início da simulação"),{target:{value:"2026-12-22"}});
