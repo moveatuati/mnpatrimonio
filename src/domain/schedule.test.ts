@@ -18,20 +18,21 @@ describe("Escala Formosa - regras demonstrativas", () => {
       {group:"C", assigned:30, required:30},
     ]);
   });
-  it("aloca revezamento aos domingos e compensa a segunda-feira seguinte", () => {
+  it("revezamento dominical reserva o sábado anterior e impede sete dias consecutivos", () => {
     expect(dayOfWeek("2026-10-18")).toBe(0);
     expect(startOfWeek("2026-10-18")).toBe("2026-10-12");
-    expect(dateOffset("2026-10-18",1)).toBe("2026-10-19");
+    expect(dateOffset("2026-10-18",-1)).toBe("2026-10-17");
     const sun = coverageFor(DEFAULT_SCHEDULE,"2026-10-18");
     expect(sun.map(g=>g.assigned)).toEqual([1,6,6]);
-    const monday = scheduleForDate(DEFAULT_SCHEDULE,"2026-10-19");
+    const saturday = scheduleForDate(DEFAULT_SCHEDULE,"2026-10-17");
     const sundayWorkers = scheduleForDate(DEFAULT_SCHEDULE,"2026-10-18").filter(r=>r.group!==null);
     expect(sundayWorkers).toHaveLength(13);
-    for(const row of sundayWorkers){
-      const sameMonday = monday.find(m=>m.employee.id===row.employee.id)!;
-      expect(sameMonday.group).toBeNull();
+    for(const row of sundayWorkers) {
+      const previousSaturday = saturday.find(e=>e.employee.id===row.employee.id)!;
+      expect(previousSaturday.group).toBeNull();
     }
-    expect(monday.filter(r=>r.group!==null)).toHaveLength(50);
+    expect(saturday.filter(r=>r.group!==null)).toHaveLength(50);
+    expect(scheduleForDate(DEFAULT_SCHEDULE,"2026-10-19").filter(r=>r.group!==null)).toHaveLength(63);
   });
   it("bloqueia queda de cobertura, mesmo com motivos cadastrados", () => {
     const next = validateChanges(DEFAULT_SCHEDULE,[{employeeId:a.id,date:"2026-10-20",group:null}]);
@@ -54,6 +55,21 @@ describe("Escala Formosa - regras demonstrativas", () => {
     expect(assignmentFor(approved,a,"2026-10-20")).toBe("B");
     expect(assignmentFor(approved,b,"2026-10-20")).toBe("A");
     expect(coverageFor(approved,"2026-10-20").map(g=>g.assigned)).toEqual([4,29,30]);
+  });
+  it("recalcula sábado compensatório após troca do domingo dentro do mesmo grupo", () => {
+    const sunday = "2026-10-18";
+    const saturday = "2026-10-17";
+    const aAssigned = scheduleForDate(DEFAULT_SCHEDULE,sunday)
+      .find(row=>row.employee.group==="A" && row.group==="A")!;
+    const aOff = scheduleForDate(DEFAULT_SCHEDULE,sunday)
+      .find(row=>row.employee.group==="A" && row.group===null)!;
+    const changes = swapProposal(DEFAULT_SCHEDULE,sunday,aAssigned.employee.id,aOff.employee.id);
+    const check = validateChanges(DEFAULT_SCHEDULE,changes);
+    expect(check.ok).toBe(true);
+    const newSchedule = withChanges(DEFAULT_SCHEDULE,changes);
+    expect(assignmentFor(newSchedule,aAssigned.employee,saturday)).toBe("A");
+    expect(assignmentFor(newSchedule,aOff.employee,saturday)).toBeNull();
+    expect(coverageFor(newSchedule,saturday).map(row=>row.assigned)).toEqual([3,23,24]);
   });
   it("reconhece feriados personalizados por data sem contaminar os outros dias", () => {
     const rules = {
