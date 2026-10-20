@@ -1,22 +1,20 @@
 import { useEffect,useMemo,useState } from "react";
 import {
   AlertTriangle,ArrowRight,BookOpen,CalendarDays,CheckCircle2,ChevronDown,Clock3,
-  Download,FileClock,Info,Lightbulb,Printer,RefreshCw,Search,ShieldCheck,
-  Sparkles,Users,Workflow,
+  Download,Info,RefreshCw,Search,ShieldCheck,Users,Workflow,
 } from "lucide-react";
 import { GROUPS,GROUP_IDS,UNIT } from "@/domain/config";
 import { ABSENCE_STORAGE_KEY,demoAbsences,restoreAbsences,type AbsenceStore } from "@/domain/absences";
 import { SCHEDULE_STORAGE_KEY } from "@/domain/absences";
 import { DEFAULT_SCHEDULE,dateOffset,reviseStore,startOfWeek,type ScheduleStore } from "@/domain/schedule";
 import {
-  BASE_PEOPLE,DAYS,DEFAULT_PARAMETERS,FUTURE_START,LEGAL_SOURCES,PROPOSED_SHIFTS,
-  groupAllocation,proposedShift,simulate5x2,theoreticalMinimum,
+  DAYS,DEFAULT_PARAMETERS,LEGAL_SOURCES,PROPOSED_SHIFTS,
+  proposedShift,simulate5x2,theoreticalMinimum,
   type SimulatorParameters,type RestMode,type ScenarioResult,
 } from "@/domain/five-two-simulator";
 import type { GroupId } from "@/domain/types";
 import "./FiveTwoWorkspace.css";
 
-const WEEKDAYS=["Segunda","Terça","Quarta","Quinta","Sexta","Sábado","Domingo"];
 const dBR=(s:string)=>s?s.split("-").reverse().join("/"):"—";
 const minutes=(n:number)=>String(Math.floor(n/60)).padStart(2,"0")+":"+String(n%60).padStart(2,"0");
 const integer=(n:number)=>n.toLocaleString("pt-BR");
