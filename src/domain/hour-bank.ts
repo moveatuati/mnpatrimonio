@@ -61,6 +61,7 @@ const demoRows = [
   ["BH-010","FM-049","2026-10-14","compensacao",-60,"Compensação de período anterior"],
   ["BH-011","FM-055","2026-10-21","credito_extra",80,"Solicitação futura ilustrativa"],
   ["BH-012","FM-020","2026-10-19","debito_ajuste",-75,"Apontamento pendente de justificativa"],
+  ["BH-013","FM-020","2026-10-14","debito_ajuste",-95,"Débito ilustrativo já aprovado"],
 ] as const;
 export function demoHourStore():HourStore {
   return { version:1,entries:demoRows.map(([id,employeeId,date,kind,minutes,description])=>({
