@@ -1,10 +1,13 @@
 import { useEffect, useMemo, useState } from "react";
 import { AlertTriangle, CalendarDays, Clock3, Info, RotateCcw, Save, ShieldCheck, SlidersHorizontal } from "lucide-react";
 import { PageHeader } from "@/components/layout/AppShell";
+import { ABSENCE_STORAGE_KEY, restoreAbsences } from "@/domain/absences";
+import { HOUR_KEY, restoreHours } from "@/domain/hour-bank";
+import { readPointStore } from "@/domain/point-simulator";
 import { GROUPS, GROUP_IDS } from "@/domain/config";
 import { DEFAULT_SCHEDULE, reviseStore, type ScheduleStore } from "@/domain/schedule";
 import type { GroupId } from "@/domain/types";
-import { RH_SETTINGS_EVENT, defaultRhSettings, describeChanges, readRhSettingsStore,
+import { RH_POINT_KEY, RH_SETTINGS_EVENT, defaultRhSettings, describeChanges, readRhSettingsStore,
   saveRhSettings, validateRhSettings, type RhSettings } from "@/domain/rh-settings";
 import "./RulesWorkspace.css";
 
@@ -26,6 +29,26 @@ function validDate(x:string){
 type Kind="sunday"|"holiday";
 const menu=["Horários regulares","Domingos e feriados","Parâmetros e histórico"] as const;
 type Pane=typeof menu[number];
+type HistoryView={id:string;date:string;who:string;details:string;source:string};
+function readConnectedHistory():HistoryView[]{
+  const rows:HistoryView[]=[];
+  try {
+    const raw=window.localStorage.getItem(ABSENCE_STORAGE_KEY);
+    if(raw) for(const h of restoreAbsences(JSON.parse(raw)).history)
+      rows.push({id:h.id,date:h.occurredAt,who:h.actor,details:h.description,source:"Férias e afastamentos"});
+  }catch{/* não interferir na central por arquivo local inválido */}
+  try {
+    const raw=window.localStorage.getItem(HOUR_KEY);
+    if(raw) for(const h of restoreHours(JSON.parse(raw)).history)
+      rows.push({id:h.id,date:h.at,who:h.actor,details:h.detail,source:"Banco de horas"});
+  }catch{/* não interferir na central por arquivo local inválido */}
+  try {
+    const raw=window.localStorage.getItem(RH_POINT_KEY);
+    if(raw) for(const h of readPointStore(JSON.parse(raw)).history)
+      rows.push({id:h.id,date:h.recordedAt,who:"Operação demonstrativa",details:h.description,source:"Ponto simulado"});
+  }catch{/* não interferir na central por arquivo local inválido */}
+  return rows;
+}
 
 export function RulesWorkspace(){
   const [draft,setDraft]=useState<RhSettings>(defaultRhSettings);
@@ -37,10 +60,12 @@ export function RulesWorkspace(){
   const [feedback,setFeedback]=useState("");
   const [historyFilter,setHistoryFilter]=useState("");
   const [stored,setStored]=useState(readRhSettingsStore);
+  const [connectedHistory,setConnectedHistory]=useState<HistoryView[]>([]);
   const [loaded,setLoaded]=useState(false);
   useEffect(()=>{
     const value=readRhSettingsStore();
-    setDraft(value.settings);setStored(value);setSchedule(readSchedule());setLoaded(true);
+    setDraft(value.settings);setStored(value);setSchedule(readSchedule());
+    setConnectedHistory(readConnectedHistory());setLoaded(true);
   },[]);
   const changed=describeChanges(stored.settings,draft);
   const scheduleChanged=JSON.stringify(schedule.rules)!==JSON.stringify(readScheduleSafeOriginal());
@@ -54,10 +79,10 @@ export function RulesWorkspace(){
     const rules=stored.history.map(h=>({id:h.id,date:h.at,who:h.actor,details:h.changes.join(" · "),source:"Central de regras"}));
     const scheduleEvents=schedule.history.map(h=>({id:h.id,date:h.createdAt,who:h.actor,details:h.detail,source:"Escalas e feriados"}));
     const filter=historyFilter.trim().toLocaleLowerCase("pt-BR");
-    return [...rules,...scheduleEvents]
+    return [...rules,...scheduleEvents,...connectedHistory]
       .filter(h=>!filter||(h.details+" "+h.who+" "+h.date+" "+h.source).toLocaleLowerCase("pt-BR").includes(filter))
       .sort((a,b)=>b.date.localeCompare(a.date)).slice(0,250);
-  },[stored.history,schedule.history,historyFilter]);
+  },[stored.history,schedule.history,connectedHistory,historyFilter]);
   const shiftField=(g:GroupId,field:"start"|"breakStart"|"breakEnd"|"end",value:string)=>{
     setDraft(prev=>({...prev,shifts:{...prev.shifts,[g]:{...prev.shifts[g],[field]:value}}}));
     setFeedback("");
@@ -201,7 +226,7 @@ export function RulesWorkspace(){
           </div>
           <div className="rh-immutable"><ShieldCheck size={17}/><p>O máximo de cinco dias consecutivos na simulação 5×2, a proteção contra folgas consecutivas e o rodízio dominical são regras fixas, não interruptores de flexibilização. Alterações de legislação e convenção coletiva dependem de revisão jurídica.</p></div>
         </section>
-        <section className="rh-panel"><div className="rh-panel-header"><div><p className="rh-eyebrow">AUDITORIA DEMONSTRATIVA</p><h3>Histórico de decisões</h3><p>Registro das alterações de parâmetros feitas nesta central e das decisões documentadas em Escala & trocas, neste navegador.</p></div></div>
+        <section className="rh-panel"><div className="rh-panel-header"><div><p className="rh-eyebrow">AUDITORIA DEMONSTRATIVA</p><h3>Histórico de decisões</h3><p>Consulta unificada dos históricos demonstrativos de regras, escalas, ponto, férias e banco de horas armazenados neste navegador.</p></div></div>
           <div className="rh-history-top"><label><span>Buscar evento</span><input aria-label="Pesquisar histórico de regras" placeholder="Data, gestor ou alteração" value={historyFilter}
               onChange={e=>setHistoryFilter(e.target.value)}/></label><strong>{number(history.length)} eventos exibidos</strong></div>
           <div className="rh-history">{!history.length&&<p>Não há eventos para este filtro.</p>}
