@@ -93,11 +93,11 @@ export function baseAssignment(store: ScheduleStore, employee: Employee, date: I
   if (weekday === 1) {
     const previousSunday = dateOffset(date, -1);
     // Compensação após trabalho no domingo para evitar sete dias de trabalho consecutivos.
-    if (baseAssignment(store, employee, previousSunday) !== null) return null;
+    if (assignmentFor(store, employee, previousSunday) !== null) return null;
   }
   if (store.rules.holidays.includes(date)) {
     const eligible = members.filter(e =>
-      !(weekday === 1 && baseAssignment(store, e, dateOffset(date, -1)) !== null));
+      !(weekday === 1 && assignmentFor(store, e, dateOffset(date, -1)) !== null));
     return rotatingSelection(eligible, date, holidayTargetsFor(store.rules, date)[group]).has(employee.id) ? group : null;
   }
   return group;
@@ -171,11 +171,19 @@ export function validateChanges(store: ScheduleStore, changes: AssignmentChange[
   if (errors.length) return { ok: false, errors, coverageBefore: before, coverageAfter: before };
   const next = withChanges(store, changes);
   const after = coverageFor(next, date);
-  for (let i = 0; i < before.length; i++) {
-    const b = before[i]!, a = after[i]!;
-    if (a.assigned < Math.min(b.assigned, a.required)) {
-      errors.push("Grupo " + a.group + ": troca reduziria cobertura de " + b.assigned + " para " +
-        a.assigned + " (necessidade " + a.required + ").");
+  // O descanso compensatório da segunda depende também de trocas de domingo.
+  // Por isso conferir cobertura da data editada e do dia subsequente.
+  const affectedDates = dayOfWeek(date) === 0 ? [date, dateOffset(date, 1)] : [date];
+  for (const checkDate of affectedDates) {
+    const oldCoverage = checkDate === date ? before : coverageFor(store, checkDate);
+    const newCoverage = checkDate === date ? after : coverageFor(next, checkDate);
+    for (let i = 0; i < oldCoverage.length; i++) {
+      const b = oldCoverage[i]!, a = newCoverage[i]!;
+      if (a.assigned < Math.min(b.assigned, a.required)) {
+        errors.push("Em " + checkDate + ", Grupo " + a.group +
+          ": troca reduziria cobertura de " + b.assigned + " para " +
+          a.assigned + " (necessidade " + a.required + ").");
+      }
     }
   }
   for (const change of changes) {
