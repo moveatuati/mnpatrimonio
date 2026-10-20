@@ -4,9 +4,11 @@ import { isValidReferenceDate } from "@/domain/operation-query";
 
 export const Route = createFileRoute("/ficha-colaborador")({
   validateSearch: (search: Record<string, unknown>) => ({
-    id: typeof search.id === "string" ? search.id : "",
-    date: typeof search.date === "string" && isValidReferenceDate(search.date)
-      ? search.date : "2026-10-20",
+    id: typeof search["id"] === "string" ? search["id"] : "",
+    date:
+      typeof search["date"] === "string" && isValidReferenceDate(search["date"])
+        ? search["date"]
+        : "2026-10-20",
   }),
   head: () => ({ meta: [
     { title: "Ficha individual A4 — Formosa | Gestão de Pessoas" },
