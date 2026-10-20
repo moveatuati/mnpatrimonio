@@ -88,6 +88,17 @@ describe("EC 141/2026 · simulador 5×2",()=>{
      }
    }
  });
+ it("mantém a mesma fase dominical quando a janela de simulação muda",()=>{
+   const initial=simulate5x2(DEFAULT_SCHEDULE,demoAbsences(),DEFAULT_PARAMETERS);
+   const shifted=simulate5x2(DEFAULT_SCHEDULE,demoAbsences(),{
+     ...DEFAULT_PARAMETERS,start:dateOffset(FUTURE_START,7),
+   });
+   for(const first of initial.personSummary){
+     const second=shifted.personSummary.find(p=>p.employee.id===first.employee.id)!;
+     expect(second.weeks[0]!.sundayFree).toBe(first.weeks[1]!.sundayFree);
+     expect(second.weeks[1]!.sundayFree).toBe(first.weeks[2]!.sundayFree);
+   }
+ });
  it("feriado na segunda não coloca uma folga consecutiva na terça",()=>{
    const schedule={...DEFAULT_SCHEDULE,rules:{...DEFAULT_SCHEDULE.rules,
      holidays:[FUTURE_START],
