@@ -78,10 +78,10 @@ const STEPS=[
  {n:"06",name:"Aprovar e só depois operacionalizar",desc:"Formalizar com gestão, DP, jurídico e sindicato; configurar jornadas reais e integrar ao ponto oficial apenas após validação das condições."},
 ];
 const INSIGHTS=[
- ["O que muda para o trabalhador?","Em vez de seis dias de trabalho e uma folga, o estudo considera cinco jornadas e duas folgas semanais. Folga não equivale a ausência injustificada; domingos devem ser priorizados quando possível."],
+ ["O que muda para o trabalhador?","Na simulação da Formosa, cada pessoa trabalha 5 dias e descansa 2 por semana. Todo sábado é escalado, enquanto o domingo alterna rigorosamente entre trabalho e folga. Férias e ausências aprovadas continuam reduzindo a presença efetiva."],
  ["É obrigatório contratar 13 pessoas?","Não. Os +13 do cenário de 76 são hipótese. A necessidade depende da cobertura real por horário, produtividade, funções, revezamento, férias e regras do sindicato."],
  ["Por que 76 pessoas podem ser insuficientes?","Não basta multiplicar colaboradores por cinco dias. O supermercado precisa cobrir grupos, sábados, domingos e picos. O painel evidencia déficits por data/grupo."],
- ["As folgas são necessariamente juntas?","A regra permanente prevê dois descansos semanais. Há possibilidade excepcional de compensação por convenção/acordo coletivo. O simulador permite comparar padrões juntos ou intercalados, mas não os autoriza."],
+ ["Como ficam as folgas e os feriados?","Para a Formosa, as folgas são obrigatoriamente separadas. Quem trabalha domingo folga duas vezes de segunda a sexta; quem folga domingo recebe mais uma folga útil. Feriado pode ser trabalhado ou coincidir com a folga, mas não gera descanso adicional automático. Evitamos folgar terça quando a segunda-feira feriada foi folga."],
  ["Como fica a fase de 42 horas?","No período de transição, 5 × 8h24 ultrapassa 8 horas diárias e exige autorização por acordo ou convenção coletiva. A tela marca essa hipótese como CONDICIONAL; não publica jornada."],
  ["E os colaboradores que saem às 22h?","O simulador propõe turnos A/B/C ajustados para preservar fechamento, em vez de estender automaticamente o grupo C além das 22h. Qualquer nova entrada deve respeitar 11 horas de descanso."],
 ];
