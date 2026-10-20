@@ -13,7 +13,7 @@ Tela temporária de demonstração, na rota \`/ponto\`, para experimentar marca�
 - Contadores de escalados, com entrada, ciclo completo e situações que exigem atenção.
 - Alerta de entrada acima de limiar editável (inicialmente 10 minutos, operacional e **não tolerância legal**) e saída antes do previsto.
 - Tabela filtrável com grupos, nome/código e situação, todos os colaboradores em rolagem vertical com títulos fixos.
-- Amostra fictícia determinística para o dia escolhido, sem substituir os registros já lançados manualmente.
+- Amostra fictícia determinística para o dia escolhido, sem substituir os registros já lançados manualmente. Em um dia regular de 63 colaboradores, 61 entradas ficam dentro do alerta e 2 acima (aproximadamente 97% / 3%).
 - Limpar apenas os registros do dia com confirmação; o histórico fica preservado.
 
 ## Isolamento
