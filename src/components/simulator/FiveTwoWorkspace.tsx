@@ -8,7 +8,7 @@ import { ABSENCE_STORAGE_KEY,demoAbsences,restoreAbsences,type AbsenceStore } fr
 import { SCHEDULE_STORAGE_KEY } from "@/domain/absences";
 import { DEFAULT_SCHEDULE,dateOffset,reviseStore,startOfWeek,type ScheduleStore } from "@/domain/schedule";
 import {
-  DAYS,DEFAULT_PARAMETERS,LEGAL_SOURCES,PROPOSED_SHIFTS,groupAllocation,
+  DAYS,DEFAULT_PARAMETERS,FUTURE_START,LEGAL_SOURCES,PROPOSED_SHIFTS,groupAllocation,
   proposedShift,simulate5x2,theoreticalMinimum,
   type SimulatorParameters,type ScenarioResult,
 } from "@/domain/five-two-simulator";
@@ -77,7 +77,7 @@ const STEPS=[
  {n:"05",name:"Corrigir déficit e revisar",desc:"Ajustar reforços, realocar responsabilidades, treinar substitutos e refazer a simulação. Nunca depender de hora extra automática para cobrir quadro insuficiente."},
  {n:"06",name:"Aprovar e só depois operacionalizar",desc:"Formalizar com gestão, DP, jurídico e sindicato; configurar jornadas reais e integrar ao ponto oficial apenas após validação das condições."},
 ];
-const INSIGHTS=[
+const INSIGHTS:[string,string][]=[
  ["O que muda para o trabalhador?","Na simulação da Formosa, cada pessoa trabalha 5 dias e descansa 2 por semana. Todo sábado é escalado, enquanto o domingo alterna rigorosamente entre trabalho e folga. Férias e ausências aprovadas continuam reduzindo a presença efetiva."],
  ["É obrigatório contratar 13 pessoas?","Não. Os +13 do cenário de 76 são hipótese. A necessidade depende da cobertura real por horário, produtividade, funções, revezamento, férias e regras do sindicato."],
  ["Por que 76 pessoas podem ser insuficientes?","Não basta multiplicar colaboradores por cinco dias. O supermercado precisa cobrir grupos, sábados, domingos e picos. O painel evidencia déficits por data/grupo."],
@@ -409,7 +409,7 @@ export function FiveTwoWorkspace(){
             <h2>Conferência antes de implantar</h2>
             <p>Marque os preparativos concluídos. Esta lista é temporária e não substitui as aprovações empresariais.</p></div>
             <span className="ft-pill">{pilotChecks.length} de {STEPS.length} etapas conferidas</span>
-          </div></div>
+          </div>
           <div className="ft-checklist">{STEPS.map(step=><label key={step.n}>
             <input type="checkbox" checked={pilotChecks.includes(step.n)}
               onChange={e=>setPilotChecks(prev=>e.target.checked?[...prev,step.n]:prev.filter(x=>x!==step.n))}/>

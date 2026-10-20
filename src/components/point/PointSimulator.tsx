@@ -32,7 +32,7 @@ function markTone(status: string) {
     status === "em andamento" ? "progress" : "muted";
 }
 function PunchField({ mark, current, planned, onEdit }: {
-  mark: Mark; current?: string; planned?: string; onEdit: (mark: Mark) => void;
+  mark: Mark; current?: string | undefined; planned?: string | undefined; onEdit: (mark: Mark) => void;
 }) {
   return <div className={"fp-moment " + (current ? "fp-moment-filled" : "")}>
     <span>{MARK_LABELS[mark]}</span>

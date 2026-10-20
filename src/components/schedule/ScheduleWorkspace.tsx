@@ -45,7 +45,7 @@ function SelectEmployee({ value, onChange, label }: {
     </select>
   </label>;
 }
-function Notice({ items, positive }: { items: string[]; positive?: boolean }) {
+function Notice({ items, positive }: { items: string[]; positive?: boolean | undefined }) {
   return <div className={"fs-notice " + (positive ? "fs-notice-good" : "fs-notice-bad")} role="status">
     {positive ? <Check size={15} /> : <AlertTriangle size={15} />}
     <div>{items.map((item, index) => <p key={index}>{item}</p>)}</div>
