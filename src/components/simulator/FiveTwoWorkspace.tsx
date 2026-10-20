@@ -409,7 +409,7 @@ export function FiveTwoWorkspace(){
             <h2>Conferência antes de implantar</h2>
             <p>Marque os preparativos concluídos. Esta lista é temporária e não substitui as aprovações empresariais.</p></div>
             <span className="ft-pill">{pilotChecks.length} de {STEPS.length} etapas conferidas</span>
-          </div></div>
+          </div>
           <div className="ft-checklist">{STEPS.map(step=><label key={step.n}>
             <input type="checkbox" checked={pilotChecks.includes(step.n)}
               onChange={e=>setPilotChecks(prev=>e.target.checked?[...prev,step.n]:prev.filter(x=>x!==step.n))}/>
