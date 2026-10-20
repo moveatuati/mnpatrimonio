@@ -1,8 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import {
-  AlertTriangle, ArrowDownRight, ArrowUpRight, BarChart3, CalendarDays,
-  CheckCircle2, ClipboardList, Clock3, Download, FileBarChart2, FileText,
-  Fingerprint, Info, LayoutDashboard, Printer, Search, ShieldCheck, Users,
+  AlertTriangle, BarChart3, CalendarDays, ClipboardList, Clock3, Download, FileText,
+  Fingerprint, Info, LayoutDashboard, Printer, ShieldCheck, Users,
 } from "lucide-react";
 import { GROUP_IDS, GROUPS, UNIT } from "@/domain/config";
 import { DEMO_EMPLOYEES } from "@/domain/demo-data";
@@ -141,6 +140,7 @@ export function ReportsWorkspace(){
   },[sources,filters,errors.join("|")]);
   const sheet=useMemo(()=>model?sheetFor(model,selected):null,[model,selected]);
   const displayed=sheet?(showAll?sheet.rows:sheet.rows.slice(0,120)):[];
+  const printRemainder=sheet&&!showAll?sheet.rows.slice(120):[];
   const caption=REPORTS.find(x=>x.id===selected)!;
   function choosePeriod(next:Period){
     setPeriod(next);setShowAll(false);
@@ -215,11 +215,14 @@ export function ReportsWorkspace(){
     </section>
     <div className="rm-layout">
       <nav className="rm-nav no-print" aria-label="Tipos de relatório">
-        {REPORTS.map(report=><button key={report.id} type="button"
-          className={selected===report.id?"rm-nav-selected":""}
-          onClick={()=>selectReport(report.id)} aria-current={selected===report.id?"page":undefined}>
-          <report.icon size={17}/><span><b>{report.title}</b><small>{report.subtitle}</small></span>
-        </button>)}
+        {REPORTS.map(report=>{
+          const Icon=report.icon;
+          return <button key={report.id} type="button"
+            className={selected===report.id?"rm-nav-selected":""}
+            onClick={()=>selectReport(report.id)} aria-current={selected===report.id?"page":undefined}>
+            <Icon size={17}/><span><b>{report.title}</b><small>{report.subtitle}</small></span>
+          </button>;
+        })}
       </nav>
       <div className="rm-main">
         {!model||!sheet?<section className="rm-panel rm-empty"><AlertTriangle size={20}/>
@@ -308,6 +311,11 @@ export function ReportsWorkspace(){
                 <tbody>{displayed.map((row,i)=><tr key={i}>{row.map((cell,j)=><td key={j}>{cell}</td>)}</tr>)}</tbody>
               </table>
               {!sheet.rows.length&&<div className="rm-no-rows">Nenhum registro disponível para este recorte. A ausência de registro não deve ser interpretada como zero operacional confirmado.</div>}
+            </div>
+            {printRemainder.length>0&&<div className="rm-extra-print" aria-hidden="true">
+              <table className="rm-table"><thead><tr>{sheet.headers.map(h=><th key={h}>{h}</th>)}</tr></thead>
+                <tbody>{printRemainder.map((row,i)=><tr key={i+120}>{row.map((cell,j)=><td key={j}>{cell}</td>)}</tr>)}</tbody>
+              </table>
             </div>
             {sheet.rows.length>120&&<div className="rm-overflow no-print">
               <span>{showAll?"Exibindo todas as "+sheet.rows.length+" linhas":"Exibindo as primeiras 120 de "+sheet.rows.length+" linhas."}</span>
