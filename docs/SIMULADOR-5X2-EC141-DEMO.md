@@ -7,7 +7,7 @@ Emenda Constitucional 141, promulgada em 16/10/2026. Vigência das duas folgas s
 Supernosso: piloto com 500 funcionários em três lojas em março de 2026 e expansão gradual em junho; indicadores de vendas, custos e experiência. O modelo original foi de 44 horas em cinco dias, portanto NÃO representa conformidade automática com a EC 141. https://bhaz.com.br/noticias/bh/supernosso-amplia-escala-5x2-apos-reducao-de-custos-em-teste/
 
 ## Funcionalidades
-- Quatro semanas por cenário, com todos os 63 trabalhadores fictícios dos grupos A (4), B (29) e C (30). Cenários 63, 76, 91 e quadro personalizado até 140 pessoas. Pessoas adicionais SIM-* são hipotéticas.
+- Quatro semanas por cenário, com todos os 63 trabalhadores fictícios dos grupos A (4), B (29) e C (30). Cenários 63, 78, 91 e quadro personalizado até 140 pessoas. Pessoas adicionais SIM-* são hipotéticas.
 - Regra operacional específica da Formosa: SÁBADO todos escalados, independentemente do grupo; DOMINGOS trabalhados alternados individualmente (um sim, um não, duas folgas dominicais por pessoa em quatro semanas). Domingo trabalhado => duas folgas úteis não adjacentes; domingo de folga => uma folga útil não adjacente. Nunca oferecer opção de folgas consecutivas nem sábado livre nesse simulador.
 - Cálculo heurístico da melhor cobertura possível a partir das metas presentes na Escala & trocas do mesmo navegador. Não garante otimização global nem direito trabalhista. Calcula postos-dia descobertos e avisos de 11h/descanso/limite semanal.
 - Turnos propostos de 8h/dia (40h) e 8h24/dia (42h sob acordo), incluindo grupos A/B/C e fechamento até 22h. Domingo 6h15 nos exemplos; algumas semanas podem somar menos horas.
@@ -18,7 +18,7 @@ Supernosso: piloto com 500 funcionários em três lojas em março de 2026 e expa
 ## Dimensionamento matemático não é recomendação de contratação
 Na base sem feriados, as metas de segunda a sexta são 4, 29 e 30 pessoas por dia (por grupo).
 Com sábado integral e dois domingos trabalhados nas quatro semanas, cada colaborador só tem 14 jornadas úteis disponíveis no período (20 jornadas em 4 semanas − 4 sábados − 2 domingos).
-Assim, o novo limite inferior necessário é A=ceil(4×20/14)=6, B=ceil(29×20/14)=42, C=ceil(30×20/14)=43, TOTAL 91. É um piso matemático, nunca garantia de cobertura efetiva. Os cenários de 63 e 76 devem mostrar seus déficits. A escala pode exigir MAIS de 91 dependendo de feriados, afastamentos, funções, picos e distribuição das folgas.
+Assim, o novo limite inferior necessário é A=ceil(4×20/14)=6, B=ceil(29×20/14)=42, C=ceil(30×20/14)=43, TOTAL 91. É um piso matemático, nunca garantia de cobertura efetiva. Os cenários de 63 e 78 devem mostrar seus déficits. A escala pode exigir MAIS de 91 dependendo de feriados, afastamentos, funções, picos e distribuição das folgas.
 
 ## Segurança de dados
 Apenas leitura de armazenamento de escala e ausências demonstrativas. Nenhuma alteração de ponto, banco de horas, escala, férias, Supabase ou folha. O algoritmo não publica escalas; exige validação RH/jurídico/sindicato.

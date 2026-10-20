@@ -1,3 +1,4 @@
+import { COMPARISON_PEOPLE } from "./five-two-simulator";
 import { GROUPS, GROUP_IDS } from "./config";
 import { DEMO_EMPLOYEES } from "./demo-data";
 import { ABSENCE_LABELS, nextWorkDate, type AbsenceStore } from "./absences";
@@ -127,7 +128,7 @@ export function capacityStudy() {
   return [
     { scenario: "6×1 atual · 63 colaboradores", people: 63, daysPerWeek: 6, theoreticalShifts: 378, delta: 0 },
     { scenario: "5×2 · 63 colaboradores", people: 63, daysPerWeek: 5, theoreticalShifts: 315, delta: -63 },
-    { scenario: "5×2 · 76 colaboradores (hipótese)", people: 76, daysPerWeek: 5, theoreticalShifts: 380, delta: 2 },
+    { scenario: `5×2 · ${COMPARISON_PEOPLE} colaboradores (hipótese)`, people: COMPARISON_PEOPLE, daysPerWeek: 5, theoreticalShifts: COMPARISON_PEOPLE*5, delta: COMPARISON_PEOPLE*5-378 },
   ];
 }
 export function buildReport(sources: ReportSources, filters: ReportFilters) {

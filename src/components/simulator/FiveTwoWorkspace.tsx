@@ -8,11 +8,12 @@ import { ABSENCE_STORAGE_KEY,demoAbsences,restoreAbsences,type AbsenceStore } fr
 import { SCHEDULE_STORAGE_KEY } from "@/domain/absences";
 import { DEFAULT_SCHEDULE,dateOffset,reviseStore,startOfWeek,type ScheduleStore } from "@/domain/schedule";
 import {
-  DAYS,DEFAULT_PARAMETERS,FUTURE_START,LEGAL_SOURCES,PROPOSED_SHIFTS,groupAllocation,
+  DAYS,DEFAULT_PARAMETERS,COMPARISON_PEOPLE,FUTURE_START,LEGAL_SOURCES,PROPOSED_SHIFTS,groupAllocation,
   proposedShift,simulate5x2,theoreticalMinimum,
   type SimulatorParameters,type ScenarioResult,
 } from "@/domain/five-two-simulator";
 import type { GroupId } from "@/domain/types";
+import { HelpBubble, ScenarioExplanation } from "./ScenarioExplanation";
 import "./FiveTwoWorkspace.css";
 
 const dBR=(s:string)=>s?s.split("-").reverse().join("/"):"—";
@@ -44,11 +45,6 @@ function storeSources(){
   try{const x=window.localStorage.getItem(ABSENCE_STORAGE_KEY);if(x)absences=restoreAbsences(JSON.parse(x));}catch{/* defaults */}
   return {schedule,absences};
 }
-const SELECTORS=[
-  {value:63,title:"Atual · 63 pessoas",desc:"Sem reforço"},
-  {value:76,title:"Reforço · 76 pessoas",desc:"+13 contratações hipotéticas"},
-  {value:91,title:"Piso teórico · 91 pessoas",desc:"Sábado integral e domingos alternados"},
-] as const;
 const PILOT_METRICS=[
   {name:"Cobertura por faixa horária",cadence:"Diária · abertura, pico e fechamento",signal:"Qualquer posto descoberto no pico",action:"Rever folgas, reforço ou horário de funcionamento"},
   {name:"Horas extras e banco de horas",cadence:"Semanal · horas aprovadas",signal:"Crescimento sustentado após mudança",action:"Revisar turnos e avaliar custo real"},
@@ -72,23 +68,19 @@ const SOURCES=[
 const STEPS=[
  {n:"01",name:"Auditar quadro e demanda",desc:"Validar os 63 funcionários, funções, cobertura mínima por hora e os picos do supermercado. Os números A/B/C atuais são apenas um ponto de partida."},
  {n:"02",name:"Validar norma coletiva",desc:"Confirmar com RH e sindicato jornadas, folgas, domingos, feriados, intervalos e eventual ampliação diária na fase transitória de 42h."},
- {n:"03",name:"Testar escalas de quatro semanas",desc:"Escolher cenários de 63, 76 ou quadro personalizado. Conferir folgas, cobertura diária por grupo e restrições antes de decidir contratações."},
+ {n:"03",name:"Testar escalas de quatro semanas",desc:"Comparar o quadro de referência, a hipótese de ampliação e o piso calculado. Conferir folgas, cobertura por data/grupo e restrições antes de decidir contratações."},
  {n:"04",name:"Implantar piloto controlado",desc:"Começar por setores/unidades selecionadas, registrar preferências e monitorar pontualidade, vendas, filas, custo e satisfação por algumas semanas."},
  {n:"05",name:"Corrigir déficit e revisar",desc:"Ajustar reforços, realocar responsabilidades, treinar substitutos e refazer a simulação. Nunca depender de hora extra automática para cobrir quadro insuficiente."},
  {n:"06",name:"Aprovar e só depois operacionalizar",desc:"Formalizar com gestão, DP, jurídico e sindicato; configurar jornadas reais e integrar ao ponto oficial apenas após validação das condições."},
 ];
 const INSIGHTS:[string,string][]=[
  ["O que muda para o trabalhador?","Na simulação da Formosa, cada pessoa trabalha 5 dias e descansa 2 por semana. Todo sábado é escalado, enquanto o domingo alterna rigorosamente entre trabalho e folga. Férias e ausências aprovadas continuam reduzindo a presença efetiva."],
- ["É obrigatório contratar 13 pessoas?","Não. Os +13 do cenário de 76 são hipótese. A necessidade depende da cobertura real por horário, produtividade, funções, revezamento, férias e regras do sindicato."],
- ["Por que 76 pessoas podem ser insuficientes?","Não basta multiplicar colaboradores por cinco dias. O supermercado precisa cobrir grupos, sábados, domingos e picos. O painel evidencia déficits por data/grupo."],
+ ["A ampliação simulada é uma recomendação de contratação?","Não. O cenário intermediário de 78 pessoas é uma hipótese editável para comparação. Não deriva do cálculo do piso nem de orçamento aprovado. A decisão exige validar demanda, escala, funções e custos."],
+ ["Por que atingir o piso pode deixar déficits?","O piso verifica capacidade agregada. A escala precisa distribuir essa capacidade por data e grupo, descontando ausências aprovadas. A heurística pode deixar lacunas mesmo quando o total alcança o piso; isso não prova que contratar mais seja a única solução."],
  ["Como ficam as folgas e os feriados?","Para a Formosa, as folgas são obrigatoriamente separadas. Quem trabalha domingo folga duas vezes de segunda a sexta; quem folga domingo recebe mais uma folga útil. Feriado pode ser trabalhado ou coincidir com a folga, mas não gera descanso adicional automático. Evitamos folgar terça quando a segunda-feira feriada foi folga."],
  ["Como fica a fase de 42 horas?","No período de transição, 5 × 8h24 ultrapassa 8 horas diárias e exige autorização por acordo ou convenção coletiva. A tela marca essa hipótese como CONDICIONAL; não publica jornada."],
  ["E os colaboradores que saem às 22h?","O simulador propõe turnos A/B/C ajustados para preservar fechamento, em vez de estender automaticamente o grupo C além das 22h. Qualquer nova entrada deve respeitar 11 horas de descanso."],
 ];
-function HelpBubble({label,description}:{label:string;description:string}){
-  return <span className="ft-help" tabIndex={0} role="note" aria-label={label+": "+description}
-    title={description}><Info size={14}/><span className="ft-help-pop" role="tooltip">{description}</span></span>;
-}
 function MiniMetric({name,value,detail,tone="wine",explanation}:{name:string;value:string;detail:string;tone?:"wine"|"green"|"amber"|"red"|"blue";explanation:string}){
   return <div className={"ft-metric ft-"+tone}><div className="ft-metric-label"><span>{name}</span>
     <HelpBubble label={name} description={explanation}/></div><strong>{value}</strong><small>{detail}</small></div>;
@@ -123,8 +115,8 @@ export function FiveTwoWorkspace(){
   },[sources,parameters,dateIsMonday]);
   const preview=useMemo(()=>{
     if(!result)return null;
-    const other=parameters.people===63?76:63;
-    try{return simulate5x2(sources.schedule,sources.absences,{...parameters,people:other});}catch{return null;}
+    const other=parameters.people===63?COMPARISON_PEOPLE:63;
+    try{return simulate5x2(sources.schedule,sources.absences,{...parameters,people:other,allocation:undefined});}catch{return null;}
   },[sources,parameters,result]);
   const daily=result?.coverage.filter(r=>r.date>=dateOffset(parameters.start,week*7)&&
     r.date<=dateOffset(parameters.start,week*7+6)&&
@@ -136,6 +128,11 @@ export function FiveTwoWorkspace(){
   const legalFirst=parameters.start>=LEGAL_SOURCES.firstPhase;
   const legalForty=parameters.start>=LEGAL_SOURCES.finalPhase;
   const currentMin=theoreticalMinimum(sources.schedule,safeStart);
+  const selectors=[
+    {id:"base",value:63,title:"Atual · 63 pessoas",desc:"Quadro de referência em 5×2"},
+    {id:"comparison",value:COMPARISON_PEOPLE,title:`Ampliação · ${COMPARISON_PEOPLE} pessoas`,desc:"Hipótese editável de comparação"},
+    {id:"minimum",value:currentMin.total,title:`Piso teórico · ${currentMin.total} pessoas`,desc:currentMin.total>140?"Acima do limite de 140 deste simulador":"Piso calculado, sem garantia de cobertura"},
+  ];
   function change<K extends keyof SimulatorParameters>(key:K,value:SimulatorParameters[K]){
     setParameters(p=>({...p,[key]:value}));setExpanded(null);
   }
@@ -176,9 +173,12 @@ export function FiveTwoWorkspace(){
       <div className="ft-heading"><div><p className="op-eyebrow">LABORATÓRIO DE CENÁRIOS</p>
         <h2>Configure a futura operação</h2><p>Altere o quadro e veja a cobertura recalculada, sem modificar a escala real.</p></div>
         <span className="ft-pill">{ready?"Base fictícia carregada":"Carregando referências"}</span></div>
-      <div className="ft-scenario-options">{SELECTORS.map(o=><button key={o.value} type="button"
+      <div className="ft-scenario-options">{selectors.map(o=><button key={o.id} type="button"
         className={parameters.people===o.value&&headcountMode==="preset"?"ft-selected":""}
-        onClick={()=>{setHeadcountMode("preset");applyPeople(o.value);}}> 
+        disabled={o.value>140}
+        onClick={()=>{setHeadcountMode("preset");if(o.id==="minimum"){
+          setParameters(p=>({...p,people:currentMin.total,allocation:{...currentMin.groups}}));
+        }else applyPeople(o.value);}}> 
         <span>{o.title}</span><small>{o.desc}</small>
         <strong>{o.value}</strong></button>)}
         <button type="button" className={headcountMode==="custom"?"ft-selected":""}
@@ -228,13 +228,14 @@ export function FiveTwoWorkspace(){
       <section className="ft-stats" aria-label="Indicadores do cenário">
         <MiniMetric name="Equipe simulada" value={integer(summary.headcount)} detail={"63 atuais + "+summary.newHires+" hipotéticos"}
         explanation="Total do cenário: 63 funcionários fictícios cadastrados e reforços simulados. Nenhuma contratação é realizada."/>
-        <MiniMetric name="Cobertura prevista" value={percent(summary.coverageRate)} detail="28 dias · A, B e C" tone="green"
-        explanation="Postos-dia atendidos sobre a demanda configurada nas quatro semanas, calculados por data e grupo. Excesso em outro grupo não elimina uma falta."/>
+        <MiniMetric name="Cobertura prevista" value={percent(summary.coverageRate)} detail="Postos-dia · não mede cobertura horária" tone={summary.deficitCount?"amber":"green"}
+        explanation={`Postos-dia atendidos ÷ demanda × 100: (${integer(summary.totalRequired)} − ${integer(summary.deficitCount)}) ÷ ${integer(summary.totalRequired)}. Calculado por data e grupo em 28 dias; excedentes não compensam faltas em outro recorte. Não comprova cobertura por hora ou função.`}/>
         <MiniMetric name="Postos-dia descobertos" value={integer(summary.deficitCount)} detail="Diferença acumulada da necessidade" tone={summary.deficitCount?"amber":"green"}
         explanation="Soma de trabalhadores que faltam para as metas diárias dos grupos. Se faltam dois funcionários por três dias, são seis postos-dia descobertos."/>
         <MiniMetric name="Dias com déficit" value={integer(summary.uncoveredDays)} detail="Em um ou mais grupos" tone={summary.uncoveredDays?"red":"green"}
         explanation="Número de datas em que pelo menos um grupo não possui o quantitativo mínimo previsto, considerando afastamentos aprovados."/>
       </section>
+      <ScenarioExplanation result={result} schedule={sources.schedule}/>
       <nav className="ft-tabs no-print" aria-label="Seções do simulador">
         <button className={tab==="cenario"?"ft-tab-active":""} onClick={()=>setTab("cenario")} type="button"><LayoutIcon/> Viabilidade e cobertura</button>
         <button className={tab==="escala"?"ft-tab-active":""} onClick={()=>setTab("escala")} type="button"><CalendarDays size={16}/> Escala por pessoa</button>
@@ -243,7 +244,7 @@ export function FiveTwoWorkspace(){
       {tab==="cenario"&&<>
         <div className="ft-two">
           <section className="ft-panel"><div className="ft-heading"><div><p className="op-eyebrow">DIAGNÓSTICO</p>
-            <h2>Quanto pessoal seria necessário?</h2><p>Capacidade matemática versus cobertura efetiva por dia e turno.</p></div>
+            <h2>Quanto pessoal seria necessário?</h2><p>Capacidade matemática versus cobertura por data e grupo.</p></div>
             <span className="ft-pill">4 semanas</span></div>
             <div className="ft-diagnostics">
               <div><span>Capacidade semanal em jornadas</span><strong>{integer(summary.weeklyCapacity)}</strong><small>{summary.headcount} × 5 dias</small></div>

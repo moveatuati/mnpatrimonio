@@ -190,16 +190,16 @@ Precisamos de um simulador capaz de comparar o modelo atual com o modelo propost
 | C | 30 |
 | Total | 63 |
 
-### Cenário projetado — 76 colaboradores
+### Cenário projetado — 78 colaboradores
 
 | Grupo | Atual | Projeção | Acréscimo |
 |---|---:|---:|---:|
 | A | 4 | 5 | +1 |
-| B | 29 | 35 | +6 |
-| C | 30 | 36 | +6 |
-| **Total** | **63** | **76** | **+13** |
+| B | 29 | 36 | +7 |
+| C | 30 | 37 | +7 |
+| **Total** | **63** | **78** | **+15** |
 
-O acréscimo de 13 colaboradores é apenas uma hipótese para análise. Não representa contratação aprovada.
+O acréscimo de 15 colaboradores é apenas uma hipótese para análise. Não representa contratação aprovada.
 
 As quantidades precisam ser editáveis.
 
@@ -228,7 +228,7 @@ Comparar pelo menos:
 
 1. Escala atual 6×1 com 63 colaboradores.
 2. Simulação 5×2 mantendo 63 colaboradores.
-3. Simulação 5×2 com 76 colaboradores.
+3. Simulação 5×2 com 78 colaboradores.
 4. Cenários personalizados.
 
 Apresentar:
@@ -246,7 +246,7 @@ Apresentar:
 
 Os testes da versão demonstrativa anterior apontaram déficits de cobertura mesmo em situações sem conflitos individuais de jornada. Essa informação precisa ser preservada.
 
-Nunca apresentar a contratação de mais 13 colaboradores como solução comprovadamente suficiente sem executar os cálculos.
+Nunca apresentar a contratação de mais 15 colaboradores como solução comprovadamente suficiente sem executar os cálculos.
 
 ---
 
@@ -588,7 +588,7 @@ Cenários mínimos:
 6. Tentativa de ultrapassar cinco dias consecutivos no modelo 5×2: identificar conflito.
 7. Tentativa de atribuir folga no sábado: sinalizar incompatibilidade com a regra operacional estabelecida.
 8. Simulação com 63 funcionários: calcular cobertura real.
-9. Simulação com 76 funcionários: recalcular a cobertura, sem presumir suficiência.
+9. Simulação com 78 funcionários: recalcular a cobertura, sem presumir suficiência.
 10. Alteração de quantidade de funcionários por grupo: atualizar indicadores.
 11. Programação de feriado: utilizar efetivo e horários específicos.
 12. Registro de atraso superior a 10 minutos: gerar alerta operacional.
@@ -638,7 +638,7 @@ As regras devem ser revisadas pelo setor responsável antes da utilização trab
 ### Etapa 4 — Simulador 5×2
 
 - Comparação de cenários.
-- Projeção com 76 funcionários.
+- Projeção com 78 funcionários.
 - Análise de cobertura.
 - Detecção de conflitos.
 - Relatórios comparativos.
@@ -673,7 +673,7 @@ As informações sobre a empresa, os horários, os grupos, as folgas e os crité
 - Não usar informações pessoais verdadeiras nesta demonstração.
 - Não apresentar dados fictícios como registros reais.
 - Não misturar o simulador 5×2 com a escala atual.
-- Não considerar a projeção de 76 colaboradores uma contratação definida.
+- Não considerar a projeção de 78 colaboradores uma contratação definida.
 - Não afirmar conformidade trabalhista sem validação.
 - Não modificar outros projetos da MoveAtuati.
 - Não criar integrações externas sem autorização.

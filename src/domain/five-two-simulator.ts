@@ -56,8 +56,10 @@ export interface PersonWeek {
 export const DAYS = ["Seg","Ter","Qua","Qui","Sex","Sáb","Dom"] as const;
 export const FUTURE_START = "2026-12-21";
 export const BASE_PEOPLE = 63;
+/** Hipótese gerencial editável, não resultado do dimensionamento. */
+export const COMPARISON_PEOPLE = 78;
 export const DEFAULT_PARAMETERS:SimulatorParameters = {
-  start:FUTURE_START,people:76,weeklyLimit:40,
+  start:FUTURE_START,people:COMPARISON_PEOPLE,weeklyLimit:40,
 };
 export type ScenarioResult = ReturnType<typeof simulate5x2>;
 const localWeekday=(iso:ISODate)=>(dayOfWeek(iso)+6)%7; // Monday=0
@@ -117,17 +119,24 @@ export function makeScenarioPeople(count:number,allocation?:Record<GroupId,numbe
  * Em quatro semanas cada pessoa trabalha 20 dias: quatro sábados, dois domingos
  * e 14 dias úteis. É apenas piso aritmético, não escala viável comprovada.
  */
-export function theoreticalMinimum(schedule:ScheduleStore,start:ISODate){
+export function minimumBreakdown(schedule:ScheduleStore,start:ISODate){
   const days=Array.from({length:28},(_,i)=>dateOffset(start,i));
-  const groups=Object.fromEntries(GROUP_IDS.map(group=>{
+  return GROUP_IDS.map(group=>{
     const weekdayNeed=days.filter(d=>dayOfWeek(d)!==0&&dayOfWeek(d)!==6)
       .reduce((total,date)=>total+requiredFor(schedule,date,group),0);
     const saturdayMin=Math.max(...days.filter(d=>dayOfWeek(d)===6).map(d=>requiredFor(schedule,d,group)));
     const sundayMin=Math.max(...days.filter(d=>dayOfWeek(d)===0).map(d=>requiredFor(schedule,d,group)));
     const current=DEMO_EMPLOYEES.filter(e=>e.group===group).length;
     // O menor dos dois grupos alternados precisa cobrir a demanda dominical.
-    return [group,Math.max(current,Math.ceil(weekdayNeed/14),saturdayMin,sundayMin*2)];
-  })) as Record<GroupId,number>;
+    const weekdayFloor=Math.ceil(weekdayNeed/14);
+    return {group,current,weekdayNeed,weekdayCapacity:14,weekdayFloor,
+      saturdayMin,sundayFloor:sundayMin*2,
+      minimum:Math.max(current,weekdayFloor,saturdayMin,sundayMin*2)};
+  });
+}
+export function theoreticalMinimum(schedule:ScheduleStore,start:ISODate){
+  const groups=Object.fromEntries(minimumBreakdown(schedule,start)
+    .map(row=>[row.group,row.minimum])) as Record<GroupId,number>;
   return {groups,total:GROUP_IDS.reduce((n,g)=>n+groups[g],0)};
 }
 /** Domingo alterna rigidamente (sem dois domingos trabalhados seguidos).

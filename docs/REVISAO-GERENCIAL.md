@@ -85,9 +85,9 @@ Entregar cadastro e consulta individual; quatro marcações demonstrativas por j
 
 ### Simulação 5×2
 
-Construir o motor com estado separado da escala 6×1. Comparar quadro atual de 63, hipótese de 76 e quantidades editáveis por grupo. Considerar cinco dias consecutivos no máximo, folgas conforme a especificação, sábados, domingos, descanso, férias e demanda de cobertura.
+Construir o motor com estado separado da escala 6×1. Comparar quadro atual de 63, hipótese de 78 e quantidades editáveis por grupo. Considerar cinco dias consecutivos no máximo, folgas conforme a especificação, sábados, domingos, descanso, férias e demanda de cobertura.
 
-**Critério de conclusão:** o resultado explica restrições inviáveis e déficits por data/horário. A hipótese de mais 13 pessoas só é considerada suficiente se o cálculo do cenário demonstrar isso. A simulação nunca altera a escala operacional.
+**Critério de conclusão:** o resultado explica restrições inviáveis e déficits por data/horário. A hipótese de mais 15 pessoas só é considerada suficiente se o cálculo do cenário demonstrar isso. A simulação nunca altera a escala operacional.
 
 ### Uso com dados reais
 

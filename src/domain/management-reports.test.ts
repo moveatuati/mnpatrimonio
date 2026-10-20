@@ -85,7 +85,7 @@ describe("Relatórios gerenciais Formosa — dados fictícios integrados",()=>{
     expect(report.summary.groupCoverageRate).toBeLessThanOrEqual(100);
   });
   it("mantém comparativo 6×1 e 5×2 explicitamente como cenários de capacidade",()=>{
-    expect(capacityStudy().map(r=>r.theoreticalShifts)).toEqual([378,315,380]);
-    expect(capacityStudy().map(r=>r.delta)).toEqual([0,-63,2]);
+    expect(capacityStudy().map(r=>r.theoreticalShifts)).toEqual([378,315,390]);
+    expect(capacityStudy().map(r=>r.delta)).toEqual([0,-63,12]);
   });
 });
