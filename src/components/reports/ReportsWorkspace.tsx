@@ -317,7 +317,7 @@ export function ReportsWorkspace(){
               <table className="rm-table"><thead><tr>{sheet.headers.map(h=><th key={h}>{h}</th>)}</tr></thead>
                 <tbody>{printRemainder.map((row,i)=><tr key={i+120}>{row.map((cell,j)=><td key={j}>{cell}</td>)}</tr>)}</tbody>
               </table>
-            </div>
+            </div>}
             {sheet.rows.length>120&&<div className="rm-overflow no-print">
               <span>{showAll?"Exibindo todas as "+sheet.rows.length+" linhas":"Exibindo as primeiras 120 de "+sheet.rows.length+" linhas."}</span>
               <button type="button" onClick={()=>setShowAll(v=>!v)}>
