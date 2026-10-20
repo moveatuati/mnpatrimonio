@@ -1,9 +1,9 @@
 import { GROUP_IDS, GROUPS, SUNDAY_SHIFTS } from "./config";
 import { DEMO_EMPLOYEES } from "./demo-data";
 import type { AbsenceStore } from "./absences";
-import { assignmentFor, dateOffset, dayOfWeek, requiredFor, shiftFor, startOfWeek, type ScheduleStore } from "./schedule";
+import { assignmentFor, dateOffset, dayOfWeek, requiredFor, startOfWeek, type ScheduleStore } from "./schedule";
 import { toMinutes } from "./time";
-import type { Employee, GroupId, ISODate } from "./types";
+import type { GroupId, ISODate } from "./types";
 
 /** Estudo isolado; jamais grava escala nem declara conformidade trabalhista. */
 export const LEGAL_SOURCES = {
@@ -145,7 +145,7 @@ function validRollingRest(prior:Set<ISODate>,week:ISODate[],daysOff:number[]) {
   return true;
 }
 function restTimeOK(people:ScenarioPerson[],workingById:Map<string,Set<ISODate>>,
-  week:ISODate[],limit:WeeklyLimit) {
+  limit:WeeklyLimit) {
   const conflicts:string[]=[];
   for(const person of people) {
     const set=workingById.get(person.id)??new Set<ISODate>();
@@ -224,7 +224,7 @@ export function simulate5x2(schedule:ScheduleStore,absences:AbsenceStore,setting
         consecutiveViolation:!validRollingRest(workingById.get(person.id)!,days,off),rest11hViolation:false});
     }
   }
-  const elevenHourViolations=restTimeOK(people,workingById,dates,settings.weeklyLimit);
+  const elevenHourViolations=restTimeOK(people,workingById,settings.weeklyLimit);
   for(const week of byWeek)week.rest11hViolation=elevenHourViolations.some(x=>x.startsWith(week.employee.id+" · "));
   const weekends=byWeek.filter(x=>x.sundayFree).length;
   let deficitCount=0, totalRequired=0,totalAvailable=0,totalAbsent=0,totalBaselineDeficit=0;
@@ -271,7 +271,7 @@ export function simulate5x2(schedule:ScheduleStore,absences:AbsenceStore,setting
   });
   return {settings,dates,people,byWeek,personSummary,coverage,groups,minimum:min,
     metrics:{headcount:people.length,newHires:people.length-63,weeklyCapacity:people.length*5,
-      requiredFirstWeek:coverage.slice(0,0).length || GROUP_IDS.reduce((n,g)=>n+
+      requiredFirstWeek:GROUP_IDS.reduce((n,g)=>n+
         coverage.filter(c=>c.group===g).slice(0,7).reduce((k,c)=>k+c.required,0),0),
       deficitCount,totalRequired,totalAvailable,totalAbsent,totalBaselineDeficit,uncoveredDays,
       coverageRate:totalRequired?Math.max(0,Math.min(100,(totalRequired-deficitCount)/totalRequired*100)):0,
