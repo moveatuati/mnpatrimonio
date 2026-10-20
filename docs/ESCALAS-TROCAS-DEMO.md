@@ -16,9 +16,9 @@ A aba `/escala` substitui o placeholder e oferece uma interface funcional de **p
 ## Regras-base herdadas do projeto
 - Segunda a sábado: grupos A 07:00–12:00 / 14:00–16:20, B 08:00–13:00 / 15:00–17:20, C 12:40–15:00 / 17:00–22:00.
 - Domingo: turnos A 08:00–14:15, B 09:00–15:15, C 15:15–21:30.
-- Contingente de domingo inicial **A=1, B=6, C=6**, configurável; revezamento automático e folga compensatória no **sábado anterior** para quem trabalhará no domingo (simulado).
+- Contingente de domingo inicial **A=1, B=6, C=6**, configurável e demonstrativo; não há mais folga automática no sábado anterior. Folgas úteis dependem de escala nominal confirmada pela gerência.
 - Contingente-padrão de feriados inicial **A=1, B=6, C=6**, configurável; metas específicas por data de feriado.
-- Dias normais: meta operacional do cadastro A=4, B=29, C=30; no sábado anterior ao domingo há folgas compensatórias, e o painel sinaliza o déficit relativo ao quadro cheio, sem esconder a insuficiência.
+- Dias normais: alvo legado do cadastro A=4, B=29, C=30; sábados preservam o quadro disponível. Esses alvos não demonstram necessidade operacional. O rascunho sem folgas úteis confirmadas possui conflitos e não é homologado.
 - Qualquer troca ou edição que agrave uma cobertura inferior à meta é bloqueada. A validação observa a jornada anterior e a seguinte; não altera registros oficiais de ponto.
 
 ## Como usar
