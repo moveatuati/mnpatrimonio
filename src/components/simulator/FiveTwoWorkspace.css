@@ -110,3 +110,17 @@
 .ft-app{max-width:none!important;padding:0!important}.ft-panel,.ft-metric{break-inside:avoid;box-shadow:none!important}
 .ft-scroll-table{max-height:none!important;overflow:visible!important}.ft-table th{position:static!important}
 .ft-week-grid{grid-template-columns:repeat(7,minmax(0,1fr))}}
+
+/* Viabilidade financeira e acompanhamento do piloto */
+.ft-finance{display:grid;grid-template-columns:1.25fr .7fr 1fr;align-items:end;gap:12px;padding:16px}
+.ft-finance>div{display:flex;flex-direction:column;justify-content:center;gap:6px;padding:12px;border:1px solid #efdee5;border-radius:9px;background:linear-gradient(125deg,#fff,#fffbfd);min-height:69px}
+.ft-finance>div span{color:#856875;font-size:10px;font-weight:750}
+.ft-finance>div strong{color:#7d304d;font-size:19px;font-weight:850;font-variant-numeric:tabular-nums}
+.ft-checklist{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;padding:16px}
+.ft-checklist label{display:flex;align-items:flex-start;gap:10px;padding:12px;border:1px solid #ebd9e1;border-radius:9px;background:#fffafb;cursor:pointer}
+.ft-checklist input{width:17px;height:17px;flex-shrink:0;accent-color:#9e3756}
+.ft-checklist span{display:flex;flex-direction:column;gap:5px}
+.ft-checklist b{font-size:11px;color:#742e49}
+.ft-checklist small{font-size:10px;color:#8e7280;line-height:1.4}
+@media(max-width:830px){.ft-finance{grid-template-columns:1fr 1fr}.ft-finance>.ft-field{grid-column:1/-1}}
+@media(max-width:600px){.ft-finance,.ft-checklist{grid-template-columns:1fr}.ft-finance>.ft-field{grid-column:auto}}

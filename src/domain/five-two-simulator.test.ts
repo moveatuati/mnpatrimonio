@@ -7,8 +7,9 @@ import {DEFAULT_PARAMETERS,LEGAL_SOURCES,FUTURE_START,PROPOSED_SHIFTS,
 describe("EC 141/2026 · simulador 5×2",()=>{
  it("preserva as datas oficiais de transição",()=>{
    expect(LEGAL_SOURCES.promulgation).toBe("2026-10-16");
-   expect(LEGAL_SOURCES.firstPhase).toBe("2026-12-16");
-   expect(LEGAL_SOURCES.finalPhase).toBe("2027-12-16");
+   expect(LEGAL_SOURCES.firstPhase).toBe("2026-12-15");
+   expect(LEGAL_SOURCES.finalPhase).toBe("2027-12-15");
+   expect(LEGAL_SOURCES.url).toBe("https://www.planalto.gov.br/ccivil_03/constituicao/emendas/emc/emc141.htm");
  });
  it("permite realocar reforços por grupo sem transferir empregados existentes",()=>{
    const allocation={A:6,B:34,C:36};
@@ -84,6 +85,20 @@ describe("EC 141/2026 · simulador 5×2",()=>{
    expect(r.byWeek.every(w=>w.restDates.length===2)).toBe(true);
    expect(JSON.stringify(DEFAULT_SCHEDULE)).toBe(a);
    expect(JSON.stringify(ab)).toBe(b);
+ });
+ it("avisa caso o algoritmo encontre sequências de seis dias de trabalho entre semanas",()=>{
+   const result=simulate5x2(DEFAULT_SCHEDULE,demoAbsences(),DEFAULT_PARAMETERS);
+   const byId=new Map<string,string[]>();
+   for(const person of result.personSummary){
+     const dates=person.weeks.flatMap(w=>w.workingDates);
+     byId.set(person.employee.id,dates);
+   }
+   const detected=[...byId.entries()].filter(([id,days])=>{
+     const set=new Set(days);
+     return days.some(day=>[0,1,2,3,4,5].every(offset=>
+       set.has(dateOffset(day,offset))));
+   });
+   expect(detected.length).toBeLessThanOrEqual(result.metrics.restViolations);
  });
  it("recusa semana iniciada em terça ou quadro fora do limite",()=>{
    expect(()=>simulate5x2(DEFAULT_SCHEDULE,demoAbsences(),{

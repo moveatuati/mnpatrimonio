@@ -9,9 +9,10 @@ import type { GroupId, ISODate } from "./types";
 export const LEGAL_SOURCES = {
   law: "Emenda Constitucional 141/2026",
   promulgation: "2026-10-16",
-  firstPhase: "2026-12-16",
-  finalPhase: "2027-12-16",
-  url: "https://www.presidencia.gov.br/ccivil_03/constituicao/emendas/emc/emc141.htm",
+  firstPhase: "2026-12-15",
+  finalPhase: "2027-12-15",
+  url: "https://www.planalto.gov.br/ccivil_03/constituicao/emendas/emc/emc141.htm",
+  implementation: "https://www12.senado.leg.br/noticias/audios/2026/10/carga-maxima-de-trabalho-passara-a-42-horas-semanais-em-15-de-dezembro",
   senate: "https://www12.senado.leg.br/noticias/materias/2026/10/16/congresso-promulga-o-fim-da-escala-6x1-e-aposentadoria-de-agentes-de-saude",
 } as const;
 export type RestMode = "consecutivas" | "intercaladas";
@@ -132,15 +133,18 @@ const candidates=(mode:RestMode):number[][]=>{
   }
   return pairs;
 };
+/** Recusa seis dias seguidos, inclusive cruzando o domingo para a semana seguinte.
+ * Exceções não são automaticamente autorizadas pela existência de banco de horas.
+ */
 function validRollingRest(prior:Set<ISODate>,week:ISODate[],daysOff:number[]) {
   const current=week.filter((_,i)=>!daysOff.includes(i));
   const days=[...prior,...current].sort();
   const currentSet=new Set(days);
   for(const date of current){
-    for(let k=0;k<=6;k++){
+    for(let k=0;k<=5;k++){
       const start=dateOffset(date,-k);
-      const end=dateOffset(start,6);
-      const seq=Array.from({length:7},(_,j)=>dateOffset(start,j));
+      const end=dateOffset(start,5);
+      const seq=Array.from({length:6},(_,j)=>dateOffset(start,j));
       if(end>=week[0]&&seq.every(d=>currentSet.has(d)))return false;
     }
   }

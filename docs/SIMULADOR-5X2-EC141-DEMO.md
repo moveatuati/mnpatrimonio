@@ -1,7 +1,7 @@
 # Formosa — Simulador de transição da escala 6×1 para 5×2
 
 ## Legislação em 20/10/2026
-Emenda Constitucional 141, promulgada em 16/10/2026. Vigência das duas folgas semanais e teto transitório de 42h a partir de 16/12/2026; limite definitivo 40h a partir de 16/12/2027, sem redução salarial. Um dia de folga preferencialmente aos domingos. Na fase transitória, ampliação diária requer negociação coletiva. A regra excepcional de compensação dos descansos demanda instrumento coletivo e descanso pelo menos a cada semana. Fontes: https://www.presidencia.gov.br/ccivil_03/constituicao/emendas/emc/emc141.htm e https://www12.senado.leg.br/noticias/materias/2026/10/16/congresso-promulga-o-fim-da-escala-6x1-e-aposentadoria-de-agentes-de-saude
+Emenda Constitucional 141, promulgada em 16/10/2026. Vigência das duas folgas semanais e teto transitório de 42h a partir de 15/12/2026; limite definitivo 40h a partir de 15/12/2027, sem redução salarial. Um dia de folga preferencialmente aos domingos. Na fase transitória, ampliação diária requer negociação coletiva. A regra excepcional de compensação dos descansos demanda instrumento coletivo e descanso pelo menos a cada semana. Fontes: https://www.planalto.gov.br/ccivil_03/constituicao/emendas/emc/emc141.htm e https://www12.senado.leg.br/noticias/materias/2026/10/16/congresso-promulga-o-fim-da-escala-6x1-e-aposentadoria-de-agentes-de-saude
 
 ## Referência empresarial verificada
 Supernosso: piloto com 500 funcionários em três lojas em março de 2026 e expansão gradual em junho; indicadores de vendas, custos e experiência. O modelo original foi de 44 horas em cinco dias, portanto NÃO representa conformidade automática com a EC 141. https://bhaz.com.br/noticias/bh/supernosso-amplia-escala-5x2-apos-reducao-de-custos-em-teste/
@@ -26,3 +26,10 @@ npm test -- src/domain/five-two-simulator.test.ts src/components/simulator/FiveT
 npm run lint
 npm run build
 Economizar GitHub Actions: preferir validação local, sem disparos manuais.
+## Refinamentos de 20/10/2026
+- Data de início da fase de 42h: 15/12/2026, conforme Agência Senado em 19/10/2026. Limite definitivo: cronograma interpretado para 15/12/2027. O texto legal especifica dois meses da publicação para a fase transitória e mais um ano para a etapa final. RH deverá confirmar a aplicação aos contratos.
+- Verificação de no máximo cinco jornadas consecutivas em qualquer janela de seis dias, inclusive quando as semanas se encontram. Se a heurística não encontrar alternativa, o cenário deve manter um alerta, sem prometer conformidade.
+- Novo quadro de acompanhamento com seis indicadores e um checklist de seis etapas de preparação. Nenhum checklist comprova adequação jurídica.
+- Estimador financeiro facultativo: número de novas pessoas vezes custo mensal médio informado pelo usuário. Não apura folha, encargos nem substitui orçamento do DP.
+- Fonte original da emenda: https://www.planalto.gov.br/ccivil_03/constituicao/emendas/emc/emc141.htm .
+- Fonte do cronograma do Senado: https://www12.senado.leg.br/noticias/audios/2026/10/carga-maxima-de-trabalho-passara-a-42-horas-semanais-em-15-de-dezembro .
