@@ -167,3 +167,9 @@
 .ft-scenario-options button:disabled{opacity:.6;cursor:not-allowed}
 @media(max-width:850px){.ft-reading-grid{grid-template-columns:1fr}}
 @media print{.ft-explanation{break-inside:auto!important}}
+
+/* Quadro 83 e indicadores de presenca, sem pseudo deficit por grupo. */
+.ft-scenario-options{grid-template-columns:repeat(3,minmax(0,1fr))}
+.ft-evaluation-pending{font-size:16px!important;line-height:1.35}
+.ft-day strong{font-size:clamp(13px,1.2vw,17px)}
+@media(max-width:850px){.ft-scenario-options{grid-template-columns:repeat(2,minmax(0,1fr))}}
