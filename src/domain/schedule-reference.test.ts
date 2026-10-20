@@ -59,7 +59,7 @@ describe("Referência operacional sujeita à homologação", () => {
     const changes:AssignmentChange[] = dates.flatMap(date=>DEMO_EMPLOYEES.map(employee=>({
       date,employeeId:employee.id,group:new Date(date+"T12:00:00Z").getUTCDay()===0 ? null : employee.group,
     })));
-    const targets = Object.fromEntries(reference.dates.map(date=>[date,
+    const targets = Object.fromEntries(dates.map(date=>[date,
       new Date(date+"T12:00:00Z").getUTCDay()===0 ? {A:0,B:0,C:0} : {A:4,B:29,C:30}]));
     const result = reviewOperationalProposal(reference,changes,targets,2640);
     expect(result.errors).toEqual([]);
