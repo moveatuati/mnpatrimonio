@@ -24,7 +24,7 @@ describe("Férias e afastamentos — painel demonstrativo",()=>{
     fireEvent.change(screen.getByRole("combobox",{name:"Tipo da ausência"}),{target:{value:"atestado"}});
     fireEvent.change(screen.getByRole("textbox",{name:"Observação administrativa"}),{target:{value:"Registro operacional genérico"}});
     fireEvent.click(screen.getByRole("button",{name:"Registrar pedido"}));
-    expect(screen.getByText(/Pedido demonstrativo registrado/)).toBeInTheDocument();
+    expect(screen.getByText(/Pedido enviado para análise/)).toBeInTheDocument();
     expect(screen.getByRole("heading",{name:"Pedidos pendentes e cancelamentos"})).toBeInTheDocument();
   });
   it("restaura registros fictícios mediante confirmação explícita",()=>{
