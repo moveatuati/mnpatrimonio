@@ -8,7 +8,7 @@ import { ABSENCE_STORAGE_KEY,demoAbsences,restoreAbsences,type AbsenceStore } fr
 import { SCHEDULE_STORAGE_KEY } from "@/domain/absences";
 import { DEFAULT_SCHEDULE,dateOffset,reviseStore,startOfWeek,type ScheduleStore } from "@/domain/schedule";
 import {
-  DAYS,DEFAULT_PARAMETERS,LEGAL_SOURCES,PROPOSED_SHIFTS,
+  DAYS,DEFAULT_PARAMETERS,LEGAL_SOURCES,PROPOSED_SHIFTS,groupAllocation,
   proposedShift,simulate5x2,theoreticalMinimum,
   type SimulatorParameters,type RestMode,type ScenarioResult,
 } from "@/domain/five-two-simulator";
@@ -97,6 +97,7 @@ export function FiveTwoWorkspace(){
     window.addEventListener("focus",focus);window.addEventListener("storage",storage);
     return ()=>{window.removeEventListener("focus",focus);window.removeEventListener("storage",storage);};
   },[]);
+  const groupCounts=parameters.allocation??groupAllocation(parameters.people);
   const dateIsMonday=Number.isFinite(Date.parse(parameters.start+"T12:00:00Z")) &&
     startOfWeek(parameters.start)===parameters.start;
   const result=useMemo(()=>{
@@ -123,7 +124,15 @@ export function FiveTwoWorkspace(){
   }
   function applyPeople(value:number) {
     const n=Math.max(63,Math.min(140,Math.floor(Number.isFinite(value)?value:63)));
-    setParameters(p=>({...p,people:n}));
+    setParameters(p=>({...p,people:n,allocation:undefined}));
+  }
+  function setGroupCount(group:GroupId,value:number){
+    const min={A:4,B:29,C:30}[group];
+    const count=Math.max(min,Math.min(80,Math.trunc(Number.isFinite(value)?value:min)));
+    const next={...groupCounts,[group]:count};
+    const total=GROUP_IDS.reduce((sum,g)=>sum+next[g],0);
+    if(total>140){setMessage("O máximo do protótipo é 140 pessoas.");return;}
+    setParameters(p=>({...p,people:total,allocation:next}));
   }
   function csv(){if(result)try{exportCsv(result);setMessage("Escala hipotética das quatro semanas exportada para CSV. Não é autorização de trabalho.");}
     catch{setMessage("Não foi possível exportar neste navegador.");}}
@@ -150,16 +159,24 @@ export function FiveTwoWorkspace(){
         <span className="ft-pill">{ready?"Base fictícia carregada":"Carregando referências"}</span></div>
       <div className="ft-scenario-options">{SELECTORS.map(o=><button key={o.value} type="button"
         className={parameters.people===o.value&&headcountMode==="preset"?"ft-selected":""}
-        onClick={()=>{setHeadcountMode("preset");applyPeople(o.value);}}>
+        onClick={()=>{setHeadcountMode("preset");applyPeople(o.value);}}> 
         <span>{o.title}</span><small>{o.desc}</small>
         <strong>{o.value}</strong></button>)}
         <button type="button" className={headcountMode==="custom"?"ft-selected":""}
-          onClick={()=>setHeadcountMode("custom")}><span>Quadro personalizado</span>
+          onClick={()=>{setHeadcountMode("custom");setParameters(p=>({...p,allocation:groupAllocation(p.people)}));}}>
+          <span>Quadro personalizado</span>
           <small>63 até 140 pessoas</small><strong><Users size={20}/></strong></button></div>
       <div className="ft-controls">
-        {headcountMode==="custom"&&<label className="ft-field"><span>Colaboradores totais</span>
-          <input aria-label="Quantidade personalizada" type="number" min={63} max={140} step={1}
-            value={parameters.people} onChange={e=>applyPeople(Number(e.target.value))}/></label>}
+        {headcountMode==="custom"&&<>
+          <label className="ft-field"><span>Colaboradores totais</span>
+            <input aria-label="Quantidade personalizada" type="number" min={63} max={140} step={1}
+              value={parameters.people} onChange={e=>applyPeople(Number(e.target.value))}/></label>
+          {GROUP_IDS.map(g=><label key={g} className="ft-field">
+            <span>Grupo {g} · {GROUPS[g].name}</span>
+            <input aria-label={"Pessoas no grupo "+g} type="number" min={{A:4,B:29,C:30}[g]} max={80} step={1}
+              value={groupCounts[g]} onChange={e=>setGroupCount(g,Number(e.target.value))}/>
+          </label>)}
+        </>}
         <label className="ft-field"><span>Primeira segunda-feira da simulação</span>
           <input aria-label="Início da simulação" type="date" value={parameters.start}
             onChange={e=>change("start",e.target.value)}/></label>
@@ -184,6 +201,9 @@ export function FiveTwoWorkspace(){
         o cenário permanece apenas hipotético. A segunda folga passa a valer em 16/12/2026.</div>}
       {parameters.weeklyLimit===40&&!legalForty&&<div className="ft-info"><Info size={15}/>
         A jornada de 40h pode ser planejada antecipadamente, mas o limite constitucional definitivo só se aplica em 16/12/2027.</div>}
+      {parameters.weeklyLimit===42&&legalForty&&<div className="ft-warning" role="alert"><AlertTriangle size={16}/>
+        O teto definitivo de 40h começa em 16/12/2027; usar 42h após essa data não representa uma escala regular.
+        Escolha 40h para planejar a implementação final.</div>}
       {parameters.weeklyLimit===42&&<div className="ft-warning"><AlertTriangle size={16}/>
         Distribuição de 42h em 5 dias (8h24/dia) é CONDICIONAL a acordo/convenção coletiva durante a transição,
         conforme art. 7º da EC 141/2026. Não aplicar automaticamente.</div>}
