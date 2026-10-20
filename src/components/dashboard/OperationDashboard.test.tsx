@@ -116,7 +116,7 @@ describe("Consulta de entradas da página inicial", () => {
     expect(
       screen.queryByRole("heading", { name: "Nenhum registro nesta consulta" }),
     ).not.toBeInTheDocument();
-    expect(screen.getByText("1–8 de 63")).toBeInTheDocument();
+    expect(screen.getByText("63 registros na lista · role para consultar todos")).toBeInTheDocument();
   });
 
   it.each(["", "1999-12-31", "2026-02-30"])(
@@ -143,29 +143,31 @@ describe("Consulta de entradas da página inicial", () => {
     },
   );
 
-  it("volta à primeira página ao alterar grupo, busca, situação ou data", () => {
+  it("consulta todos os registros pela rolagem vertical com filtros integrados", () => {
     render(<OperationDashboard />);
-    const next = () => fireEvent.click(screen.getByRole("button", { name: "Próxima página" }));
-    const previous = () => screen.getByRole("button", { name: "Página anterior" });
-    next();
-    expect(screen.getByText("9–16 de 63")).toBeInTheDocument();
+    selectDate();
+    const region = screen.getByRole("region", { name: /Tabela de entradas com rolagem vertical/ });
+    expect(region).toHaveClass("op-table-vertical");
+    expect(within(region).getAllByRole("row")).toHaveLength(64);
+    expect(tableIds()).toEqual(consulted.arrivals.map(item => item.employee.id));
+    expect(screen.queryByRole("button", { name: "Próxima página" })).not.toBeInTheDocument();
+    expect(screen.getByText("63 registros na lista · role para consultar todos")).toBeInTheDocument();
 
+    region.scrollTop = 250;
     fireEvent.click(screen.getByRole("button", { name: "Grupo B" }));
-    expect(screen.getByText("1–8 de 29")).toBeInTheDocument();
-    expect(previous()).toBeDisabled();
-    next();
+    expect(region.scrollTop).toBe(0);
+    expect(within(region).getAllByRole("row")).toHaveLength(30);
+    expect(screen.getByText("29 registros na lista · role para consultar todos")).toBeInTheDocument();
+
+    region.scrollTop = 130;
     search("FM-005");
-    expect(screen.getByText("1–1 de 1")).toBeInTheDocument();
-    expect(previous()).toBeDisabled();
+    expect(region.scrollTop).toBe(0);
+    expect(within(region).getAllByRole("row")).toHaveLength(2);
+    expect(screen.getByText("1 registro na lista · role para consultar todos")).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "Limpar filtros" }));
-    next();
     selectStatus("registered");
-    expect(previous()).toBeDisabled();
-    next();
-    selectDate();
-    expect(previous()).toBeDisabled();
-    expect(screen.getByText(`1–8 de ${consulted.kpis.entries}`)).toBeInTheDocument();
+    expect(within(region).getAllByRole("row")).toHaveLength(consulted.kpis.entries + 1);
   });
 
   it("exibe no diálogo os horários e o histórico do colaborador na data consultada", () => {
