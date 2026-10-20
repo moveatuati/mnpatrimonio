@@ -29,7 +29,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           >
             <Icon className="h-[18px] w-[18px] shrink-0" aria-hidden="true" />
             <span>{label}</span>
-            {to !== "/" && to !== "/colaboradores" && <span className="sr-only"> — módulo em preparação</span>}
+            {to !== "/" && to !== "/colaboradores" && to !== "/escala" && <span className="sr-only"> — módulo em preparação</span>}
           </Link>
         </Fragment>
       ))}
