@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   AlertTriangle, ArrowLeftRight, CalendarDays, Check, ChevronLeft, ChevronRight,
-  Clock3, ClipboardList, History, Info, RotateCcw, Search, Settings2,
+  History, Info, RotateCcw, Search, Settings2,
   ShieldCheck, Users, X,
 } from "lucide-react";
 import { GROUPS, GROUP_IDS, RULES, UNIT } from "@/domain/config";
@@ -9,7 +9,7 @@ import { DEMO_EMPLOYEES } from "@/domain/demo-data";
 import { isValidReferenceDate } from "@/domain/operation-query";
 import {
   DEFAULT_SCHEDULE, assignmentFor, coverageFor, dateOffset, dayOfWeek,
-  hasPendingConflict, reviseStore, scheduleForDate, shiftFor, startOfWeek,
+  hasPendingConflict, reviseStore, scheduleForDate, startOfWeek,
   swapProposal, validateChanges, withChanges,
   type Assignment, type ScheduleStore,
 } from "@/domain/schedule";
@@ -70,7 +70,7 @@ export function ScheduleWorkspace() {
   const [message, setMessage] = useState("");
   const [showOnlyScheduled, setShowOnlyScheduled] = useState(false);
   const [historySearch, setHistorySearch] = useState("");
-  const editRef = useRef<HTMLDivElement | null>(null);
+  const editRef = useRef<HTMLElement | null>(null);
   const tableRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -193,13 +193,29 @@ export function ScheduleWorkspace() {
       ...prev, rules: { ...prev.rules, [kind]: { ...prev.rules[kind], [g]: n } },
     }));
   }
+  function setHolidayDayTarget(day: string, g: GroupId, value: number) {
+    if (!Number.isFinite(value)) return;
+    const count = Math.max(0, Math.min(GROUPS[g].requiredStaff, Math.trunc(value)));
+    setStore(prev => ({
+      ...prev,
+      rules: {
+        ...prev.rules,
+        holidayByDate: {
+          ...prev.rules.holidayByDate,
+          [day]: { ...(prev.rules.holidayByDate[day] ?? prev.rules.holiday), [g]: count },
+        },
+      },
+    }));
+  }
   function changeHoliday(day: string, add: boolean) {
     if (add && !isValidReferenceDate(day)) { setMessage("Informe uma data de feriado válida."); return; }
     setStore(prev => {
       const holidays = add
         ? [...new Set([...prev.rules.holidays, day])].sort()
         : prev.rules.holidays.filter(h => h !== day);
-      return { ...prev, rules: { ...prev.rules, holidays },
+      const holidayByDate = { ...prev.rules.holidayByDate };
+      if (!add) delete holidayByDate[day];
+      return { ...prev, rules: { ...prev.rules, holidays, holidayByDate },
         history: [...prev.history, stamp(day, (add ? "Feriado cadastrado: " : "Feriado retirado: ") + prettyDate(day))].slice(-350) };
     });
     setHolidayInput("");
@@ -422,7 +438,7 @@ export function ScheduleWorkspace() {
           {(["sunday","holiday"] as const).map(kind => <div className="fs-config-card" key={kind}>
             <h3>{kind==="sunday"?"Revezamento aos domingos":"Efetivo especial dos feriados"}</h3>
             <p>{kind==="sunday"?"Turnos de 08:00, 09:00 e 15:15. Escalados descansam na segunda seguinte.":
-              "Seleção por data cadastrada; usa turnos especiais de domingo."}</p>
+              "Padrão inicial para novos feriados; cada data cadastrada permite alterar os três grupos."}</p>
             <div className="fs-targets">{GROUP_IDS.map(g => <label key={g}>
               <span>Grupo {g}</span>
               <input aria-label={(kind==="sunday"?"Domingo":"Feriado")+" grupo "+g} type="number" min={0}
@@ -439,9 +455,17 @@ export function ScheduleWorkspace() {
             <button className="fs-primary" type="button" onClick={()=>changeHoliday(holidayInput,true)}>Incluir feriado</button></div>
           <div className="fs-holidays">
             {!store.rules.holidays.length && <span className="fs-empty">Nenhum feriado cadastrado.</span>}
-            {store.rules.holidays.map(day => <span key={day}>{prettyDate(day)}
-              <button type="button" aria-label={"Excluir feriado "+prettyDate(day)} onClick={()=>changeHoliday(day,false)}><X size={14}/></button>
-            </span>)}
+            {store.rules.holidays.map(day => <div className="fs-holiday-date" key={day}>
+              <strong>{prettyDate(day)}</strong>
+              {GROUP_IDS.map(g => <label key={g}>Grupo {g}
+                <input type="number" min={0} max={GROUPS[g].requiredStaff}
+                  aria-label={"Feriado "+prettyDate(day)+" grupo "+g}
+                  value={(store.rules.holidayByDate[day] ?? store.rules.holiday)[g]}
+                  onChange={e=>setHolidayDayTarget(day,g,Number(e.target.value))}/>
+              </label>)}
+              <button type="button" aria-label={"Excluir feriado "+prettyDate(day)}
+                onClick={()=>changeHoliday(day,false)}><X size={15}/></button>
+            </div>)}
           </div>
         </div>
         <div className="fs-policy"><ShieldCheck size={18}/><p><b>Regras de proteção:</b> ao aprovar trocas,
