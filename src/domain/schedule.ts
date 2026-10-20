@@ -17,6 +17,8 @@ export type SwapRequest = {
   date: ISODate;
   sourceId: string;
   targetId: string;
+  sourceGroup: Assignment;
+  targetGroup: Assignment;
   reason: string;
   createdAt: string;
   status: "pendente" | "aprovada" | "recusada";
@@ -191,6 +193,13 @@ export function swapProposal(store: ScheduleStore, date: ISODate, sourceId: stri
     { employeeId: target.id, date, group: assignmentFor(store, source, date) },
   ] as AssignmentChange[];
 }
+export function requestStillCurrent(store: ScheduleStore, request: SwapRequest) {
+  const source = DEMO_EMPLOYEES.find(e => e.id === request.sourceId);
+  const target = DEMO_EMPLOYEES.find(e => e.id === request.targetId);
+  return Boolean(source && target &&
+    assignmentFor(store, source!, request.date) === request.sourceGroup &&
+    assignmentFor(store, target!, request.date) === request.targetGroup);
+}
 export function hasPendingConflict(store: ScheduleStore, date: ISODate, ids: string[]) {
   return store.requests.some(r => r.status === "pendente" && r.date === date &&
     ids.some(id => id === r.sourceId || id === r.targetId));
@@ -227,7 +236,11 @@ export function reviseStore(raw: unknown): ScheduleStore {
         : [],
     },
     overrides: validOverrides,
-    requests: v.requests.filter(r => r && typeof r.id === "string" && DEMO_EMPLOYEES.some(e => e.id === r.sourceId) && DEMO_EMPLOYEES.some(e => e.id === r.targetId)).slice(-250),
+    requests: v.requests.filter(r => r && typeof r.id === "string" &&
+      (r.sourceGroup === null || GROUP_IDS.includes(r.sourceGroup)) &&
+      (r.targetGroup === null || GROUP_IDS.includes(r.targetGroup)) &&
+      DEMO_EMPLOYEES.some(e => e.id === r.sourceId) &&
+      DEMO_EMPLOYEES.some(e => e.id === r.targetId)).slice(-250),
     history: v.history.filter(h => h && typeof h.id === "string").slice(-350),
   };
 }
