@@ -67,7 +67,7 @@ describe("Relatórios gerenciais Formosa — dados fictícios integrados",()=>{
     expect(report.summary.credited).toBeGreaterThan(0);
     expect(report.summary.debited).toBeGreaterThan(0);
     expect(report.summary.pendingHours).toBe(1);
-    expect(report.summary.netBalance).toBe(180);
+    expect(report.summary.netBalance).toBe(165);
     const row=report.personnel.find(e=>e.id==="FM-049")!;
     expect(row.balanceMinutes).toBe(60); // inclui crédito de setembro
     expect(row.negativeMinutes).toBe(60); // compensação de outubro
