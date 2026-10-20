@@ -9,7 +9,7 @@ import { DEMO_EMPLOYEES } from "@/domain/demo-data";
 import { isValidReferenceDate } from "@/domain/operation-query";
 import {
   DEFAULT_SCHEDULE, assignmentFor, coverageFor, dateOffset, dayOfWeek,
-  hasPendingConflict, reviseStore, scheduleForDate, startOfWeek,
+  hasPendingConflict, requestStillCurrent, reviseStore, scheduleForDate, startOfWeek,
   swapProposal, validateChanges, withChanges,
   type Assignment, type ScheduleStore,
 } from "@/domain/schedule";
@@ -139,7 +139,10 @@ export function ScheduleWorkspace() {
         swapReason.trim().length < 8) return;
     const request = {
       id: "TR-" + Date.now().toString(36) + "-" + (store.requests.length + 1),
-      date, sourceId: fromId, targetId: toId, reason: swapReason.trim(),
+      date, sourceId: fromId, targetId: toId,
+      sourceGroup: assignmentFor(store, DEMO_EMPLOYEES.find(e=>e.id===fromId)!, date),
+      targetGroup: assignmentFor(store, DEMO_EMPLOYEES.find(e=>e.id===toId)!, date),
+      reason: swapReason.trim(),
       createdAt: new Date().toISOString(), status: "pendente" as const,
     };
     setStore(prev => ({ ...prev, requests: [...prev.requests, request].slice(-250),
@@ -157,6 +160,10 @@ export function ScheduleWorkspace() {
       setMessage("Para recusar uma troca, informe o motivo da decisão com pelo menos 5 caracteres.");
       return;
     }
+    if (approve && !requestStillCurrent(store, req)) {
+      setMessage("A escala mudou desde a solicitação. Recuse esta troca e registre uma nova.");
+      return;
+    }
     const changes = swapProposal(store, req.date, req.sourceId, req.targetId);
     const check = changes.length ? validateChanges(store, changes) : null;
     if (approve && (!check?.ok || !changes.length)) {
@@ -168,7 +175,7 @@ export function ScheduleWorkspace() {
       if (!currentRequest) return prev;
       const liveChanges = swapProposal(prev, currentRequest.date, currentRequest.sourceId, currentRequest.targetId);
       const liveCheck = liveChanges.length ? validateChanges(prev, liveChanges) : null;
-      if (approve && !liveCheck?.ok) return prev;
+      if (approve && (!liveCheck?.ok || !requestStillCurrent(prev, currentRequest))) return prev;
       const next = approve ? withChanges(prev, liveChanges) : prev;
       return {
         ...next,
@@ -189,23 +196,37 @@ export function ScheduleWorkspace() {
   function setTarget(kind: "sunday" | "holiday", g: GroupId, value: number) {
     if (!Number.isFinite(value)) return;
     const n = Math.max(0, Math.min(GROUPS[g].requiredStaff, Math.trunc(value)));
-    setStore(prev => ({
-      ...prev, rules: { ...prev.rules, [kind]: { ...prev.rules[kind], [g]: n } },
-    }));
+    setStore(prev => {
+      if (prev.rules[kind][g] === n) return prev;
+      return {
+        ...prev,
+        rules: { ...prev.rules, [kind]: { ...prev.rules[kind], [g]: n } },
+        history: [...prev.history, stamp(date, "Parâmetro de " +
+          (kind === "sunday" ? "domingo" : "feriado-padrão") +
+          " · Grupo " + g + ": " + prev.rules[kind][g] + " → " + n)].slice(-350),
+      };
+    });
   }
   function setHolidayDayTarget(day: string, g: GroupId, value: number) {
     if (!Number.isFinite(value)) return;
     const count = Math.max(0, Math.min(GROUPS[g].requiredStaff, Math.trunc(value)));
-    setStore(prev => ({
-      ...prev,
-      rules: {
-        ...prev.rules,
-        holidayByDate: {
-          ...prev.rules.holidayByDate,
-          [day]: { ...(prev.rules.holidayByDate[day] ?? prev.rules.holiday), [g]: count },
+    setStore(prev => {
+      const before = (prev.rules.holidayByDate[day] ?? prev.rules.holiday)[g];
+      if (before === count) return prev;
+      return {
+        ...prev,
+        rules: {
+          ...prev.rules,
+          holidayByDate: {
+            ...prev.rules.holidayByDate,
+            [day]: { ...(prev.rules.holidayByDate[day] ?? prev.rules.holiday), [g]: count },
+          },
         },
-      },
-    }));
+        history: [...prev.history, stamp(day,
+          "Efetivo de feriado: " + prettyDate(day) + " · Grupo " + g +
+          ": " + before + " → " + count)].slice(-350),
+      };
+    });
   }
   function changeHoliday(day: string, add: boolean) {
     if (add && !isValidReferenceDate(day)) { setMessage("Informe uma data de feriado válida."); return; }
@@ -410,16 +431,18 @@ export function ScheduleWorkspace() {
           {pending.map(req => {
             const changes = swapProposal(store,req.date,req.sourceId,req.targetId);
             const check = changes.length ? validateChanges(store,changes):null;
+            const unchanged = requestStillCurrent(store, req);
             return <article key={req.id} className="fs-request">
               <div className="fs-request-top"><strong>{req.id}</strong><span>{prettyDate(req.date)}</span></div>
               <p><b>{employeeLabel(req.sourceId)}</b> ↔ <b>{employeeLabel(req.targetId)}</b></p>
               <small>Motivo: {req.reason}</small>
+              {!unchanged && <Notice items={["A escala de um participante mudou desde esta solicitação. Recuse e abra nova troca."]}/>}
               {check && !check.ok && <Notice items={check.errors}/>}
               <label className="fs-field"><span>Parecer / motivo de recusa</span>
                 <input value={reviewNotes[req.id]??""} onChange={e=>setReviewNotes(prev=>({...prev,[req.id]:e.target.value}))}
                   placeholder="Observação do gestor" maxLength={240}/></label>
               <div className="fs-inline-actions fs-review">
-                <button type="button" className="fs-primary" disabled={!check?.ok} onClick={()=>decide(req.id,true)}>
+                <button type="button" className="fs-primary" disabled={!check?.ok || !unchanged} onClick={()=>decide(req.id,true)}>
                   <Check size={15}/> Aprovar e aplicar</button>
                 <button type="button" className="fs-outline" onClick={()=>decide(req.id,false)}>
                   <X size={15}/> Recusar</button>
