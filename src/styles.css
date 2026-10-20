@@ -992,9 +992,6 @@
   background: var(--card);
   color: var(--primary);
 }
-.op-off-page {
-  display: none;
-}
 .op-table-footer {
   padding: 14px 22px;
   display: flex;
@@ -1357,9 +1354,6 @@
   .op-table td {
     padding: 7px 10px;
   }
-  .op-off-page {
-    display: table-row;
-  }
   .op-table thead {
     display: table-header-group;
   }
@@ -1523,4 +1517,43 @@
   .rh-print-table thead { display: table-header-group; }
   .rh-print-table tr { break-inside: avoid; page-break-inside: avoid; }
   .rh-print-footer { break-inside: avoid; page-break-inside: avoid; }
+}
+
+/* Consulta de entradas — vinho institucional, grupos ativos e rolagem vertical. */
+.op-consultation { border-top:3px solid #8b2944; background:linear-gradient(180deg,#fff7fa,#fff 135px); }
+.op-consultation .op-consultation-heading { background:linear-gradient(110deg,#fff0f4,#fff 80%); }
+.op-consultation .op-consultation-heading h2 { color:#79243e; font-size:clamp(18px,1.5vw,22px); font-weight:750; }
+.op-consultation .op-consultation-heading .op-eyebrow { color:#9f3657; font-weight:750; }
+.op-consultation .op-count-label { color:#7a2941; background:#fceaf0; border:1px solid #ecc6d2; font-weight:700; }
+.op-consultation .op-group-filters { background:#faedf2; border:1px solid #eddae1; border-radius:10px; gap:3px; }
+.op-consultation .op-group-filters button { color:#762840; border:1px solid transparent; font-weight:650; }
+.op-consultation .op-group-filters button:hover:not([aria-pressed="true"]) { background:#fff8fa; border-color:#e8bdcb; }
+.op-consultation .op-group-filters button[aria-pressed="true"] {
+  background:linear-gradient(115deg,#a83a57,#73223e); color:white;
+  border:1px solid #772541; box-shadow:0 3px 9px rgb(109 26 53 / 17%), inset 0 1px 0 rgb(255 255 255 / 18%);
+}
+.op-consultation .op-group-filters button:focus-visible { outline:2px solid #76253e; outline-offset:2px; }
+.op-consultation .op-search,.op-consultation .op-status-select { background:#fff; border-color:#dbc5ce; }
+.op-consultation .op-search:focus-within,.op-consultation .op-status-select:focus-within { outline:2px solid #a04260; outline-offset:1px; }
+.op-consultation .op-table-vertical {
+  max-height:min(56vh,550px); overflow:auto; overscroll-behavior:contain;
+  scrollbar-width:thin; scrollbar-color:#b78a9b #faf3f6;
+}
+.op-consultation .op-table { border-collapse:separate; border-spacing:0; }
+.op-consultation .op-table thead th {
+  position:sticky; top:0; z-index:2; background:#f8e9ee; color:#68243b;
+  border-top:1px solid #efd4de; border-bottom:2px solid #cba0af;
+  box-shadow:0 2px 5px -3px rgb(91 24 49 / 27%); font-weight:750; font-size:11px;
+}
+.op-consultation .op-table tbody tr:nth-child(even) { background:#faf8f9; }
+.op-consultation .op-table tbody tr:hover { background:#fff0f4; }
+.op-consultation .op-table-footer { border-top:1px solid #eee0e5; background:#fffbfc; font-size:11px; }
+.op-consultation .op-scroll-count { color:#7b2740; font-weight:700; white-space:nowrap; }
+@media (max-width:740px) {
+  .op-consultation .op-table-vertical { max-height:min(52vh,440px); }
+  .op-consultation .op-scroll-count { white-space:normal; }
+}
+@media print {
+  .op-consultation .op-table-vertical { max-height:none !important; overflow:visible !important; }
+  .op-consultation .op-table thead th { position:static !important; box-shadow:none !important; }
 }
