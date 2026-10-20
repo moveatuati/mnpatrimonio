@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
-import { AlertTriangle, CheckCircle2, Clock, Info, UserX, Users, ShieldCheck, CalendarRange, ChevronRight, BellRing, ChartNoAxesColumnIncreasing, ListOrdered } from "lucide-react";
+import { AlertTriangle, CheckCircle2, Clock, Info, UserX, Users, ShieldCheck, CalendarRange, ChevronRight, BellRing, ListOrdered } from "lucide-react";
 import { PageHeader } from "@/components/layout/AppShell";
 import { buildDashboard } from "@/domain/dashboard";
 import { GROUPS, GROUP_IDS, RULES } from "@/domain/config";
@@ -35,7 +35,6 @@ const REF_DATE = "2026-10-19";
 function Dashboard() {
   const [date, setDate] = useState(REF_DATE);
   const d = useMemo(() => buildDashboard(date), [date]);
-  const maxSlot = Math.max(...d.timeline.map((s) => s.total), 1);
   const arrivalGroups = GROUP_IDS.map((group) => ({ group, arrivals: rankArrivalsByGroup(d.arrivals, group) }));
   const groupEntries = summarizeGroupEntries(d.arrivals);
   const attentionAlerts = [...d.alerts].sort((a, b) =>
@@ -79,10 +78,10 @@ function Dashboard() {
           </label>
         }
       />
-      <div className="formosa-dashboard relative -mt-10 space-y-5 px-5 pb-12 md:px-8">
-        <div className="formosa-demo-strip flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-border bg-card px-5 py-3 shadow-card">
+      <div className="formosa-dashboard formosa-dashboard-compact relative -mt-10 space-y-3 px-4 pb-8 md:px-7">
+        <div className="formosa-demo-strip flex flex-wrap items-center justify-between gap-2 rounded-xl border border-border bg-card px-4 py-2.5 shadow-card">
           <div className="flex items-center gap-3">
-            <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-accent text-primary">
+            <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-accent text-primary">
               <ShieldCheck aria-hidden="true" className="h-5 w-5" />
             </span>
             <div>
@@ -95,15 +94,15 @@ function Dashboard() {
             Unidade Augusto Montenegro
           </div>
         </div>
-        <section aria-label="Indicadores do dia" className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <section aria-label="Indicadores do dia" className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
           {kpis.map(({ label, value, icon: Icon, variant }) => (
-            <div key={label} className={`formosa-kpi-card formosa-kpi-${variant} group relative isolate overflow-hidden rounded-2xl px-5 pb-5 pt-6 transition-transform duration-200 hover:-translate-y-1`}>
+            <div key={label} className={`formosa-kpi-card formosa-kpi-${variant} group relative isolate overflow-hidden rounded-2xl px-4 pb-3.5 pt-4 transition-transform duration-200 hover:-translate-y-1`}>
               <div aria-hidden="true" className="formosa-kpi-topline" />
               <div className="formosa-kpi-layout flex items-start gap-4">
-                <span className="formosa-kpi-icon flex h-12 w-12 shrink-0 items-center justify-center rounded-xl"><Icon className="h-6 w-6" aria-hidden="true" /></span>
+                <span className="formosa-kpi-icon flex h-10 w-10 shrink-0 items-center justify-center rounded-xl"><Icon className="h-6 w-6" aria-hidden="true" /></span>
                 <div className="min-w-0 flex-1">
                   <p className="formosa-kpi-label text-xs font-semibold leading-snug">{label}</p>
-                  <p className="formosa-kpi-number mt-2 font-display text-[36px] font-bold tabular-nums">{value}</p>
+                  <p className="formosa-kpi-number mt-1.5 font-display text-[32px] font-bold tabular-nums">{value}</p>
                   <p className="formosa-kpi-note mt-1 text-[10px] font-medium">Dados demonstrativos do dia</p>
                 </div>
               </div>
@@ -112,9 +111,9 @@ function Dashboard() {
           ))}
         </section>
 
-        <section aria-label="Monitoramento de equipes e pendências" className="grid items-stretch gap-4 xl:grid-cols-[minmax(0,0.92fr)_minmax(0,1.08fr)]">
+        <section aria-label="Monitoramento de equipes e pendências" className="grid items-stretch gap-3 xl:grid-cols-[minmax(0,0.92fr)_minmax(0,1.08fr)]">
           <div className="formosa-readiness-panel overflow-hidden rounded-2xl border border-border bg-card shadow-card">
-            <div className="formosa-monitor-heading flex flex-wrap items-center justify-between gap-3 px-5 py-4">
+            <div className="formosa-monitor-heading flex flex-wrap items-center justify-between gap-2 px-4 py-3">
               <div className="flex items-center gap-3">
                 <span className="formosa-monitor-icon flex h-10 w-10 shrink-0 items-center justify-center rounded-xl">
                   <Users className="h-5 w-5" aria-hidden="true" />
@@ -129,14 +128,14 @@ function Dashboard() {
                 <span className="block text-[10px] font-semibold">entradas registradas</span>
               </div>
             </div>
-            <div className="grid gap-3 px-4 py-4 sm:px-5">
+            <div className="grid gap-2.5 px-4 py-3">
               {groupEntries.map((entry) => {
                 const cov = d.coverage.find((c) => c.group === entry.group);
                 const config = GROUPS[entry.group];
                 const pct = entry.scheduled ? Math.round((entry.registered / entry.scheduled) * 100) : 0;
                 const deficit = cov ? Math.max(0, cov.required - cov.scheduled) : 0;
                 return (
-                  <div key={entry.group} className={`formosa-readiness-row rounded-xl border px-3.5 py-3 ${entry.pending ? "formosa-readiness-pending" : "formosa-readiness-okay"}`}>
+                  <div key={entry.group} className={`formosa-readiness-row rounded-xl border px-3 py-2.5 ${entry.pending ? "formosa-readiness-pending" : "formosa-readiness-okay"}`}>
                     <div className="flex items-center gap-2.5">
                       <span className="formosa-readiness-letter flex h-9 w-9 shrink-0 items-center justify-center rounded-lg font-display text-lg font-bold">{entry.group}</span>
                       <div className="min-w-0 flex-1">
@@ -170,13 +169,13 @@ function Dashboard() {
                 );
               })}
             </div>
-            <p className="formosa-monitor-footnote border-t border-border px-5 py-3 text-[11px] leading-relaxed text-muted-foreground">
+            <p className="formosa-monitor-footnote border-t border-border px-4 py-2 text-[11px] leading-relaxed text-muted-foreground">
               A escala planejada não comprova presença. Registros de entrada não confirmam permanência durante todo o turno.
             </p>
           </div>
 
           <div className="formosa-attention-panel overflow-hidden rounded-2xl border border-border bg-card shadow-card">
-            <div className="formosa-monitor-heading flex flex-wrap items-center justify-between gap-3 px-5 py-4">
+            <div className="formosa-monitor-heading flex flex-wrap items-center justify-between gap-2 px-4 py-3">
               <div className="flex items-center gap-3">
                 <span className="formosa-attention-icon flex h-10 w-10 shrink-0 items-center justify-center rounded-xl">
                   <BellRing className="h-5 w-5" aria-hidden="true" />
@@ -188,23 +187,23 @@ function Dashboard() {
               </div>
               <span className="formosa-attention-count rounded-full px-3 py-1 text-xs font-bold">{d.alerts.length} avisos</span>
             </div>
-            <div className="grid grid-cols-2 gap-3 px-5 pt-4">
-              <div className="formosa-attention-stat formosa-attention-stat-pending rounded-xl p-3">
+            <div className="grid grid-cols-2 gap-2.5 px-4 pt-3">
+              <div className="formosa-attention-stat formosa-attention-stat-pending rounded-xl p-2.5">
                 <div className="flex items-center gap-1.5 text-xs font-bold"><UserX className="h-4 w-4" aria-hidden="true" /> A conferir</div>
                 <p className="mt-1 font-display text-3xl font-extrabold tabular-nums">{d.kpis.missing}</p>
                 <p className="text-[11px]">entrada(s) sem registro</p>
               </div>
-              <div className="formosa-attention-stat formosa-attention-stat-late rounded-xl p-3">
+              <div className="formosa-attention-stat formosa-attention-stat-late rounded-xl p-2.5">
                 <div className="flex items-center gap-1.5 text-xs font-bold"><Clock className="h-4 w-4" aria-hidden="true" /> Atrasos</div>
                 <p className="mt-1 font-display text-3xl font-extrabold tabular-nums">{d.kpis.aboveAlert}</p>
                 <p className="text-[11px]">acima de {RULES.lateAlertMinutes} min</p>
               </div>
             </div>
-            <div className="space-y-2 px-5 pb-4 pt-3">
+            <div className="space-y-2 px-4 pb-3 pt-2.5">
               {attentionAlerts.map((a) => {
                 const Icon = a.severity === "info" ? Info : AlertTriangle;
                 return (
-                  <div key={a.id} className={`formosa-attention-item formosa-attention-item-${a.severity} flex gap-2.5 rounded-xl px-3.5 py-3`}>
+                  <div key={a.id} className={`formosa-attention-item formosa-attention-item-${a.severity} flex gap-2.5 rounded-xl px-3 py-2.5`}>
                     <span className="formosa-attention-item-icon mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg">
                       <Icon className="h-4 w-4" aria-hidden="true" />
                     </span>
@@ -219,25 +218,7 @@ function Dashboard() {
           </div>
         </section>
 
-        <section className="rounded-2xl border border-border/80 bg-card p-6 shadow-card">
-          <h2 className="formosa-section-title"><ChartNoAxesColumnIncreasing aria-hidden="true" />Cobertura ao longo do dia</h2>
-          <p className="text-sm text-muted-foreground">Colaboradores em atividade considerando entradas, intervalos e saídas dos horários-base.</p>
-          <div className="formosa-timeline mt-6 flex h-40 items-end gap-1 rounded-lg border border-border/60 px-3 pt-2">
-            {d.timeline.map((s) => (
-              <div key={s.time} className="group flex h-full flex-1 flex-col items-center justify-end" title={`${s.time}: ${s.total} (A ${s.byGroup.A} · B ${s.byGroup.B} · C ${s.byGroup.C})`}>
-                <span className="mb-1 text-[10px] text-muted-foreground opacity-0 group-hover:opacity-100">{s.total}</span>
-                <div className="formosa-timeline-bar w-full rounded-t-md transition-opacity hover:opacity-80" style={{ height: `${Math.round((s.total / maxSlot) * 126)}px` }} />
-              </div>
-            ))}
-          </div>
-          <div className="mt-2 flex justify-between text-[11px] text-muted-foreground">
-            {d.timeline.filter((_, i) => i % 6 === 0).map((s) => (
-              <span key={s.time}>{s.time}</span>
-            ))}
-          </div>
-        </section>
-
-        <section aria-label="Ordem de chegada por grupo" className="space-y-4">
+        <section aria-label="Ordem de chegada por grupo" className="space-y-2.5">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
               <h2 className="formosa-section-title"><ListOrdered aria-hidden="true" />Ordem de chegada por grupo</h2>
@@ -253,11 +234,11 @@ function Dashboard() {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 items-start gap-4 md:grid-cols-2 xl:grid-cols-3">
+          <div className="grid grid-cols-1 items-start gap-3 md:grid-cols-2 xl:grid-cols-3">
             {arrivalGroups.map(({ group, arrivals }) => {
               const config = GROUPS[group];
               return (
-                <div key={group} className="flex min-w-0 flex-col gap-4">
+                <div key={group} className="flex min-w-0 flex-col gap-3">
                   <section aria-label={`Ranking de chegadas do grupo ${group}`} className="formosa-arrival-group min-w-0 overflow-hidden rounded-2xl border border-border bg-card">
                   <div className="formosa-arrival-group-header flex flex-wrap items-center justify-between gap-2 px-4 py-3">
                     <div className="flex items-center gap-2.5">
@@ -272,7 +253,7 @@ function Dashboard() {
                       <span className="formosa-arrival-count-label leading-tight">colaboradores</span>
                     </span>
                   </div>
-                  <div className="formosa-arrival-table-scroll max-h-[740px] overflow-auto">
+                  <div className="formosa-arrival-table-scroll max-h-[560px] overflow-auto">
                     <table className="formosa-arrival-table w-full table-fixed text-[11px]">
                       <colgroup>
                         <col style={{ width: "7%" }} />
@@ -344,7 +325,7 @@ function Dashboard() {
                   </section>
                   {group === "A" && (
                     <section aria-label="Top 5 de atrasos do mês" className="formosa-late-top5 overflow-hidden rounded-2xl border border-border bg-card">
-                      <div className="formosa-late-top5-header flex flex-wrap items-center justify-between gap-2 px-4 py-3">
+                      <div className="formosa-late-top5-header flex flex-wrap items-center justify-between gap-2 px-4 py-2.5">
                         <div className="flex items-center gap-2.5">
                           <span className="formosa-late-top5-icon flex h-10 w-10 items-center justify-center rounded-xl">
                             <Clock className="h-5 w-5" aria-hidden="true" />
@@ -361,7 +342,7 @@ function Dashboard() {
                       {monthlyLateTopFive.length > 0 ? (
                         <ol className="divide-y divide-border/75">
                           {monthlyLateTopFive.map(({ employee, count }, index) => (
-                            <li key={employee.id} className="formosa-late-top5-row flex items-center gap-3 px-4 py-3">
+                            <li key={employee.id} className="formosa-late-top5-row flex items-center gap-2.5 px-3.5 py-2">
                               <span className={`formosa-late-top5-rank formosa-late-top5-rank-${index + 1} flex h-9 w-9 shrink-0 items-center justify-center rounded-xl font-display text-sm font-extrabold`}>
                                 {index + 1}º
                               </span>
@@ -379,7 +360,7 @@ function Dashboard() {
                       ) : (
                         <p className="px-4 py-8 text-center text-sm text-muted-foreground">Nenhum atraso acima do limite no período.</p>
                       )}
-                      <p className="formosa-late-top5-footer border-t border-border px-4 py-3 text-[11px] leading-relaxed text-muted-foreground">
+                      <p className="formosa-late-top5-footer border-t border-border px-4 py-2 text-[11px] leading-relaxed text-muted-foreground">
                         Ocorrências acima de {RULES.lateAlertMinutes} min desde o início do mês até a data selecionada.
                         Sem marcação não conta como atraso. Dados fictícios.
                       </p>

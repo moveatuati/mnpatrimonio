@@ -262,15 +262,6 @@
 .formosa-alert-atencao { background: color-mix(in oklch, var(--warning) 9%, var(--card)); }
 .formosa-alert-critico { background: color-mix(in oklch, var(--destructive) 5%, var(--card)); }
 .formosa-alert-info { background: color-mix(in oklch, var(--info) 6%, var(--card)); }
-.formosa-timeline {
-  background: repeating-linear-gradient(90deg, transparent 0, transparent calc(12.5% - 1px), var(--border) 12.5%), linear-gradient(180deg, var(--muted), var(--card));
-}
-.formosa-timeline-bar {
-  background: linear-gradient(180deg, var(--ruby-light), var(--primary) 85%);
-  box-shadow: inset 0 2px 0 var(--glass-edge), 0 3px 6px -4px var(--primary);
-}
-.formosa-timeline > .group { min-width: 0; position: relative; }
-.formosa-timeline > .group > span { position: absolute; bottom: 100%; }
 @media (min-width: 1600px) {
   .formosa-dashboard { padding-left: 40px; padding-right: 40px; }
   .formosa-kpi-card { padding-top: 24px; padding-bottom: 24px; }
@@ -573,5 +564,23 @@
   .formosa-readiness-row, .formosa-attention-item {
     box-shadow: none !important;
     background: #fff !important;
+  }
+}
+
+/* Compactação da Visão da Operação — somente página inicial */
+.formosa-dashboard-compact .formosa-kpi-card { min-height: 105px; }
+.formosa-dashboard-compact .formosa-kpi-layout { gap: 12px; }
+.formosa-dashboard-compact .formosa-kpi-number { line-height: 1.08; }
+.formosa-dashboard-compact .formosa-readiness-panel,
+.formosa-dashboard-compact .formosa-attention-panel {
+  box-shadow: 0 2px 6px rgb(66 14 30 / 4%), 0 12px 20px -16px rgb(65 17 37 / 17%);
+}
+.formosa-dashboard-compact .formosa-arrival-group-header { padding-top: 10px; padding-bottom: 10px; }
+.formosa-dashboard-compact .formosa-arrival-table td { padding-top: 7px; padding-bottom: 7px; }
+.formosa-dashboard-compact .formosa-late-top5-row { min-height: 54px; }
+@media print {
+  .formosa-dashboard-compact .formosa-arrival-table-scroll {
+    max-height: none !important;
+    overflow: visible !important;
   }
 }
