@@ -17,7 +17,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         <Fragment key={to}>
           {index === 1 && (
             <p className="formosa-shell-nav-label px-3 pb-2 pt-5 text-[10px] font-semibold uppercase tracking-[0.16em]">
-              Módulos em preparação
+              Gestão de pessoas
             </p>
           )}
           <Link
@@ -29,7 +29,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           >
             <Icon className="h-[18px] w-[18px] shrink-0" aria-hidden="true" />
             <span>{label}</span>
-            {to !== "/" && <span className="sr-only"> — módulo em preparação</span>}
+            {to !== "/" && to !== "/colaboradores" && <span className="sr-only"> — módulo em preparação</span>}
           </Link>
         </Fragment>
       ))}
