@@ -75,8 +75,8 @@ export function CollaboratorsDirectory() {
     <header className="flex flex-wrap items-end justify-between gap-5">
       <div>
         <p className="op-eyebrow">Formosa <span>·</span> Gestão de Pessoas <span>·</span> {UNIT.unit}</p>
-        <h1 className="mt-2 font-display text-3xl font-semibold tracking-tight md:text-4xl">
-          Colaboradores<span className="text-primary">.</span>
+        <h1 className="mt-2 font-display text-3xl font-semibold tracking-tight md:text-4xl" aria-label="Colaboradores.">
+          Colaboradores<span className="text-primary" aria-hidden="true">.</span>
         </h1>
         <p className="mt-2 text-sm text-muted-foreground">Quadro, jornadas-base e consulta individual dos colaboradores fictícios.</p>
       </div>
