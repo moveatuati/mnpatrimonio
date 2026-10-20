@@ -1697,3 +1697,102 @@
     box-shadow: none !important;
   }
 }
+
+
+/* Colaboradores — igualar a Consulta de entradas: vinho, filtros e rolagem vertical. */
+.formosa-employee-directory .rh-group-card {
+  border: 1px solid #ead8df;
+  border-top: 3px solid #a44863;
+  background: linear-gradient(145deg, #fff, #fffbfc);
+  box-shadow: 0 3px 12px -9px rgb(76 23 44 / 23%);
+  color: #4b2b39;
+}
+.formosa-employee-directory .rh-group-card:hover {
+  border-color: #c991a3;
+  background: linear-gradient(145deg, #fff9fb, #fff2f6);
+}
+.formosa-employee-directory .rh-group-card-active {
+  border-color: #943451;
+  border-top-color: #76233e;
+  background: linear-gradient(115deg, #fff0f5, #fffafc);
+  box-shadow: 0 0 0 1px rgb(152 50 78 / 10%), 0 4px 12px -9px rgb(102 27 52 / 25%);
+}
+.formosa-employee-directory .rh-group-card:focus-visible {
+  outline: 2px solid #822943;
+  outline-offset: 2px;
+}
+.formosa-employee-directory .rh-group-card[aria-pressed="true"] > span:first-child,
+.formosa-employee-directory .rh-group-card[aria-pressed="true"] strong { color: #7a2340; }
+.formosa-employee-directory .rh-directory-panel {
+  border: 1px solid #ead9df;
+  border-top: 3px solid #8b2944;
+  background: linear-gradient(180deg, #fff8fa, #fff 135px);
+  box-shadow: 0 3px 12px rgb(76 22 40 / 6%), 0 13px 25px -23px rgb(76 22 40 / 17%);
+}
+.formosa-employee-directory .rh-directory-heading {
+  background: linear-gradient(110deg, #fff0f4, #fff 80%);
+  border-bottom-color: #f0dce3;
+}
+.formosa-employee-directory .rh-directory-heading .op-eyebrow { color: #a03656; font-weight: 750; }
+.formosa-employee-directory .rh-directory-heading h2 {
+  color: #79243e;
+  font-size: clamp(17px, 1.45vw, 21px);
+  font-weight: 750;
+}
+.formosa-employee-directory .rh-directory-result-count {
+  color: #7a2941;
+  background: #fceaf0;
+  border: 1px solid #ecc6d2;
+}
+.formosa-employee-directory .rh-directory-toolbar {
+  background: linear-gradient(100deg, #fff8fa, #fff);
+}
+.formosa-employee-directory .rh-directory-search,
+.formosa-employee-directory .rh-directory-select {
+  border-color: #d6afbe;
+  background: #fff5f8;
+  color: #6f2740;
+  font-weight: 650;
+}
+.formosa-employee-directory .rh-directory-search input { color: #372832; font-weight: 400; }
+.formosa-employee-directory .rh-directory-search:focus-within,
+.formosa-employee-directory .rh-directory-select:focus-visible {
+  outline: 2px solid #9e3d5c;
+  outline-offset: 1px;
+}
+.formosa-employee-directory .rh-directory-scroll {
+  max-height: min(56vh, 550px);
+  overflow: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: #b78a9b #faf3f6;
+}
+.formosa-employee-directory .rh-directory-table { border-collapse: separate; border-spacing: 0; }
+.formosa-employee-directory .rh-directory-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: #f8e9ee;
+  color: #68243b;
+  border-top: 1px solid #efd4de;
+  border-bottom: 2px solid #cba0af;
+  box-shadow: 0 2px 5px -3px rgb(91 24 49 / 27%);
+  font-weight: 750;
+}
+.formosa-employee-directory .rh-directory-table tbody tr:nth-child(even) { background: #faf8f9; }
+.formosa-employee-directory .rh-directory-table tbody tr:hover { background: #fff0f4; }
+.formosa-employee-directory .rh-directory-scroll-count { color: #7b2740; font-weight: 700; }
+@media (max-width: 740px) {
+  .formosa-employee-directory .rh-directory-scroll { max-height: min(52vh, 440px); }
+  .formosa-employee-directory .rh-directory-scroll-count { white-space: normal; }
+}
+@media print {
+  .formosa-employee-directory .rh-directory-scroll {
+    max-height: none !important;
+    overflow: visible !important;
+  }
+  .formosa-employee-directory .rh-directory-table thead th {
+    position: static !important;
+    box-shadow: none !important;
+  }
+}
