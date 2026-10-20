@@ -69,7 +69,8 @@ export function readPointStore(input: unknown): PointStore {
         key !== pointKey(record.date, record.employeeId) || !record.marks || typeof record.marks !== "object") continue;
     const marks: Partial<Record<Mark, string>> = {};
     for (const mark of MARKS) {
-      if (typeof record.marks[mark] === "string" && validTime(record.marks[mark])) marks[mark] = record.marks[mark];
+      const value = record.marks[mark];
+      if (typeof value === "string" && validTime(value)) marks[mark] = value;
     }
     records[key] = { employeeId: record.employeeId, date: record.date, marks,
       updatedAt: typeof record.updatedAt === "string" ? record.updatedAt : "" };
