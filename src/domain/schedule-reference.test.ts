@@ -52,4 +52,20 @@ describe("Referência operacional sujeita à homologação", () => {
     expect(result.errors.some(error=>error.includes("jornada semanal excedida"))).toBe(true);
     expect(reviewOperationalProposal(reference,[],{}).errors).toContain("Limite semanal não confirmado pelo RH/jurídico.");
   });
+  it("aceita tecnicamente fixture integral válida sem homologar nem aplicar", () => {
+    const reference = prepareOperationalReference(DEFAULT_SCHEDULE,"2026-10-26");
+    // Fixture artificial de teste, nunca usada como distribuição gerencial ou semente.
+    const dates = Array.from({length:40},(_,i)=>dateOffset(reference.start,i-6));
+    const changes:AssignmentChange[] = dates.flatMap(date=>DEMO_EMPLOYEES.map(employee=>({
+      date,employeeId:employee.id,group:new Date(date+"T12:00:00Z").getUTCDay()===0 ? null : employee.group,
+    })));
+    const targets = Object.fromEntries(reference.dates.map(date=>[date,
+      new Date(date+"T12:00:00Z").getUTCDay()===0 ? {A:0,B:0,C:0} : {A:4,B:29,C:30}]));
+    const result = reviewOperationalProposal(reference,changes,targets,2640);
+    expect(result.errors).toEqual([]);
+    expect(result.technicallyValid).toBe(true);
+    expect(result.weeklyMinutes[0]?.weeks).toEqual([2640,2640,2640,2640]);
+    expect(result.status).toBe("aguardando-homologacao");
+    expect(reference.source.overrides).toEqual({});
+  });
 });
