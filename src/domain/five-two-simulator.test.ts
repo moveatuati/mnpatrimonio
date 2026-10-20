@@ -58,6 +58,15 @@ describe("EC 141/2026 · simulador 5×2",()=>{
    expect(r.coverage.every(c=>c.available===c.planned-c.absent)).toBe(true);
    expect(r.coverage.every(c=>c.deficit===Math.max(0,c.required-c.available))).toBe(true);
  });
+ it("folgas consecutivas são dias adjacentes, não segunda e domingo da mesma semana",()=>{
+   const r=simulate5x2(DEFAULT_SCHEDULE,demoAbsences(),{
+     ...DEFAULT_PARAMETERS,restMode:"consecutivas",
+   });
+   for(const w of r.byWeek){
+     const [first,last]=w.restDates;
+     expect(Date.parse(last+"T12:00:00Z")-Date.parse(first+"T12:00:00Z")).toBe(86400000);
+   }
+ });
  it("mantém deficiência por grupo e compara cenários sem misturar pessoas",()=>{
    for(const n of [63,76,79]){
      const r=simulate5x2(DEFAULT_SCHEDULE,demoAbsences(),{...DEFAULT_PARAMETERS,people:n});
