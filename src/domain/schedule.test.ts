@@ -19,13 +19,13 @@ describe("Escala Formosa - regras demonstrativas", () => {
     ]);
   });
   it("preserva 63 pessoas no sábado sem inventar folgas úteis", () => {
-    expect(dayOfWeek("2026-10-18")).toBe(0);
-    expect(startOfWeek("2026-10-18")).toBe("2026-10-12");
-    expect(dateOffset("2026-10-18",-1)).toBe("2026-10-17");
-    const sun = coverageFor(DEFAULT_SCHEDULE,"2026-10-18");
+    expect(dayOfWeek("2026-10-25")).toBe(0);
+    expect(startOfWeek("2026-10-25")).toBe("2026-10-19");
+    expect(dateOffset("2026-10-25",-1)).toBe("2026-10-24");
+    const sun = coverageFor(DEFAULT_SCHEDULE,"2026-10-25");
     expect(sun.map(g=>g.assigned)).toEqual([1,6,6]);
-    const saturday = scheduleForDate(DEFAULT_SCHEDULE,"2026-10-17");
-    const sundayWorkers = scheduleForDate(DEFAULT_SCHEDULE,"2026-10-18").filter(r=>r.group!==null);
+    const saturday = scheduleForDate(DEFAULT_SCHEDULE,"2026-10-24");
+    const sundayWorkers = scheduleForDate(DEFAULT_SCHEDULE,"2026-10-25").filter(r=>r.group!==null);
     expect(sundayWorkers).toHaveLength(13);
     for(const row of sundayWorkers) {
       const previousSaturday = saturday.find(e=>e.employee.id===row.employee.id)!;
@@ -57,8 +57,8 @@ describe("Escala Formosa - regras demonstrativas", () => {
     expect(coverageFor(approved,"2026-10-20").map(g=>g.assigned)).toEqual([4,29,30]);
   });
   it("troca dominical não retira pessoas do sábado e exige folgas confirmadas", () => {
-    const sunday = "2026-10-18";
-    const saturday = "2026-10-17";
+    const sunday = "2026-10-25";
+    const saturday = "2026-10-24";
     const aAssigned = scheduleForDate(DEFAULT_SCHEDULE,sunday)
       .find(row=>row.employee.group==="A" && row.group==="A")!;
     const aOff = scheduleForDate(DEFAULT_SCHEDULE,sunday)
@@ -93,18 +93,18 @@ describe("Escala Formosa - regras demonstrativas", () => {
     expect(reviseStore({version:2}).version).toBe(1);
   });
   it("aceita replanejamento de múltiplas datas com folgas e metas explícitas", () => {
-    const employee = DEMO_EMPLOYEES.find(e => assignmentFor(DEFAULT_SCHEDULE,e,"2026-10-18") === "A");
+    const employee = DEMO_EMPLOYEES.find(e => assignmentFor(DEFAULT_SCHEDULE,e,"2026-10-25") === "A");
     if (!employee) throw new Error("Fixture dominical ausente");
     const changes = [
-      {employeeId:employee.id,date:"2026-10-14",group:null},
-      {employeeId:employee.id,date:"2026-10-19",group:null},
+      {employeeId:employee.id,date:"2026-10-21",group:null},
+      {employeeId:employee.id,date:"2026-10-26",group:null},
     ];
     const result = validateChanges(DEFAULT_SCHEDULE, changes, {
-      "2026-10-14":{A:3,B:29,C:30}, "2026-10-19":{A:3,B:29,C:30},
+      "2026-10-21":{A:3,B:29,C:30}, "2026-10-26":{A:3,B:29,C:30},
     });
     expect(result.ok).toBe(true);
-    expect(assignmentFor(DEFAULT_SCHEDULE,employee,"2026-10-14")).toBe("A");
-    expect(coverageFor(withChanges(DEFAULT_SCHEDULE,changes),"2026-10-17").map(r=>r.assigned)).toEqual([4,29,30]);
+    expect(assignmentFor(DEFAULT_SCHEDULE,employee,"2026-10-21")).toBe("A");
+    expect(coverageFor(withChanges(DEFAULT_SCHEDULE,changes),"2026-10-24").map(r=>r.assigned)).toEqual([4,29,30]);
   });
   it("bloqueia falta de cobertura em qualquer data do lote", () => {
     const result = validateChanges(DEFAULT_SCHEDULE,[
@@ -131,3 +131,5 @@ describe("Escala Formosa - regras demonstrativas", () => {
     expect(assignmentFor(restored,a,"2026-10-17")).toBeNull();
   });
 });
+
+describe("Preservação histórica",()=>{ it("mantém interpretação anterior à correção sem reescrever dados",()=>{expect(coverageFor(DEFAULT_SCHEDULE,"2026-10-17").map(r=>r.assigned)).toEqual([3,23,24]);expect(coverageFor(DEFAULT_SCHEDULE,"2026-10-24").map(r=>r.assigned)).toEqual([4,29,30]);});});
