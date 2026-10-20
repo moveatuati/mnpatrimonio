@@ -46,7 +46,10 @@ function tone(entry: Absence,date: string) {
 }
 function previewImpact(store: AbsenceStore,schedule: ScheduleStore,entry: Absence) {
   const without = { ...store, entries:store.entries.filter(e=>e.id!==entry.id) };
-  const withApproval = { ...store, entries: [...without.entries,{...entry,status:"aprovado" as const}] };
+  const withApproval = { ...store, entries: [
+    ...without.entries.filter(e=>e.id!==entry.supersedesId),
+    {...entry,status:"aprovado" as const},
+  ] };
   let maxMissing=0;
   let affected=0;
   // Prévia demonstrativa de até 32 dias, não análise jurídica ou reserva de pessoal.
@@ -141,7 +144,7 @@ export function AbsenceWorkspace(){
     if(!result.ok){setResponse(result.errors.join(" "));return;}
     setStore(result.store);setResponse("");
     setEditing(null);
-    setBanner("Pedido demonstrativo registrado e enviado para análise. A cobertura só considera períodos aprovados.");
+    setBanner("Pedido enviado para análise. Se o período anterior estava aprovado, ele permanece ativo até a nova decisão.");
     setTab("requests");
   }
   function decide(id:string,action:"aprovar"|"recusar"|"cancelar"){
@@ -285,7 +288,7 @@ export function AbsenceWorkspace(){
 
     {tab==="new"&&<section className="fa-panel fa-form-panel">
       <div className="fa-panel-head"><div><p className="op-eyebrow">CADASTRO ADMINISTRATIVO</p>
-        <h2>{editing?"Alterar período solicitado":"Nova solicitação de ausência"}</h2>
+        <h2>{editing?"Propor alteração de período":"Nova solicitação de ausência"}</h2>
         <p>Preencha o tipo e o período. A análise gerencial é registrada separadamente.</p></div>
         <button type="button" className="fa-outline" onClick={()=>{setTab("overview");setEditing(null);}}>Voltar ao controle</button>
       </div>
@@ -320,7 +323,7 @@ export function AbsenceWorkspace(){
       {response&&<div className="fa-warning" role="alert">{response}</div>}
       <div className="fa-privacy"><ShieldCheck size={16}/>
         Não anexar atestados, CID, diagnósticos nem documentos reais nesta demonstração. Após salvar,
-        o pedido fica <b>pendente</b>; editar um período aprovado exige nova aprovação.</div>
+        o pedido fica <b>pendente</b>; uma alteração de período aprovado preserva o original até aprovação da mudança.</div>
       <div className="fa-form-footer"><button type="button" className="fa-outline"
         onClick={()=>setTab("overview")}>Cancelar edição</button>
         <button type="button" className="fa-primary" disabled={!ready||errors.length>0}
@@ -337,7 +340,8 @@ export function AbsenceWorkspace(){
           const outlook=previewImpact(store,schedule,entry);
           return <article className="fa-request" key={entry.id}>
             <div className="fa-request-heading"><div><b>{person(entry.employeeId)?.name}</b>
-              <span>{entry.employeeId} · Grupo {person(entry.employeeId)?.group} · {ABSENCE_LABELS[entry.type]}</span></div>
+              <span>{entry.employeeId} · Grupo {person(entry.employeeId)?.group} · {ABSENCE_LABELS[entry.type]}
+                {entry.supersedesId?" · Alteração de período aprovado":""}</span></div>
               <span className="fa-pill fa-pill-pending">Pendente</span></div>
             <div className="fa-request-dates"><CalendarDays size={15}/> {displayDate(entry.start)} — {displayDate(entry.end)}
               <ArrowRight size={14}/> Retorno previsto: {displayDate(nextWorkDate(schedule,entry.employeeId,entry.end))}</div>
