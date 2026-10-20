@@ -1,4 +1,3 @@
-import { COMPARISON_PEOPLE } from "./five-two-simulator";
 import { GROUPS, GROUP_IDS } from "./config";
 import { DEMO_EMPLOYEES } from "./demo-data";
 import { ABSENCE_LABELS, nextWorkDate, type AbsenceStore } from "./absences";
@@ -123,6 +122,7 @@ function filteredPeople(filters: ReportFilters) {
   return DEMO_EMPLOYEES.filter(e => (filters.group === "all" || filters.group === e.group) &&
     (filters.employeeId === "all" || filters.employeeId === e.id));
 }
+const COMPARISON_PEOPLE = 78;
 export function capacityStudy() {
   // ONLY theoretical person-shifts, not a legally validated or operational staffing plan.
   return [
