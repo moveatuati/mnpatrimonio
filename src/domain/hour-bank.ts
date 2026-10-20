@@ -56,7 +56,7 @@ const demoRows = [
   ["BH-005","FM-006","2026-10-03","credito_ajuste",35,"Acerto de conferência da jornada"],
   ["BH-006","FM-006","2026-10-19","compensacao",-20,"Compensação aprovada"],
   ["BH-007","FM-018","2026-10-11","credito_extra",75,"Extensão de expediente demonstrativa"],
-  ["BH-008","FM-018","2026-10-20","debito_ajuste",-15,"Ajuste de saldo em revisão"],
+  ["BH-008","FM-018","2026-10-21","debito_ajuste",-15,"Ajuste de saldo em revisão"],
   ["BH-009","FM-049","2026-09-25","credito_extra",120,"Saldo inicial ilustrativo anterior ao mês"],
   ["BH-010","FM-049","2026-10-14","compensacao",-60,"Compensação de período anterior"],
   ["BH-011","FM-055","2026-10-21","credito_extra",80,"Solicitação futura ilustrativa"],
