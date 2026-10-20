@@ -15,14 +15,11 @@ export const LEGAL_SOURCES = {
   implementation: "https://www12.senado.leg.br/noticias/audios/2026/10/carga-maxima-de-trabalho-passara-a-42-horas-semanais-em-15-de-dezembro",
   senate: "https://www12.senado.leg.br/noticias/materias/2026/10/16/congresso-promulga-o-fim-da-escala-6x1-e-aposentadoria-de-agentes-de-saude",
 } as const;
-export type RestMode = "consecutivas" | "intercaladas";
 export type WeeklyLimit = 42 | 40;
 export interface SimulatorParameters {
   start: ISODate; // first Monday of a 4-week simulation
   people: number;
   weeklyLimit: WeeklyLimit;
-  restMode: RestMode;
-  sundayPriority: boolean;
   allocation?: Record<GroupId,number>; // distribuição manual opcional; nunca altera grupos cadastrados
 }
 export interface ScenarioPerson {
@@ -60,7 +57,7 @@ export const DAYS = ["Seg","Ter","Qua","Qui","Sex","Sáb","Dom"] as const;
 export const FUTURE_START = "2026-12-21";
 export const BASE_PEOPLE = 63;
 export const DEFAULT_PARAMETERS:SimulatorParameters = {
-  start:FUTURE_START,people:76,weeklyLimit:40,restMode:"consecutivas",sundayPriority:true,
+  start:FUTURE_START,people:76,weeklyLimit:40,
 };
 export type ScenarioResult = ReturnType<typeof simulate5x2>;
 const localWeekday=(iso:ISODate)=>(dayOfWeek(iso)+6)%7; // Monday=0
@@ -116,23 +113,39 @@ export function makeScenarioPeople(count:number,allocation?:Record<GroupId,numbe
   }
   return original;
 }
+/** Limite necessário considerando sábados com 100% do quadro e domingo alternado.
+ * Em quatro semanas cada pessoa trabalha 20 dias: quatro sábados, dois domingos
+ * e 14 dias úteis. É apenas piso aritmético, não escala viável comprovada.
+ */
 export function theoreticalMinimum(schedule:ScheduleStore,start:ISODate){
-  const week=Array.from({length:7},(_,i)=>dateOffset(start,i));
-  const groups=Object.fromEntries(GROUP_IDS.map(g=>[
-    g,Math.ceil(week.reduce((n,d)=>n+requiredFor(schedule,d,g),0)/5),
-  ])) as Record<GroupId,number>;
+  const days=Array.from({length:28},(_,i)=>dateOffset(start,i));
+  const groups=Object.fromEntries(GROUP_IDS.map(group=>{
+    const weekdayNeed=days.filter(d=>dayOfWeek(d)!==0&&dayOfWeek(d)!==6)
+      .reduce((total,date)=>total+requiredFor(schedule,date,group),0);
+    const saturdayMin=Math.max(...days.filter(d=>dayOfWeek(d)===6).map(d=>requiredFor(schedule,d,group)));
+    const sundayMin=Math.max(...days.filter(d=>dayOfWeek(d)===0).map(d=>requiredFor(schedule,d,group)));
+    const current=DEMO_EMPLOYEES.filter(e=>e.group===group).length;
+    // O menor dos dois grupos alternados precisa cobrir a demanda dominical.
+    return [group,Math.max(current,Math.ceil(weekdayNeed/14),saturdayMin,sundayMin*2)];
+  })) as Record<GroupId,number>;
   return {groups,total:GROUP_IDS.reduce((n,g)=>n+groups[g],0)};
 }
-const candidates=(mode:RestMode):number[][]=>{
-  const pairs:number[][]=[];
-  for(let i=0;i<7;i++)for(let j=i+1;j<7;j++){
-    // Monday/Sunday of the SAME calendar week are not contiguous rest days.
-    const adjacent=j===i+1;
-    if((mode==="consecutivas"&&adjacent)||(mode==="intercaladas"&&!adjacent))
-      pairs.push([i,j]);
-  }
-  return pairs;
-};
+/** Domingo alterna rigidamente (sem dois domingos trabalhados seguidos).
+ * No domingo de folga: uma folga útil. No domingo trabalhado: duas folgas úteis
+ * não consecutivas. O sábado nunca é opção de descanso.
+ */
+function weekdayOptions(workingSunday:boolean){
+  if(!workingSunday)return Array.from({length:5},(_,weekday)=>[weekday,6]);
+  const choices:number[][]=[];
+  for(let first=0;first<5;first++)for(let second=first+2;second<5;second++)
+    choices.push([first,second]);
+  return choices;
+}
+function validNonAdjacentRest(prior:Set<ISODate>,week:ISODate[],off:number[]){
+  const rests=new Set([...prior,...off.map(idx=>week[idx]!)]);
+  for(const date of rests)if(rests.has(dateOffset(date,1)))return false;
+  return true;
+}
 /** Recusa seis dias seguidos, inclusive cruzando o domingo para a semana seguinte.
  * Exceções não são automaticamente autorizadas pela existência de banco de horas.
  */
@@ -184,56 +197,68 @@ export function simulate5x2(schedule:ScheduleStore,absences:AbsenceStore,setting
   const dates=Array.from({length:weeks*7},(_,i)=>dateOffset(settings.start,i));
   const byWeek:PersonWeek[]=[];
   const workingById=new Map<string,Set<ISODate>>(people.map(e=>[e.id,new Set<ISODate>()]));
-  const restHistory=new Map<string,number>(people.map(e=>[e.id,0]));
+  const restHistory=new Map<string,Set<ISODate>>(people.map(e=>[e.id,new Set<ISODate>()]));
   const coverage:DayCoverage[]=[];
   let constraintViolations=0;
-  const options=candidates(settings.restMode);
+  let holidayRestAlerts=0;
   for(let weekNumber=0;weekNumber<weeks;weekNumber++){
     const days=dates.slice(weekNumber*7,weekNumber*7+7);
     const assignments=new Map<string,number[]>();
     const availableByGroup=new Map<GroupId,number[]>(GROUP_IDS.map(g=>[g,Array(7).fill(0) as number[]]));
-    // Distribute off-day patterns against actual need of each weekday,
-    // including reduced Sunday staffing. No one is assigned across groups.
     for(const group of GROUP_IDS){
-      const groupPeople=people.filter(p=>p.group===group);
-      const req=days.map(d=>requiredFor(schedule,d,group));
-      const order=[...groupPeople].sort((a,b)=>{
-        const diff=(restHistory.get(b.id)??0)-(restHistory.get(a.id)??0);
-        return diff || a.id.localeCompare(b.id);
-      });
-      for(let i=0;i<order.length;i++){
-        const person=order[i]!;
-        const prior=workingById.get(person.id)!;
-        const counts=availableByGroup.get(group)!;
-        let best=options[0]!,bestScore=-Infinity;
-        for(const off of options){
-          const valid=validRollingRest(prior,days,off);
-          if(!valid)continue;
-          const gain=days.reduce((sum,d,idx)=>sum+(off.includes(idx)?0:
-            (counts[idx]!<req[idx]! ? 100 : -10)),0);
-          const sundayFree=off.includes(6)?1:0;
-          const priorSunday=restHistory.get(person.id)??0;
-          const sundayPreference=settings.sundayPriority?(sundayFree ? 12-Math.min(4,priorSunday)*5:-1):0;
-          const rotate=(((i+weekNumber*3)*11+off[0]!*7+off[1]!*3)%13)/100;
-          const score=gain+sundayPreference+rotate;
-          if(score>bestScore){best=off;bestScore=score;}
+      // Stable phase within each group: alternate half of people on every Sunday.
+      // Saturday is always a working day, including on holiday dates.
+      const groupPeople=people.filter(p=>p.group===group).sort((a,b)=>a.id.localeCompare(b.id));
+      const requirement=days.map(day=>requiredFor(schedule,day,group));
+      for(let index=0;index<groupPeople.length;index++){
+        const person=groupPeople[index]!;
+        // Fixar a fase em uma semana-âncora, evitando inverter o rodízio
+        // quando o usuário altera a data inicial da consulta.
+        const absoluteWeek=Math.floor((dateUTC(days[0]!) - dateUTC(FUTURE_START))/(7*86400000));
+        const sundayWorks=(index+absoluteWeek)%2===0;
+        const priorWork=workingById.get(person.id)!;
+        const priorRest=restHistory.get(person.id)!;
+        const covered=availableByGroup.get(group)!;
+        const patterns=weekdayOptions(sundayWorks);
+        let selected:number[]|null=null,highest=-Infinity;
+        for(const off of patterns){
+          if(!validNonAdjacentRest(priorRest,days,off) || !validRollingRest(priorWork,days,off))continue;
+          const value=days.reduce((score,date,dayIndex)=>{
+            if(off.includes(dayIndex))return score;
+            // Sunday and Saturday are mandatory placements; encourage fair weekday coverage.
+            const urgent=covered[dayIndex]!<requirement[dayIndex]!;
+            return score+(urgent?100:-9);
+          },0);
+          // Prefer rest on holidays rather than on their following days, but never
+          // create contiguous days off. A holiday is not a free extra weekly day off.
+          const holidayBonus=off.filter(idx=>schedule.rules.holidays.includes(days[idx]!)).length*8;
+          const rotate=((index*11+weekNumber*5+off[0]!*3+off[1]!*7)%17)/100;
+          const score=value+holidayBonus+rotate;
+          if(score>highest){highest=score;selected=off;}
         }
-        if(bestScore===-Infinity){constraintViolations++;best=options[0]!;}
-        assignments.set(person.id,best);
-        days.forEach((day,idx)=>{
-          if(!best.includes(idx)){counts[idx]++;workingById.get(person.id)!.add(day);}
+        if(!selected){
+          // Visible conflict, rather than silently asserting an impossible roster.
+          constraintViolations++;
+          selected=patterns[0]!;
+        }
+        assignments.set(person.id,selected);
+        days.forEach((day,dayIndex)=>{
+          if(selected!.includes(dayIndex))restHistory.get(person.id)!.add(day);
+          else {covered[dayIndex]++;priorWork.add(day);}
         });
-        if(best.includes(6))restHistory.set(person.id,(restHistory.get(person.id)??0)+1);
       }
     }
-    for(const person of people) {
+    for(const person of people){
       const off=assignments.get(person.id)!;
       const workDays=days.filter((_,idx)=>!off.includes(idx));
       const restDays=days.filter((_,idx)=>off.includes(idx));
-      const mins=workDays.reduce((n,d)=>n+proposedShift(person.group,settings.weeklyLimit,d).minutes,0);
+      const mins=workDays.reduce((n,date)=>n+proposedShift(person.group,settings.weeklyLimit,date).minutes,0);
+      const adjacent=!validNonAdjacentRest(restHistory.get(person.id)!,days,off);
+      const streak=!validRollingRest(workingById.get(person.id)!,days,off);
+      if(adjacent && restDays.some(date=>schedule.rules.holidays.includes(date)))holidayRestAlerts++;
       byWeek.push({employee:person,week:weekNumber,workingDates:workDays,restDates:restDays,
         sundayFree:off.includes(6),hours:mins,overWeeklyLimit:mins>settings.weeklyLimit*60,
-        consecutiveViolation:!validRollingRest(workingById.get(person.id)!,days,off),rest11hViolation:false});
+        consecutiveViolation:adjacent||streak,rest11hViolation:false});
     }
   }
   const elevenHourViolations=restTimeOK(people,workingById,settings.weeklyLimit);
@@ -268,6 +293,11 @@ export function simulate5x2(schedule:ScheduleStore,absences:AbsenceStore,setting
   const min=theoreticalMinimum(schedule,settings.start);
   const badHours=byWeek.filter(w=>w.overWeeklyLimit).length;
   const restViolations=byWeek.filter(w=>w.consecutiveViolation).length;
+  const saturdayUnscheduled=byWeek.filter(w=>!w.workingDates.includes(dateOffset(settings.start,w.week*7+5))).length;
+  const sundayAlternationErrors=people.reduce((total,p)=>{
+    const weeksFor=byWeek.filter(w=>w.employee.id===p.id);
+    return total+weeksFor.slice(1).filter((week,index)=>week.sundayFree===weeksFor[index]!.sundayFree).length;
+  },0);
   const personSummary=people.map(person=>{
     const weeksFor=byWeek.filter(w=>w.employee.id===person.id);
     return {employee:person,weeks:weeksFor,sundaysOff:weeksFor.filter(w=>w.sundayFree).length,
@@ -289,5 +319,6 @@ export function simulate5x2(schedule:ScheduleStore,absences:AbsenceStore,setting
       coverageRate:totalRequired?Math.max(0,Math.min(100,(totalRequired-deficitCount)/totalRequired*100)):0,
       daysWith11hConflicts:elevenHourViolations.length,restViolations:restViolations+constraintViolations,
       badHours,sundaysFree:weekends,monthlyAverageSundaysOff:people.length?weekends/people.length:0,
+      saturdayUnscheduled,sundayAlternationErrors,holidayRestAlerts,
     }};
 }

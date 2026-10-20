@@ -41,7 +41,7 @@ describe("EC 141/2026 · simulador 5×2",()=>{
  });
  it("encontra limite teórico por grupo, sem prometer cobertura",()=>{
    expect(theoreticalMinimum(DEFAULT_SCHEDULE,FUTURE_START)).toEqual({
-     groups:{A:5,B:36,C:38},total:79,
+     groups:{A:6,B:42,C:43},total:91,
    });
  });
  it("gera quatro semanas sem repetir dia ou perder descanso",()=>{
@@ -59,13 +59,56 @@ describe("EC 141/2026 · simulador 5×2",()=>{
    expect(r.coverage.every(c=>c.available===c.planned-c.absent)).toBe(true);
    expect(r.coverage.every(c=>c.deficit===Math.max(0,c.required-c.available))).toBe(true);
  });
- it("folgas consecutivas são dias adjacentes, não segunda e domingo da mesma semana",()=>{
-   const r=simulate5x2(DEFAULT_SCHEDULE,demoAbsences(),{
-     ...DEFAULT_PARAMETERS,restMode:"consecutivas",
+ it("sábado jamais é folga, domingo alterna, e cada semana tem duas folgas",()=>{
+   for(const size of [63,76,91,140]){
+     const result=simulate5x2(DEFAULT_SCHEDULE,demoAbsences(),{
+       ...DEFAULT_PARAMETERS,people:size,
+     });
+     expect(result.metrics.saturdayUnscheduled).toBe(0);
+     expect(result.metrics.sundayAlternationErrors).toBe(0);
+     for(const person of result.personSummary){
+       expect(person.weeks).toHaveLength(4);
+       expect(person.sundaysOff).toBe(2);
+       for(let week=0;week<4;week++){
+         const row=person.weeks[week]!;
+         const saturday=dateOffset(FUTURE_START,week*7+5);
+         const sunday=dateOffset(FUTURE_START,week*7+6);
+         expect(row.workingDates).toContain(saturday);
+         expect(row.restDates).not.toContain(saturday);
+         expect(row.restDates).toHaveLength(2);
+         expect(row.workingDates).toHaveLength(5);
+         expect(row.sundayFree).toBe(row.restDates.includes(sunday));
+         if(week>0)expect(row.sundayFree).not.toBe(person.weeks[week-1]!.sundayFree);
+       }
+       const allRest=new Set(person.weeks.flatMap(w=>w.restDates));
+       const allWorked=new Set(person.weeks.flatMap(w=>w.workingDates));
+       for(const d of allRest)expect(allRest.has(dateOffset(d,1))).toBe(false);
+       for(const d of allWorked)expect([0,1,2,3,4,5].every(k=>
+         allWorked.has(dateOffset(d,k)))).toBe(false);
+     }
+   }
+ });
+ it("mantém a mesma fase dominical quando a janela de simulação muda",()=>{
+   const initial=simulate5x2(DEFAULT_SCHEDULE,demoAbsences(),DEFAULT_PARAMETERS);
+   const shifted=simulate5x2(DEFAULT_SCHEDULE,demoAbsences(),{
+     ...DEFAULT_PARAMETERS,start:dateOffset(FUTURE_START,7),
    });
-   for(const w of r.byWeek){
-     const [first,last]=w.restDates;
-     expect(Date.parse(last+"T12:00:00Z")-Date.parse(first+"T12:00:00Z")).toBe(86400000);
+   for(const first of initial.personSummary){
+     const second=shifted.personSummary.find(p=>p.employee.id===first.employee.id)!;
+     expect(second.weeks[0]!.sundayFree).toBe(first.weeks[1]!.sundayFree);
+     expect(second.weeks[1]!.sundayFree).toBe(first.weeks[2]!.sundayFree);
+   }
+ });
+ it("feriado na segunda não coloca uma folga consecutiva na terça",()=>{
+   const schedule={...DEFAULT_SCHEDULE,rules:{...DEFAULT_SCHEDULE.rules,
+     holidays:[FUTURE_START],
+     holidayByDate:{[FUTURE_START]:{A:1,B:6,C:6}},
+   }};
+   const result=simulate5x2(schedule,demoAbsences(),DEFAULT_PARAMETERS);
+   expect(result.coverage.filter(r=>r.date===FUTURE_START).every(r=>r.holiday)).toBe(true);
+   for(const person of result.personSummary){
+     const rests=new Set(person.weeks.flatMap(w=>w.restDates));
+     if(rests.has(FUTURE_START))expect(rests.has(dateOffset(FUTURE_START,1))).toBe(false);
    }
  });
  it("mantém deficiência por grupo e compara cenários sem misturar pessoas",()=>{
@@ -78,11 +121,13 @@ describe("EC 141/2026 · simulador 5×2",()=>{
      expect(r.metrics.coverageRate).toBeLessThanOrEqual(100);
    }
  });
- it("permite folgas intercaladas e preserva dados de origem",()=>{
+ it("não modifica dados operacionais e aplica automaticamente as folgas intercaladas",()=>{
    const a=JSON.stringify(DEFAULT_SCHEDULE);
    const ab=demoAbsences(),b=JSON.stringify(ab);
-   const r=simulate5x2(DEFAULT_SCHEDULE,ab,{...DEFAULT_PARAMETERS,restMode:"intercaladas"});
+   const r=simulate5x2(DEFAULT_SCHEDULE,ab,DEFAULT_PARAMETERS);
    expect(r.byWeek.every(w=>w.restDates.length===2)).toBe(true);
+   expect(r.metrics.saturdayUnscheduled).toBe(0);
+   expect(r.metrics.sundayAlternationErrors).toBe(0);
    expect(JSON.stringify(DEFAULT_SCHEDULE)).toBe(a);
    expect(JSON.stringify(ab)).toBe(b);
  });
