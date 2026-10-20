@@ -2,7 +2,7 @@
 
 A rota /ferias oferece painel com funcionários em férias, afastados, pedidos pendentes, retornos previstos e cobertura A/B/C. Carrega sete exemplos fictícios referentes a outubro de 2026.
 
-Fluxo: Cadastrar pedido → Selecionar colaborador, férias/atestado/afastamento, datas inclusivas e observação genérica → Registrar (pendente) → Solicitações → Aprovar ou recusar. Aprovação recalcula o quadro exclusivamente neste módulo. Alterar período já aprovado retorna o pedido para análise; cancelamento exige motivo e permanece no histórico local.
+Fluxo: Cadastrar pedido → Selecionar colaborador, férias/atestado/afastamento, datas inclusivas e observação genérica → Registrar (pendente) → Solicitações → Aprovar ou recusar. Aprovação recalcula o quadro exclusivamente neste módulo. Alterar período já aprovado gera um novo pedido pendente; o período anterior permanece aprovado e contado na cobertura até que a mudança seja aprovada. Na aprovação, o período antigo é encerrado como substituído. Cancelamento exige motivo e permanece no histórico local.
 
 Bloqueios: datas inexistentes, período invertido e conflitos de períodos pendentes/aprovados do mesmo funcionário. Para planejamento, mostrar o impacto previsto de aprovar um pedido, sem bloquear atestados ou criar juízo sobre direito trabalhista. Pedido pendente não reduz cobertura.
 
