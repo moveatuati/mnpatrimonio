@@ -37,7 +37,7 @@ export function buildDashboard(date: ISODate, employees: Employee[] = DEMO_EMPLO
       severity: "critico",
       category: "ponto",
       title: `${missing.length} colaborador(es) sem entrada registrada`,
-      detail: missing.map((m) => m.employee.name).join(", "),
+      detail: `Conferir marcação: ${missing.map((m) => `${m.employee.name} (Grupo ${m.employee.group})`).join(", ")}. Ausência não confirmada — falta de registro não comprova falta.`,
     });
   coverage
     .filter((c) => c.balance < 0)
