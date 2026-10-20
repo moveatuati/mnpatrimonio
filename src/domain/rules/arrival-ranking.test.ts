@@ -5,7 +5,7 @@ import type { GroupId } from "../types";
 type Row = {
   employee: { id: string; name: string; group: GroupId };
   planned: string;
-  entry?: string;
+  entry?: string | undefined;
 };
 const row = (id: string, name: string, group: GroupId, planned: string, entry?: string): Row =>
   ({ employee: { id, name, group }, planned, entry });
@@ -40,3 +40,4 @@ describe("Ranking de chegadas separado pelos grupos", () => {
     expect(sample.map((r) => r.employee.id)).toEqual(["B2", "B1"]);
   });
 });
+

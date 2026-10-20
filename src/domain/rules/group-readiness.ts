@@ -17,7 +17,7 @@ export interface GroupEntryStatus {
 export function summarizeGroupEntries(
   arrivals: readonly {
     employee: Pick<Employee, "id" | "name" | "group">;
-    entry?: Time;
+    entry?: Time | undefined;
     status: ArrivalStatus;
   }[],
 ): GroupEntryStatus[] {
@@ -34,3 +34,4 @@ export function summarizeGroupEntries(
     };
   });
 }
+

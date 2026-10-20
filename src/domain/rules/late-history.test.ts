@@ -32,7 +32,7 @@ describe("Histórico demonstrativo mensal de atrasos", () => {
   });
   it("não soma dias posteriores nem aceita datas inválidas", () => {
     expect(countMonthlyLateArrivals("2026-10-32", emps, getPunches)).toEqual({A1:0,B1:0,C1:0});
-    expect(countMonthlyLateArrivals("2026-10-01", emps, getPunches).A1).toBe(1);
+    expect(countMonthlyLateArrivals("2026-10-01", emps, getPunches)["A1"]).toBe(1);
   });
   it("mantém a entrada base de cada grupo correta", () => {
     expect(GROUPS.A.shift.start).toBe("07:00");
@@ -63,3 +63,4 @@ describe("Top 5 de atrasos no mês", () => {
     expect(rankMonthlyLateArrivals(people, { A1: 0, B1: 0 })).toEqual([]);
   });
 });
+

@@ -5,7 +5,7 @@ import type { Employee, GroupId, Time } from "../types";
 export type ArrivalRankingRow = {
   employee: Pick<Employee, "id" | "name" | "group">;
   planned: Time;
-  entry?: Time;
+  entry?: Time | undefined;
 };
 
 /**
@@ -38,3 +38,4 @@ export function rankArrivalsByGroup<T extends ArrivalRankingRow>(
         a.employee.id.localeCompare(b.employee.id);
     });
 }
+
