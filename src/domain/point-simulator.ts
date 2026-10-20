@@ -125,8 +125,11 @@ export function analysePoint(schedule: ScheduleStore, store: PointStore, employe
     ? Math.max(0, toMinutes(marks.entry) - toMinutes(planned.entry)) : null;
   const earlyExit = typeof marks.exit === "string" && typeof planned.exit === "string"
     ? Math.max(0, toMinutes(planned.exit) - toMinutes(marks.exit)) : null;
-  const anomaly = (late !== null && late > store.alertMinutes) || (earlyExit !== null && earlyExit > 0);
-  const status = required.length === 0 ? "folga" : registered === 0 ? "sem registro" :
+  const orphanMarks = required.length === 0 && MARKS.some(mark => Boolean(marks[mark]));
+  const anomaly = orphanMarks || (late !== null && late > store.alertMinutes) ||
+    (earlyExit !== null && earlyExit > 0);
+  const status = orphanMarks ? "atenção" : required.length === 0 ? "folga" :
+    registered === 0 ? "sem registro" :
     complete ? (anomaly ? "atenção" : "completo") : "em andamento";
   return { planned, marks, required, registered, complete, late, earlyExit, anomaly, status };
 }
