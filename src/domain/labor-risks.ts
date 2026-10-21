@@ -7,7 +7,7 @@ import { DEMO_EMPLOYEES } from "./demo-data";
 import type { AbsenceStore } from "./absences";
 import { bankBoard, hoursText, type HourStore } from "./hour-bank";
 import { movementKind } from "./movement";
-import { adjacentRestProblems, assignmentFor, dateOffset, dayOfWeek, type ScheduleStore } from "./schedule";
+import { adjacentRestProblems, assignmentFor, dateOffset, dayOfWeek, restAudit, type ScheduleStore } from "./schedule";
 import type { ISODate } from "./types";
 
 export type RiskLevel = "alto" | "medio" | "baixo";
@@ -52,6 +52,18 @@ export function laborRisks(schedule: ScheduleStore, hours: HourStore, absences: 
     why: "Todo trabalhador precisa de um descanso semanal. Sem ele, o dia é pago em dobro.",
     action: seven.length ? "Marcar a folga antecipada ou a folga do 7º dia." : "Nenhum caso: as folgas do revezamento estão em dia.",
     people: seven,
+  });
+
+  // 1b) Domingo trabalhado precisa de 1 folga antes e 1 folga depois (regra do gerente)
+  const audit = restAudit(schedule, start, Math.ceil(days / 7));
+  const missing = audit.rows.filter(r => r.checks.some(c => c.worked && !c.ok));
+  risks.push({
+    id: "folgas-domingo", level: missing.length ? "alto" : "baixo",
+    title: "Domingo trabalhado sem as duas folgas (antes e depois)",
+    why: "Quem trabalha no domingo tem direito a uma folga antes e outra depois. Sem elas, o descanso semanal fica em falta e o dia pode ser pago em dobro.",
+    action: missing.length ? "Marcar a folga que falta na aba Escala & trocas → Conferência de folgas." : "Todos os domingos trabalhados têm as duas folgas.",
+    people: missing.map(r => ({ id: r.employee.id, name: r.employee.name,
+      detail: r.checks.filter(c => c.worked && !c.ok).map(c => "domingo " + br(c.sunday) + (c.before ? "" : " sem folga antes") + (c.after ? "" : " sem folga depois")).join("; ") })),
   });
 
   // 2) Domingos seguidos

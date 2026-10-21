@@ -7,9 +7,10 @@ import { laborRisks, type RiskLevel } from "@/domain/labor-risks";
 import { movementPeriod } from "@/domain/movement";
 import { startOfWeek, type ScheduleStore } from "@/domain/schedule";
 import { PaperSheets } from "@/components/sheets/PaperSheets";
+import { RestAuditPanel } from "@/components/schedule/RestAuditPanel";
 import "./ReadyReports.css";
 
-type Ready = "riscos" | "banco" | "domingo" | "semana";
+type Ready = "riscos" | "folgas" | "banco" | "domingo" | "semana";
 const br = (d: string) => d.split("-").reverse().join("/");
 const LEVEL: Record<RiskLevel, { icon: string; text: string }> = {
   alto: { icon: "🔴", text: "Resolver já" },
@@ -43,6 +44,7 @@ export function ReadyReports({ schedule, absences, hours, date }: {
     <div className="rr-choose" role="tablist">
       {([
         ["riscos", ShieldAlert, "Riscos trabalhistas", high ? high + " para resolver" : "Tudo certo"],
+        ["folgas", ShieldAlert, "Conferência de folgas", "antes e depois do domingo"],
         ["banco", Wallet, "Banco de horas", summary.vermelho + " precisam de folga"],
         ["domingo", CalendarDays, "Escala de domingo", "folha para assinar"],
         ["semana", CalendarDays, "Folgas da semana", "planilha da semana"],
@@ -102,6 +104,7 @@ export function ReadyReports({ schedule, absences, hours, date }: {
       </div>}
     </article>}
 
+    {view === "folgas" && <RestAuditPanel store={schedule} date={date} />}
     {view === "domingo" && <PaperSheets store={schedule} absences={absences} initialDate={date} show="sunday" />}
     {view === "semana" && <PaperSheets store={schedule} absences={absences} initialDate={date} show="week" />}
   </section>;

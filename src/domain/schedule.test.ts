@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { DEMO_EMPLOYEES } from "./demo-data";
 import {
   DEFAULT_SCHEDULE, adjacentRestProblems, assignmentFor, coverageFor, dateOffset, dayOfWeek,
-  holidayTargetsFor, plannedRestFor, requiredFor, restReason, reviseStore, scheduleForDate,
+  holidayTargetsFor, plannedRestFor, requiredFor, restAudit, restReason, reviseStore, scheduleForDate, sundayRestCheck,
   startOfWeek, swapProposal, validateChanges, withChanges, type ScheduleStore,
 } from "./schedule";
 
@@ -149,5 +149,55 @@ describe("Escala Formosa — revezamento real (6×1, domingo sim / domingo não)
     expect(assignmentFor(restored, a, "2026-10-17")).toBeNull();
     expect(restReason(restored, a, "2026-10-17")).toBe("Folga ajustada pelo gerente");
     expect(dayOfWeek(SUNDAY)).toBe(0);
+  });
+});
+
+describe("Regra do gerente: domingo trabalhado = folga antes + folga depois", () => {
+  it("todas as 63 pessoas em dia nas 4 semanas; metade trabalha cada domingo", () => {
+    const audit = restAudit(DEFAULT_SCHEDULE, "2026-10-19", 4);
+    expect(audit.rows).toHaveLength(63);
+    expect(audit.pending).toBe(0);
+    expect(audit.ok).toBe(63);
+    for (const n of audit.workersPerSunday) { expect(n).toBeGreaterThanOrEqual(31); expect(n).toBeLessThanOrEqual(32); }
+    for (const row of audit.rows) {
+      expect(row.sundaysWorked).toBe(2);
+      expect(row.sundaysOff).toBe(2);
+      expect(row.restsBefore).toBe(2);
+      expect(row.restsAfter).toBe(2);
+    }
+  });
+  it("bloqueia tirar a folga ANTES de quem trabalha no domingo", () => {
+    const row = scheduleForDate(DEFAULT_SCHEDULE, SUNDAY).find(r => r.group !== null)!;
+    const before = sundayRestCheck(DEFAULT_SCHEDULE, row.employee, SUNDAY).before!;
+    const result = validateChanges(DEFAULT_SCHEDULE, [{ employeeId: row.employee.id, date: before, group: row.employee.group }],
+      { [before]: { A: 0, B: 0, C: 0 } });
+    expect(result.ok).toBe(false);
+    expect(result.errors.some(e => e.includes("folga ANTES"))).toBe(true);
+  });
+  it("bloqueia tirar a folga DEPOIS de quem trabalhou no domingo", () => {
+    const row = scheduleForDate(DEFAULT_SCHEDULE, SUNDAY).find(r => r.group !== null)!;
+    const after = sundayRestCheck(DEFAULT_SCHEDULE, row.employee, SUNDAY).after!;
+    const result = validateChanges(DEFAULT_SCHEDULE, [{ employeeId: row.employee.id, date: after, group: row.employee.group }],
+      { [after]: { A: 0, B: 0, C: 0 } });
+    expect(result.ok).toBe(false);
+    expect(result.errors.some(e => e.includes("folga DEPOIS"))).toBe(true);
+  });
+  it("bloqueia dois domingos seguidos numa troca de domingo", () => {
+    const rows = scheduleForDate(DEFAULT_SCHEDULE, SUNDAY);
+    const on = rows.find(r => r.group !== null)!, off = rows.find(r => r.group === null)!;
+    const result = validateChanges(DEFAULT_SCHEDULE, swapProposal(DEFAULT_SCHEDULE, SUNDAY, on.employee.id, off.employee.id));
+    expect(result.ok).toBe(false);
+    expect(result.errors.some(e => e.includes("dois domingos seguidos"))).toBe(true);
+  });
+  it("trocar o dia da folga (continuando antes do domingo) é permitido", () => {
+    const row = scheduleForDate(DEFAULT_SCHEDULE, SUNDAY).find(r => r.group !== null && r.employee.group === "C")!;
+    const before = sundayRestCheck(DEFAULT_SCHEDULE, row.employee, SUNDAY).before!;
+    const other = [0, 1, 2, 3, 4].map(i => dateOffset("2026-10-19", i)).find(d => d !== before)!;
+    const changes = [
+      { employeeId: row.employee.id, date: before, group: row.employee.group },
+      { employeeId: row.employee.id, date: other, group: null },
+    ];
+    const result = validateChanges(DEFAULT_SCHEDULE, changes, { [before]: { A: 0, B: 0, C: 0 }, [other]: { A: 0, B: 0, C: 0 } });
+    expect(result.errors.filter(e => e.includes("folga"))).toEqual([]);
   });
 });

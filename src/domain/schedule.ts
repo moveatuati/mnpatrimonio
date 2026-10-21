@@ -238,6 +238,89 @@ export function adjacentRestProblems(store: ScheduleStore, employee: Employee, d
   }
   return errors;
 }
+/* ------------------------------------------------------------------
+ * Regra confirmada pelo gerente (21/10/2026):
+ * quem TRABALHA no domingo tem, obrigatoriamente, DUAS folgas:
+ *   - uma ANTES (segunda a sábado da mesma semana) e
+ *   - uma DEPOIS (segunda a sábado da semana seguinte).
+ * Quem NÃO trabalha no domingo folga o próprio domingo.
+ * ------------------------------------------------------------------ */
+const brDate = (d: ISODate) => d.slice(8, 10) + "/" + d.slice(5, 7);
+export interface SundayRestCheck {
+  sunday: ISODate;
+  worked: boolean;
+  before: ISODate | null;
+  after: ISODate | null;
+  ok: boolean;
+  problems: string[];
+}
+function firstRestBetween(store: ScheduleStore, employee: Employee, from: ISODate, days: number): ISODate | null {
+  for (let i = 0; i < days; i++) {
+    const d = dateOffset(from, i);
+    if (assignmentFor(store, employee, d) === null) return d;
+  }
+  return null;
+}
+export function sundayRestCheck(store: ScheduleStore, employee: Employee, sunday: ISODate): SundayRestCheck {
+  const worked = employee.status === "ativo" && assignmentFor(store, employee, sunday) !== null;
+  if (!worked) return { sunday, worked, before: null, after: null, ok: true, problems: [] };
+  const monday = startOfWeek(sunday);
+  const before = firstRestBetween(store, employee, monday, 6);
+  const after = firstRestBetween(store, employee, dateOffset(sunday, 1), 6);
+  const problems: string[] = [];
+  if (!before) problems.push(employee.name + " trabalha no domingo " + brDate(sunday) + " sem a folga ANTES (de " +
+    brDate(monday) + " a " + brDate(dateOffset(monday, 5)) + ").");
+  if (!after) problems.push(employee.name + " trabalha no domingo " + brDate(sunday) + " sem a folga DEPOIS (de " +
+    brDate(dateOffset(sunday, 1)) + " a " + brDate(dateOffset(sunday, 6)) + ").");
+  return { sunday, worked, before, after, ok: problems.length === 0, problems };
+}
+export interface RestAuditRow {
+  employee: Employee;
+  sundaysWorked: number;
+  sundaysOff: number;
+  restsBefore: number;
+  restsAfter: number;
+  consecutiveSundays: boolean;
+  problems: string[];
+  checks: SundayRestCheck[];
+}
+/** Conferência de folgas de TODO o pessoal em uma janela de semanas (padrão: 4). */
+export function restAudit(store: ScheduleStore, start: ISODate, weeks = 4) {
+  const sundays = Array.from({ length: weeks }, (_, i) => dateOffset(sundayOf(start), i * 7));
+  const rows: RestAuditRow[] = DEMO_EMPLOYEES.filter(e => e.status === "ativo").map(employee => {
+    const checks = sundays.map(s => sundayRestCheck(store, employee, s));
+    const consecutiveSundays = checks.some((c, i) => c.worked && Boolean(checks[i + 1]?.worked));
+    const problems = checks.flatMap(c => c.problems);
+    if (consecutiveSundays) problems.push(employee.name + " trabalha dois domingos seguidos (regra: domingo sim, domingo não).");
+    return {
+      employee, checks, consecutiveSundays, problems,
+      sundaysWorked: checks.filter(c => c.worked).length,
+      sundaysOff: checks.filter(c => !c.worked).length,
+      restsBefore: checks.filter(c => c.before).length,
+      restsAfter: checks.filter(c => c.after).length,
+    };
+  });
+  return {
+    sundays, rows,
+    ok: rows.filter(r => r.problems.length === 0).length,
+    pending: rows.filter(r => r.problems.length > 0).length,
+    workersPerSunday: sundays.map(s => rows.filter(r => r.checks.find(c => c.sunday === s)?.worked).length),
+  };
+}
+function sundayRuleProblems(store: ScheduleStore, employee: Employee, date: ISODate): string[] {
+  const sundays = dayOfWeek(date) === 0 ? [date] : [sundayOf(date), dateOffset(sundayOf(date), -7)];
+  const problems = sundays.flatMap(s => sundayRestCheck(store, employee, s).problems);
+  for (const s of sundays) {
+    if (assignmentFor(store, employee, s) === null) continue;
+    for (const other of [dateOffset(s, -7), dateOffset(s, 7)]) {
+      if (assignmentFor(store, employee, other) !== null) {
+        const [a, b] = [s, other].sort();
+        problems.push(employee.name + " ficaria com dois domingos seguidos (" + brDate(a!) + " e " + brDate(b!) + "). Regra: domingo sim, domingo não.");
+      }
+    }
+  }
+  return [...new Set(problems)];
+}
 export type Validation = { ok: boolean; errors: string[]; coverageBefore: ReturnType<typeof coverageFor>; coverageAfter: ReturnType<typeof coverageFor> };
 export type DailyCoverageTargets = Record<ISODate, Record<GroupId, number>>;
 export function isScheduleDate(date: string): boolean {
@@ -288,6 +371,9 @@ export function validateChanges(store: ScheduleStore, changes: AssignmentChange[
       const existing = adjacentRestProblems(store,employee,change.date);
       errors.push(...adjacentRestProblems(next, employee, change.date).filter(error =>
         !error.includes("sete dias") || !existing.includes(error)));
+      // Domingo trabalhado exige uma folga antes e uma depois (só bloqueia problema novo).
+      const sundayBefore = sundayRuleProblems(store, employee, change.date);
+      errors.push(...sundayRuleProblems(next, employee, change.date).filter(p => !sundayBefore.includes(p)));
     }
   }
   return { ok: errors.length === 0, errors: [...new Set(errors)], coverageBefore: before, coverageAfter: after };

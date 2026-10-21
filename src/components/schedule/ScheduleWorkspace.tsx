@@ -7,6 +7,7 @@ import {
 import { GROUPS, GROUP_IDS, RULES, SPECIAL_SLOT_LABEL, UNIT } from "@/domain/config";
 import { movementPeriod } from "@/domain/movement";
 import { PaperSheets } from "@/components/sheets/PaperSheets";
+import { RestAuditPanel } from "./RestAuditPanel";
 import { loadAbsences } from "@/lib/demo-storage";
 import { DEMO_EMPLOYEES } from "@/domain/demo-data";
 import { isValidReferenceDate } from "@/domain/operation-query";
@@ -64,7 +65,7 @@ export function ScheduleWorkspace() {
   const [date, setDate] = useState(REFERENCE_DATE);
   const [group, setGroup] = useState<"all" | GroupId>("all");
   const [search, setSearch] = useState("");
-  const [tab, setTab] = useState<"roster" | "sheets" | "swap" | "rules" | "history">("roster");
+  const [tab, setTab] = useState<"roster" | "audit" | "sheets" | "swap" | "rules" | "history">("roster");
   const [editEmployee, setEditEmployee] = useState("");
   const [editDest, setEditDest] = useState<"off" | GroupId>("off");
   const [editReason, setEditReason] = useState("");
@@ -298,6 +299,7 @@ export function ScheduleWorkspace() {
     <nav className="fs-tabs" aria-label="Áreas de escalas e trocas">
       {([
         ["roster", "Escala semanal", CalendarDays],
+        ["audit", "Conferência de folgas", Check],
         ["sheets", "Folhas para imprimir", Printer],
         ["swap", "Trocas & autorização", ArrowLeftRight],
         ["rules", "Parâmetros e feriados", Settings2],
@@ -412,6 +414,8 @@ export function ScheduleWorkspace() {
         </div>
       </section>
     </>}
+
+    {tab === "audit" && <RestAuditPanel store={store} date={date} />}
 
     {tab === "sheets" && <section className="fs-panel" style={{padding:16}}>
       <PaperSheets store={store} absences={absences} initialDate={date} />
