@@ -1,4 +1,4 @@
-/** Modelo de dados tipado — Formosa • Gestão de Pessoas (modo demonstração). */
+/** Modelo de dados tipado — MN Patrimônios • Gestão de Pessoas (modo demonstração). */
 
 export type GroupId = "A" | "B" | "C";
 

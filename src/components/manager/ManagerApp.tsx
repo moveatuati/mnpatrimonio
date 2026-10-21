@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { BRAND } from "@/lib/brand";
 import { Bell, CalendarDays, Clock3, Monitor, Printer, Smartphone, Users, Wallet } from "lucide-react";
 import { GROUPS, UNIT } from "@/domain/config";
 import { DEMO_EMPLOYEES } from "@/domain/demo-data";

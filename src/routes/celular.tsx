@@ -14,8 +14,8 @@ export const Route = createFileRoute("/celular")({
     ],
     links: [
       { rel: "manifest", href: "/gerente.webmanifest" },
-      { rel: "apple-touch-icon", href: "/formosa-apple-touch.png" },
-      { rel: "icon", type: "image/png", sizes: "192x192", href: "/formosa-app-192.png" },
+      { rel: "apple-touch-icon", href: "/mn-apple-touch.png" },
+      { rel: "icon", type: "image/png", sizes: "192x192", href: "/mn-app-192.png" },
     ],
   }),
   component: MobileManagerApp,

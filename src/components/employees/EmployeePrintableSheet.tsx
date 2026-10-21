@@ -1,4 +1,5 @@
 import { Printer, ArrowLeft } from "lucide-react";
+import { BRAND } from "@/lib/brand";
 import { GROUPS, RULES, UNIT } from "@/domain/config";
 import { DEMO_EMPLOYEES } from "@/domain/demo-data";
 import { buildEmployeeDemoReport } from "@/domain/employee-report";

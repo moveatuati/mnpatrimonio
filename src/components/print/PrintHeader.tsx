@@ -1,7 +1,8 @@
 import { UNIT } from "@/domain/config";
+import { BRAND } from "@/lib/brand";
 import "./PrintHeader.css";
 
-/** Cabeçalho padrão de toda impressão: logo Formosa, título e dados da unidade. */
+/** Cabeçalho padrão de toda impressão: logo MN Patrimônios, título e dados da unidade. */
 export function PrintHeader({ title, subtitle, right }: { title: string; subtitle?: string; right?: string }) {
   return <header className="ph">
     <img src={BRAND.logoUrl} alt={BRAND.name} className="ph-logo" />

@@ -1,4 +1,5 @@
 import { Link } from "@tanstack/react-router";
+import { BRAND } from "@/lib/brand";
 import { Fragment, useRef, useState, type ReactNode } from "react";
 import { MapPin, Menu, ShieldCheck, X } from "lucide-react";
 import { NAV } from "./nav";

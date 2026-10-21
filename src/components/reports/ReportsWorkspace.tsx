@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { BRAND } from "@/lib/brand";
 import {
   AlertTriangle, BarChart3, CalendarDays, ClipboardList, Clock3, Download, FileText,
   Fingerprint, Info, LayoutDashboard, Printer, ShieldCheck, Users,
