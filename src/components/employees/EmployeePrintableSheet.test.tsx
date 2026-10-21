@@ -1,6 +1,7 @@
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { EmployeePrintableSheet } from "./EmployeePrintableSheet";
+import { BRAND } from "@/lib/brand";
 import { DEMO_EMPLOYEES } from "@/domain/demo-data";
 
 afterEach(() => { cleanup(); vi.restoreAllMocks(); });
@@ -8,7 +9,7 @@ describe("Ficha A4 para impressão", () => {
   it("mostra logo, unidade, colaborador e todos os dias do mês até a referência", () => {
     const employee = DEMO_EMPLOYEES.find(item => item.id === "FM-047")!;
     render(<EmployeePrintableSheet employeeId={employee.id} date="2026-10-20" />);
-    expect(screen.getByRole("img", { name: "Formosa" })).toHaveAttribute("src", "/formosa-logo.svg");
+    expect(screen.getByRole("img", { name: BRAND.name })).toHaveAttribute("src", BRAND.logoUrl);
     expect(screen.getByText("Unidade Augusto Montenegro · Belém/PA")).toBeInTheDocument();
     expect(screen.getByRole("article", { name: `Ficha A4 de ${employee.name}` })).toBeInTheDocument();
     const rows = screen.getAllByRole("row");

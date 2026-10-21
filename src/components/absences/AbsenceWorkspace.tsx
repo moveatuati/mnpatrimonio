@@ -169,7 +169,7 @@ export function AbsenceWorkspace(){
   }
   return <div className="fa-app formosa-operation">
     <header className="fa-head">
-      <div><p className="op-eyebrow">FORMOSA · GESTÃO DE PESSOAS · {UNIT.unit.toUpperCase()}</p>
+      <div><p className="op-eyebrow">MN PATRIMÔNIOS · GESTÃO DE PESSOAS · {UNIT.unit.toUpperCase()}</p>
         <h1>Férias <span>&</span> afastamentos</h1>
         <p>Solicitações, ausências aprovadas, cobertura por grupo e previsão de retorno em um só lugar.</p></div>
       <label className="fa-ref"><CalendarDays size={16}/><span>Data de referência</span>

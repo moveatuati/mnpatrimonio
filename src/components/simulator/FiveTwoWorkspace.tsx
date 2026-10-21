@@ -75,10 +75,10 @@ const STEPS=[
  {n:"06",name:"Aprovar e só depois operacionalizar",desc:"Formalizar com gestão, DP, jurídico e sindicato; configurar jornadas reais e integrar ao ponto oficial apenas após validação das condições."},
 ];
 const INSIGHTS:[string,string][]=[
- ["O que muda para o trabalhador?","Na simulação da Formosa, cada pessoa trabalha 5 dias e descansa 2 por semana. Todo sábado é escalado, enquanto o domingo alterna rigorosamente entre trabalho e folga. Férias e ausências aprovadas continuam reduzindo a presença efetiva."],
+ ["O que muda para o trabalhador?","Na simulação da MN Patrimônios, cada pessoa trabalha 5 dias e descansa 2 por semana. Todo sábado é escalado, enquanto o domingo alterna rigorosamente entre trabalho e folga. Férias e ausências aprovadas continuam reduzindo a presença efetiva."],
  ["83 é o quadro definitivo?","Não. É a projeção gerencial de 63 atuais mais 20 hipotéticos (+31,7%). O número final só será comprovado após comparação da presença nos horários do 6×1 e do 5×2."],
  ["Por que não há postos-dia descobertos por grupo?","A, B e C são turnos de um só setor de caixas. O cálculo antigo tratava cada turno como demanda independente, ignorando a sobreposição e a cobertura cruzada."],
- ["Como ficam as folgas e os feriados?","Para a Formosa, as folgas são obrigatoriamente separadas. Quem trabalha domingo folga duas vezes de segunda a sexta; quem folga domingo recebe mais uma folga útil. Feriado pode ser trabalhado ou coincidir com a folga, mas não gera descanso adicional automático. Evitamos folgar terça quando a segunda-feira feriada foi folga."],
+ ["Como ficam as folgas e os feriados?","Para a MN Patrimônios, as folgas são obrigatoriamente separadas. Quem trabalha domingo folga duas vezes de segunda a sexta; quem folga domingo recebe mais uma folga útil. Feriado pode ser trabalhado ou coincidir com a folga, mas não gera descanso adicional automático. Evitamos folgar terça quando a segunda-feira feriada foi folga."],
  ["Como fica a fase de 42 horas?","No período de transição, 5 × 8h24 ultrapassa 8 horas diárias e exige autorização por acordo ou convenção coletiva. A tela marca essa hipótese como CONDICIONAL; não publica jornada."],
  ["E os colaboradores que saem às 22h?","O simulador propõe turnos A/B/C ajustados para preservar fechamento, em vez de estender automaticamente o grupo C além das 22h. Qualquer nova entrada deve respeitar 11 horas de descanso."],
 ];
@@ -149,7 +149,7 @@ export function FiveTwoWorkspace(){
   const costValid=monthlyCost.trim()!=="" && Number.isFinite(estimatedCost) && estimatedCost>0;
   return <div className="ft-app formosa-operation">
     <header className="ft-top no-print"><div>
-      <p className="op-eyebrow">FORMOSA · GESTÃO DE PESSOAS · {UNIT.unit.toUpperCase()}</p>
+      <p className="op-eyebrow">MN PATRIMÔNIOS · GESTÃO DE PESSOAS · {UNIT.unit.toUpperCase()}</p>
       <h1>Simulador <span>5×2</span></h1>
       <p>Planejamento para preservar a cobertura dos operadores de caixa na transição 6×1 → 5×2.</p></div>
       <div className="ft-top-actions">
@@ -199,7 +199,7 @@ export function FiveTwoWorkspace(){
             <option value={40}>Definitiva · até 40h</option>
           </select></label>
         <div className="ft-fixed-rules"><ShieldCheck size={17}/>
-          <span><b>Regras obrigatórias da Formosa</b>
+          <span><b>Regras obrigatórias da MN Patrimônios</b>
             <small>Sábado com a equipe completa garantida · Domingo sim, domingo não · Duas folgas separadas por semana</small></span>
           <HelpBubble label="Revezamento 5×2" description="Na semana em que trabalha domingo: duas folgas úteis intercaladas. Quando folga domingo: uma folga útil adicional. O sábado só vira folga quando a equipe completa do sábado já está garantida. Não são permitidos seis dias seguidos de trabalho nem folgas em dias consecutivos."/>
         </div>

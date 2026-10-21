@@ -272,7 +272,7 @@ export function ScheduleWorkspace() {
   return <div className="fs-app formosa-operation">
     <header className="fs-page-head">
       <div>
-        <p className="op-eyebrow">Formosa · Gestão de Pessoas · {UNIT.unit}</p>
+        <p className="op-eyebrow">MN Patrimônios · Gestão de Pessoas · {UNIT.unit}</p>
         <h1>Escala <span>&</span> trocas</h1>
         <p>Domingo sim, domingo não. Quem trabalha no domingo folga um dia antes (folga antecipada) e um dia na semana seguinte (folga do 7º dia).</p>
       </div>

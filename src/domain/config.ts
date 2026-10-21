@@ -1,13 +1,13 @@
 import type { OperationalGroup, GroupId } from "./types";
 
 export const UNIT = {
-  company: "Formosa",
+  company: "MN Patrimônios",
   /** Razão social e CNPJ como constam na escala de domingo da unidade. */
-  legalName: "Formosa Supermercados e Magazine Ltda.",
+  legalName: "MN Patrimônios Assessoria, Consultoria e Serviços Imobiliários",
   cnpj: "63.864.771/0007-32",
   unit: "Augusto Montenegro",
   city: "Belém/PA",
-  system: "Formosa • Gestão de Pessoas",
+  system: "MN Patrimônios • Gestão de Pessoas",
 };
 
 /** Horários-base (configuráveis). Jornada de 7h20 em todos os grupos. */

@@ -5,17 +5,17 @@ import { MobileManagerApp } from "@/components/manager/ManagerApp";
 export const Route = createFileRoute("/celular")({
   head: () => ({
     meta: [
-      { title: "Formosa · App do gerente" },
-      { name: "description", content: "Demonstração do aplicativo do gerente da Formosa no celular." },
+      { title: "MN Patrimônios · App do gerente" },
+      { name: "description", content: "Demonstração do aplicativo do gerente da MN Patrimônios no celular." },
       { name: "theme-color", content: "#7a2440" },
       { name: "apple-mobile-web-app-capable", content: "yes" },
       { name: "mobile-web-app-capable", content: "yes" },
-      { name: "apple-mobile-web-app-title", content: "Formosa Gerente" },
+      { name: "apple-mobile-web-app-title", content: "MN Patrimônios" },
     ],
     links: [
       { rel: "manifest", href: "/gerente.webmanifest" },
-      { rel: "apple-touch-icon", href: "/formosa-apple-touch.png" },
-      { rel: "icon", type: "image/png", sizes: "192x192", href: "/formosa-app-192.png" },
+      { rel: "apple-touch-icon", href: "/mn-apple-touch.png" },
+      { rel: "icon", type: "image/png", sizes: "192x192", href: "/mn-app-192.png" },
     ],
   }),
   component: MobileManagerApp,

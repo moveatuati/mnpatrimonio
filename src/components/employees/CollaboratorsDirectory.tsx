@@ -88,7 +88,7 @@ export function CollaboratorsDirectory() {
   return <div className="formosa-operation formosa-employee-directory max-w-[1680px]">
     <header className="flex flex-wrap items-end justify-between gap-5">
       <div>
-        <p className="op-eyebrow">Formosa <span>·</span> Gestão de Pessoas <span>·</span> {UNIT.unit}</p>
+        <p className="op-eyebrow">MN Patrimônios <span>·</span> Gestão de Pessoas <span>·</span> {UNIT.unit}</p>
         <h1 className="mt-2 font-display text-3xl font-semibold tracking-tight md:text-4xl" aria-label="Colaboradores.">
           Colaboradores<span className="text-primary" aria-hidden="true">.</span>
         </h1>
@@ -162,7 +162,7 @@ export function CollaboratorsDirectory() {
       <div ref={tableScroll} className="rh-directory-scroll" role="region" tabIndex={0}
         aria-label="Tabela de colaboradores com rolagem vertical; em telas pequenas também horizontal">
         <table className="rh-directory-table w-full min-w-[870px] text-left text-xs">
-          <caption className="sr-only">Colaboradores fictícios da Formosa em {showDate(date)}</caption>
+          <caption className="sr-only">Colaboradores fictícios da MN Patrimônios em {showDate(date)}</caption>
           <thead className="bg-muted/60 text-[11px] uppercase tracking-wide text-muted-foreground">
             <tr>{["Colaborador", "Grupo", "Jornada-base", "Hoje", "Entrada simulada", "Banco de horas", "Atrasos/mês*"].map(label =>
               <th scope="col" className="px-4 py-3 font-semibold" key={label}>{label}</th>)}

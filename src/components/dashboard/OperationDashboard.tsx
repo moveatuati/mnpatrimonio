@@ -612,7 +612,7 @@ export function OperationDashboard() {
       </section>
       <footer className="op-footer">
         <span>
-          <strong>Formosa</strong> · Gestão de Pessoas · {UNIT.unit}
+          <strong>MN Patrimônios</strong> · Gestão de Pessoas · {UNIT.unit}
         </span>
         <span>Demonstração · Alerta operacional não equivale a tolerância legal ou desconto.</span>
       </footer>

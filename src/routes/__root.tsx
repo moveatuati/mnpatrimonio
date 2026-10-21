@@ -81,10 +81,10 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Rh Formosa — Augusto Montenegro" },
-      { name: "description", content: "Formosa • Gestão de Pessoas — unidade Augusto Montenegro." },
-      { property: "og:title", content: "Rh Formosa — Augusto Montenegro" },
-      { property: "og:description", content: "Formosa • Gestão de Pessoas — unidade Augusto Montenegro." },
+      { title: "MN Patrimônios — Gestão de Pessoas" },
+      { name: "description", content: "MN Patrimônios • Gestão de Pessoas — unidade Augusto Montenegro." },
+      { property: "og:title", content: "MN Patrimônios — Gestão de Pessoas" },
+      { property: "og:description", content: "MN Patrimônios • Gestão de Pessoas — unidade Augusto Montenegro." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
     ],
@@ -93,7 +93,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         rel: "stylesheet",
         href: appCss,
       },
-      { rel: "icon", href: "/formosa-mark.svg", type: "image/svg+xml" },
+      { rel: "icon", type: "image/png", href: "/favicon.png" },
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
       {

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { BRAND } from "@/lib/brand";
 import { Bell, CalendarDays, Clock3, Monitor, Printer, Smartphone, Users, Wallet } from "lucide-react";
 import { GROUPS, UNIT } from "@/domain/config";
 import { DEMO_EMPLOYEES } from "@/domain/demo-data";
@@ -61,7 +62,7 @@ function PhoneScreen({ d, tab, setTab, onSettings }: {
 }) {
   return <>
     <div className="ma-brand">
-      <img src="/formosa-logo-oficial.png" alt="Formosa" className="ma-brand-logo" />
+      <img src={BRAND.logoUrl} alt={BRAND.name} className="ma-brand-logo" />
       <div className="ma-brand-text"><b>App do Gerente</b><span>{UNIT.unit}</span></div>
       {onSettings && <button type="button" className="ma-gear" aria-label="Controles da demonstração" onClick={onSettings}>⚙️</button>}
     </div>
@@ -129,7 +130,7 @@ export function ManagerApp() {
   return <div className="ma formosa-operation">
     <header className="ma-top">
       <div>
-        <p className="op-eyebrow">FORMOSA · GESTÃO DE PESSOAS · {UNIT.unit.toUpperCase()}</p>
+        <p className="op-eyebrow">MN PATRIMÔNIOS · GESTÃO DE PESSOAS · {UNIT.unit.toUpperCase()}</p>
         <h1>App do gerente <span>(prévia)</span></h1>
         <p>Simulação do aplicativo de celular dos gerentes e do painel do RH. Batidas de ponto fictícias.</p>
       </div>
