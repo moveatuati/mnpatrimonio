@@ -5,7 +5,7 @@ import {
 } from "./candidates";
 
 function complete(c: Candidate): Candidate {
-  return { ...c, name: "Teste", interview: { ...c.interview, interviewer: "RH",
+  return { ...c, name: "Teste", phone: "(91) 9 8100-0009", interview: { ...c.interview, interviewer: "RH",
     answers: Object.fromEntries(INTERVIEW_QUESTIONS.map(q => [q.id, "ok"])),
     scores: Object.fromEntries(CRITERIA.map(k => [k.id, 4])), opinion: "Bom perfil" } };
 }

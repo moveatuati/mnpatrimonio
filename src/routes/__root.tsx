@@ -138,7 +138,7 @@ function RootComponent() {
   },[]);
   // Modo celular do app do gerente abre em tela cheia, sem o menu do sistema.
   const pathname = useRouterState({ select: (state) => state.location.pathname });
-  if (pathname.startsWith("/celular")) {
+  if (pathname.startsWith("/celular") || pathname.startsWith("/entrevista")) {
     return (
       <QueryClientProvider client={queryClient}>
         <Outlet key={rulesRevision} />

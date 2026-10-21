@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   AlertTriangle, Archive, Camera, Check, CheckCircle2, ChevronLeft, ChevronRight, ClipboardCheck, FileSignature,
-  Info, Lock, MessageSquareText, Plus, Printer, RotateCcw, Search, Send, Star, Trash2, UserCheck, UserPlus, UserX, Users, X,
+  Copy, Info, Link2, Lock, MessageCircle, MessageSquareText, Plus, Printer, RotateCcw, Search, Send, Star, Trash2, UserCheck, UserPlus, UserX, Users, X,
 } from "lucide-react";
 import {
   CANDIDATE_KEY, CRITERIA, EXPERIENCE_SLOTS, FORM_SECTIONS, INTERVIEW_QUESTIONS, REFERENCE_GROUPS, STAGE_LABELS,
@@ -10,6 +10,10 @@ import {
   type Application, type Candidate, type CandidateStore, type Field, type Stage,
 } from "@/domain/candidates";
 import { UNIT } from "@/domain/config";
+import {
+  INTERVIEWER_KEY, importReply, inviteMessage, inviteMissing, inviteUrl, makeInvite, readReply, whatsappUrl,
+  type InterviewerProfile, type Reply,
+} from "@/domain/candidate-link";
 import { todayISO } from "@/lib/demo-storage";
 import { printNode } from "@/lib/print";
 import { PrintHeader } from "@/components/print/PrintHeader";
@@ -43,12 +47,24 @@ export function CandidatesWorkspace() {
   const [filter, setFilter] = useState<"all" | Stage>("all");
   const [notice, setNotice] = useState<Notice>(null);
   const [storageWarn, setStorageWarn] = useState("");
+  const [me, setMeState] = useState<InterviewerProfile>({ name: "", phone: "" });
+  const [incoming, setIncoming] = useState<Reply | null>(null);
+  const setMe = (p: InterviewerProfile) => {
+    setMeState(p);
+    try { window.localStorage.setItem(INTERVIEWER_KEY, JSON.stringify(p)); } catch { /* fica só nesta sessão */ }
+  };
 
   useEffect(() => {
     try {
       const raw = window.localStorage.getItem(CANDIDATE_KEY);
       if (raw) setStore(restoreCandidates(JSON.parse(raw)));
     } catch { /* usa a demonstração */ }
+    try {
+      const p = JSON.parse(window.localStorage.getItem(INTERVIEWER_KEY) ?? "null") as InterviewerProfile | null;
+      if (p && typeof p.name === "string") setMeState({ name: p.name, phone: String(p.phone ?? "") });
+    } catch { /* sem perfil salvo */ }
+    const rep = readReply(new URLSearchParams(window.location.search).get("r"));
+    if (rep) { setIncoming(rep); setTab("entrevista"); }
     setReady(true);
   }, []);
   useEffect(() => {
@@ -71,9 +87,11 @@ export function CandidatesWorkspace() {
   const patch = (c: Candidate) => setStore(s => updateCandidate(s, c));
 
   function addCandidate() {
-    const { store: next, id } = newCandidate(store, todayISO());
+    const created = newCandidate(store, todayISO());
+    const id = created.id;
+    const next = { ...created.store, candidates: created.store.candidates.map(c => c.id === id ? { ...c, interview: { ...c.interview, interviewer: me.name } } : c) };
     setStore(next); setSelected(id); setTab("entrevista"); setFilter("all"); setSearch("");
-    setNotice({ kind: "info", text: "Novo candidato criado. Preencha o cabeçalho e faça a entrevista." });
+    setNotice({ kind: "info", text: "Novo candidato criado. Informe nome e WhatsApp e envie o link da entrevista." });
   }
   function removeCurrent(c: Candidate) {
     if (!window.confirm(`Excluir ${c.name || "este candidato"}? Esta ação não pode ser desfeita.`)) return;
@@ -85,6 +103,16 @@ export function CandidatesWorkspace() {
     const msg = stage === "aprovado" ? "Aprovado! A ficha de emprego foi liberada na aba “Ficha de emprego”."
       : stage === "banco" ? "Candidato guardado no banco de talentos." : "Parecer registrado: não aprovado.";
     if (apply(decide(c, stage, nowISO()), msg) && stage === "aprovado") setFormId(c.id);
+  }
+
+  function acceptIncoming() {
+    if (!incoming) return;
+    const r = importReply(store, incoming, todayISO());
+    setIncoming(null);
+    try { window.history.replaceState(null, "", window.location.pathname); } catch { /* ok */ }
+    if (typeof r === "string") { setNotice({ kind: "erro", text: r }); return; }
+    setStore(r.store); setSelected(r.id); setFilter("all"); setSearch(""); setTab("entrevista");
+    setNotice({ kind: "ok", text: `Respostas de ${incoming.name} recebidas. Agora faça a avaliação com as estrelas e dê o parecer.` });
   }
 
   const list = store.candidates.filter(c => {
@@ -108,6 +136,13 @@ export function CandidatesWorkspace() {
     {notice && <div className={`cd-notice cd-n-${notice.kind}`} role="status">
       {notice.kind === "ok" ? <CheckCircle2 size={15} /> : notice.kind === "erro" ? <AlertTriangle size={15} /> : <Info size={15} />}
       <span>{notice.text}</span><button aria-label="Fechar aviso" onClick={() => setNotice(null)}><X size={14} /></button>
+    </div>}
+
+    {incoming && <div className="cd-incoming" role="alert">
+      <MessageCircle size={18} />
+      <div><b>Entrevista respondida por {incoming.name}</b><span>{incoming.role} · {Object.keys(incoming.answers).length} de {INTERVIEW_QUESTIONS.length} respostas · enviado em {br(incoming.sentAt)}</span></div>
+      <button className="cd-btn" onClick={() => { setIncoming(null); try { window.history.replaceState(null, "", window.location.pathname); } catch { /* ok */ } }}>Ignorar</button>
+      <button className="cd-btn cd-btn-success" onClick={acceptIncoming}><Check size={15} /> Receber respostas</button>
     </div>}
 
     <section className="cd-stats" aria-label="Resumo">
@@ -141,7 +176,7 @@ export function CandidatesWorkspace() {
           {!list.length && <li className="cd-empty"><Users size={18} /> Nenhum candidato encontrado.</li>}
         </ul>
       </aside>
-      {current ? <InterviewForm key={current.id} c={current} onChange={patch} onDecide={s => decideCurrent(current, s)}
+      {current ? <InterviewForm key={current.id} c={current} me={me} setMe={setMe} onChange={patch} onDecide={s => decideCurrent(current, s)}
         onReopen={() => apply(reopen(current), "Entrevista reaberta para edição.")} onRemove={() => removeCurrent(current)}
         onGoForm={() => { setFormId(current.id); setTab("ficha"); }} />
         : <div className="cd-panel cd-blank"><UserPlus size={26} /><p>Selecione um candidato ou clique em <b>Novo candidato</b>.</p></div>}
@@ -167,8 +202,8 @@ export function CandidatesWorkspace() {
 
 /* ─────────────────────────── Entrevista ─────────────────────────── */
 
-function InterviewForm({ c, onChange, onDecide, onReopen, onRemove, onGoForm }: {
-  c: Candidate; onChange: (c: Candidate) => void; onDecide: (s: Exclude<Stage, "entrevista">) => void;
+function InterviewForm({ c, me, setMe, onChange, onDecide, onReopen, onRemove, onGoForm }: {
+  c: Candidate; me: InterviewerProfile; setMe: (p: InterviewerProfile) => void; onChange: (c: Candidate) => void; onDecide: (s: Exclude<Stage, "entrevista">) => void;
   onReopen: () => void; onRemove: () => void; onGoForm: () => void;
 }) {
   const locked = c.stage !== "entrevista";
@@ -191,12 +226,15 @@ function InterviewForm({ c, onChange, onDecide, onReopen, onRemove, onGoForm }: 
       <div className="cd-grid">
         <label className="cd-f cd-wide"><span>Nome *</span><input value={c.name} onChange={e => onChange({ ...c, name: e.target.value })} /></label>
         <label className="cd-f"><span>Candidato ao cargo de *</span><input value={c.role} onChange={e => onChange({ ...c, role: e.target.value })} /></label>
-        <label className="cd-f"><span>Telefone / WhatsApp</span><input inputMode="tel" value={c.phone} onChange={e => onChange({ ...c, phone: formatPhone(e.target.value) })} /></label>
+        <label className="cd-f"><span>WhatsApp do candidato *</span><input inputMode="tel" value={c.phone} onChange={e => onChange({ ...c, phone: formatPhone(e.target.value) })} /></label>
         <label className="cd-f"><span>Data *</span><input type="date" value={c.interview.date} onChange={e => setI({ date: e.target.value })} /></label>
-        <label className="cd-f"><span>Entrevistador *</span><input value={c.interview.interviewer} onChange={e => setI({ interviewer: e.target.value })} /></label>
+        <label className="cd-f"><span>Entrevistador *</span><input value={c.interview.interviewer} placeholder={me.name || "Seu nome"} onChange={e => setI({ interviewer: e.target.value })} /></label>
       </div>
+      {!locked && <InviteBox c={c} me={me} setMe={setMe} onSent={at => onChange({ ...c, interview: { ...c.interview, interviewer: c.interview.interviewer || me.name, linkSentAt: at } })} />}
 
-      <h3 className="cd-h3">Perguntas da entrevista <small>{answeredCount(c)}/{INTERVIEW_QUESTIONS.length}</small></h3>
+      <h3 className="cd-h3">Perguntas da entrevista <small>{answeredCount(c)}/{INTERVIEW_QUESTIONS.length}</small>
+        {c.interview.source === "candidato" && <span className="cd-badge cd-b-aprovado">Respondido pelo candidato em {br(c.interview.receivedAt)}</span>}
+        {c.interview.source !== "candidato" && c.interview.linkSentAt && <span className="cd-badge cd-b-entrevista">Link enviado em {br(c.interview.linkSentAt)} · aguardando respostas</span>}</h3>
       <ol className="cd-questions">
         {INTERVIEW_QUESTIONS.map((q, i) => <li key={q.id} className={c.interview.answers[q.id]?.trim() ? "cd-q-done" : ""}>
           <label><span><b>{i + 1}.</b> {q.label}</span>
@@ -244,6 +282,37 @@ function InterviewForm({ c, onChange, onDecide, onReopen, onRemove, onGoForm }: 
       <div className="cd-p-sign"><span>Assinatura do entrevistador</span></div>
     </div></div>
   </section>;
+}
+
+/* ─────────────────────── Link para o candidato ─────────────────────── */
+
+function InviteBox({ c, me, setMe, onSent }: { c: Candidate; me: InterviewerProfile; setMe: (p: InterviewerProfile) => void; onSent: (at: string) => void }) {
+  const [editMe, setEditMe] = useState(!me.name || me.phone.replace(/\D/g, "").length < 10);
+  const [copied, setCopied] = useState(false);
+  const missing = inviteMissing(c, me);
+  const origin = typeof window === "undefined" ? "" : window.location.origin;
+  const url = missing.length ? "" : inviteUrl(origin, makeInvite(c, me));
+  async function copy() {
+    if (!url) return;
+    try { await navigator.clipboard.writeText(inviteMessage(makeInvite(c, me), url)); setCopied(true); onSent(nowISO()); window.setTimeout(() => setCopied(false), 2500); }
+    catch { window.prompt("Copie o link:", url); }
+  }
+  return <div className="cd-invite">
+    <div className="cd-invite-head"><Link2 size={16} /><div><b>Enviar entrevista para o celular do candidato</b>
+      <span>O candidato responde as 10 perguntas no link e devolve pelo seu WhatsApp. Ao abrir a mensagem, as respostas entram aqui.</span></div></div>
+    {editMe ? <div className="cd-grid cd-me">
+      <label className="cd-f"><span>Seu nome (entrevistador) *</span><input value={me.name} onChange={e => setMe({ ...me, name: e.target.value })} /></label>
+      <label className="cd-f"><span>Seu WhatsApp (recebe as respostas) *</span><input inputMode="tel" value={me.phone} onChange={e => setMe({ ...me, phone: formatPhone(e.target.value) })} /></label>
+      <button type="button" className="cd-btn cd-btn-sm cd-me-ok" disabled={!me.name.trim() || me.phone.replace(/\D/g, "").length < 10} onClick={() => setEditMe(false)}><Check size={14} /> Salvar meus dados</button>
+    </div> : <p className="cd-me-line">Entrevistador: <b>{me.name}</b> · respostas chegam no WhatsApp <b>{me.phone}</b> <button type="button" className="cd-link" onClick={() => setEditMe(true)}>alterar</button></p>}
+    {missing.length ? <p className="cd-warn cd-invite-miss"><AlertTriangle size={14} /> Para gerar o link, informe: {missing.join(", ")}.</p>
+      : <div className="cd-actions">
+        <a className="cd-btn cd-btn-wa" href={whatsappUrl(c.phone, inviteMessage(makeInvite(c, me), url))} target="_blank" rel="noopener noreferrer" onClick={() => onSent(nowISO())}>
+          <MessageCircle size={15} /> Enviar link pelo WhatsApp</a>
+        <button type="button" className="cd-btn" onClick={copy}><Copy size={15} /> {copied ? "Mensagem copiada!" : "Copiar link"}</button>
+        <a className="cd-link" href={url} target="_blank" rel="noopener noreferrer">ver como o candidato vê</a>
+      </div>}
+  </div>;
 }
 
 /* ─────────────────────────── Ficha de emprego ─────────────────────────── */

@@ -45,6 +45,10 @@ export type Interview = {
   answers: Partial<Record<QuestionId, string>>;
   scores: Partial<Record<CriterionId, number>>;
   opinion: string;
+  /** Preenchido quando as respostas vieram do link enviado ao candidato. */
+  source?: "candidato";
+  receivedAt?: string;
+  linkSentAt?: string;
 };
 
 /* ───────────── Ficha de emprego (Solicitação de Emprego) ───────────── */
@@ -187,6 +191,7 @@ export function interviewMissing(c: Candidate): string[] {
   const out: string[] = [];
   if (!c.name.trim()) out.push("Nome do candidato");
   if (!c.role.trim()) out.push("Cargo pretendido");
+  if (c.phone.replace(/\D/g, "").length < 10) out.push("WhatsApp do candidato");
   if (!c.interview.date) out.push("Data da entrevista");
   if (!c.interview.interviewer.trim()) out.push("Entrevistador");
   INTERVIEW_QUESTIONS.forEach((q, i) => { if (!c.interview.answers[q.id]?.trim()) out.push(`Pergunta ${i + 1}`); });
@@ -352,7 +357,10 @@ export function restoreCandidates(raw: unknown): CandidateStore {
       stage: (["entrevista", "aprovado", "banco", "reprovado"] as Stage[]).includes(c.stage) ? c.stage : "entrevista",
       decidedAt: str(c.decidedAt),
       interview: { date: str(c.interview?.date), interviewer: str(c.interview?.interviewer), answers: { ...(c.interview?.answers ?? {}) },
-        scores: { ...(c.interview?.scores ?? {}) }, opinion: str(c.interview?.opinion) },
+        scores: { ...(c.interview?.scores ?? {}) }, opinion: str(c.interview?.opinion),
+        ...(c.interview?.source === "candidato" ? { source: "candidato" as const } : {}),
+        ...(c.interview?.receivedAt ? { receivedAt: str(c.interview.receivedAt) } : {}),
+        ...(c.interview?.linkSentAt ? { linkSentAt: str(c.interview.linkSentAt) } : {}) },
       application: null,
     };
     if (c.application) {

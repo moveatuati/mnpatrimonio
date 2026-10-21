@@ -1,0 +1,38 @@
+/* Página pública da entrevista — celular primeiro, tela clara com a marca MN Patrimônios */
+.ci-page{min-height:100vh;padding:16px 16px 28px;background:linear-gradient(180deg,#e9f0f8 0,#f6f8fb 220px);color:#29313a;font-family:var(--font-sans,system-ui,sans-serif)}
+.ci-top{display:flex;align-items:center;gap:12px;max-width:620px;margin:0 auto 14px}
+.ci-logo{height:46px;width:auto;display:block}
+.ci-top b{display:block;color:#243f5c;font-size:16px;font-weight:800}.ci-top span{color:#5d6b79;font-size:12px}
+.ci-card{max-width:620px;margin:0 auto;padding:22px 18px;border:1px solid #d7dee5;border-top:4px solid #2f527a;border-radius:16px;background:#fff;box-shadow:0 10px 30px -18px rgb(30 50 80 / 35%)}
+.ci-card h1{margin:4px 0 8px;color:#243f5c;font-size:22px;font-weight:800;letter-spacing:-.02em}
+.ci-card>p{margin:0 0 14px;color:#4b5762;font-size:15px;line-height:1.5}
+.ci-center{display:flex;flex-direction:column;align-items:center;text-align:center;gap:8px}
+.ci-center .ci-logo{height:56px;margin-bottom:6px}
+.ci-warn-ic{color:#c2622a}
+.ci-eyebrow{margin:0 0 4px !important;color:#40668d !important;font-size:12px !important;font-weight:800;text-transform:uppercase;letter-spacing:.06em}
+.ci-progress{height:7px;margin:-6px 0 16px;border-radius:9px;background:#e8edf2;overflow:hidden}
+.ci-progress span{display:block;height:100%;background:linear-gradient(90deg,#41688e,#5d93c4);transition:width .3s}
+.ci-f,.ci-q{display:flex;flex-direction:column;gap:6px;margin-bottom:14px}
+.ci-f span{color:#3b4752;font-size:13px;font-weight:700}
+.ci-q>span{color:#243f5c;font-size:18px;font-weight:750;line-height:1.4}
+.ci-f input,.ci-q textarea{width:100%;padding:13px 14px;border:1px solid #c9d3de;border-radius:11px;background:#fff;color:#22303d;font-size:16px;line-height:1.45}
+.ci-q textarea{resize:vertical}
+.ci-f input:focus,.ci-q textarea:focus{outline:3px solid #b8cde4;border-color:#41688e}
+.ci-f em{color:#a2382f;font-size:12px;font-style:normal}
+.ci-q small{align-self:flex-end;color:#86909a;font-size:11px}
+.ci-btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;width:100%;min-height:50px;padding:12px 18px;border:1px solid #cdd6e0;border-radius:12px;background:#fff;color:#2f4b68;font-size:16px;font-weight:800;cursor:pointer;text-decoration:none}
+.ci-btn:disabled{opacity:.45;cursor:not-allowed}
+.ci-btn-primary{border-color:#2a4969;background:linear-gradient(120deg,#436b95,#274665);color:#fff}
+.ci-btn-wa{border-color:#128c4a;background:#1da851;color:#fff}
+.ci-btn-ghost{background:#f4f7fa}
+.ci-nav{display:grid;grid-template-columns:1fr 1.4fr;gap:10px;margin-top:6px}
+.ci-small{color:#7a848e !important;font-size:12.5px !important;margin-top:10px !important}
+.ci-review{display:flex;flex-direction:column;gap:9px;padding:0;margin:0 0 14px;list-style:none}
+.ci-review li{position:relative;padding:11px 12px 11px;border:1px solid #e3e8ee;border-radius:11px;background:#fbfcfe}
+.ci-review b{display:block;padding-right:62px;color:#34404b;font-size:13px;line-height:1.35}
+.ci-review p{margin:5px 0 0;color:#1f2b37;font-size:14px;white-space:pre-wrap;overflow-wrap:anywhere}
+.ci-review em{color:#a2382f}
+.ci-edit{position:absolute;top:9px;right:9px;display:flex;align-items:center;gap:4px;padding:4px 8px;border:1px solid #d3dbe4;border-radius:8px;background:#fff;color:#2f527a;font-size:12px;font-weight:700}
+.ci-alert{display:flex;gap:8px;align-items:flex-start;padding:10px 12px;border:1px solid #f0d6ad;border-radius:10px;background:#fff8ee;color:#7d4a14;font-size:13px}
+.ci-done{display:grid;place-items:center;width:62px;height:62px;border-radius:50%;background:#e6f6ee;color:#16805a}
+.ci-foot{max-width:620px;margin:16px auto 0;color:#8a949d;font-size:11px;text-align:center}

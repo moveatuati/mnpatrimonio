@@ -16,6 +16,7 @@ import { Route as CelularRouteImport } from './routes/celular'
 import { Route as ColaboradoresRouteImport } from './routes/colaboradores'
 import { Route as EscalaRouteImport } from './routes/escala'
 import { Route as FeriasRouteImport } from './routes/ferias'
+import { Route as EntrevistaRouteImport } from './routes/entrevista'
 import { Route as CandidatosRouteImport } from './routes/candidatos'
 import { Route as FichaColaboradorRouteImport } from './routes/ficha-colaborador'
 import { Route as PontoRouteImport } from './routes/ponto'
@@ -58,6 +59,11 @@ const CandidatosRoute = CandidatosRouteImport.update({
   path: '/candidatos',
   getParentRoute: () => rootRouteImport,
 } as any)
+const EntrevistaRoute = EntrevistaRouteImport.update({
+  id: '/entrevista',
+  path: '/entrevista',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const FeriasRoute = FeriasRouteImport.update({
   id: '/ferias',
   path: '/ferias',
@@ -97,6 +103,7 @@ export interface FileRoutesByFullPath {
   '/colaboradores': typeof ColaboradoresRoute
   '/escala': typeof EscalaRoute
   '/candidatos': typeof CandidatosRoute
+  '/entrevista': typeof EntrevistaRoute
   '/ferias': typeof FeriasRoute
   '/ficha-colaborador': typeof FichaColaboradorRoute
   '/ponto': typeof PontoRoute
@@ -112,6 +119,7 @@ export interface FileRoutesByTo {
   '/colaboradores': typeof ColaboradoresRoute
   '/escala': typeof EscalaRoute
   '/candidatos': typeof CandidatosRoute
+  '/entrevista': typeof EntrevistaRoute
   '/ferias': typeof FeriasRoute
   '/ficha-colaborador': typeof FichaColaboradorRoute
   '/ponto': typeof PontoRoute
@@ -128,6 +136,7 @@ export interface FileRoutesById {
   '/colaboradores': typeof ColaboradoresRoute
   '/escala': typeof EscalaRoute
   '/candidatos': typeof CandidatosRoute
+  '/entrevista': typeof EntrevistaRoute
   '/ferias': typeof FeriasRoute
   '/ficha-colaborador': typeof FichaColaboradorRoute
   '/ponto': typeof PontoRoute
@@ -145,6 +154,7 @@ export interface FileRouteTypes {
     | '/colaboradores'
     | '/escala'
     | '/candidatos'
+    | '/entrevista'
     | '/ferias'
     | '/ficha-colaborador'
     | '/ponto'
@@ -160,6 +170,7 @@ export interface FileRouteTypes {
     | '/colaboradores'
     | '/escala'
     | '/candidatos'
+    | '/entrevista'
     | '/ferias'
     | '/ficha-colaborador'
     | '/ponto'
@@ -175,6 +186,7 @@ export interface FileRouteTypes {
     | '/colaboradores'
     | '/escala'
     | '/candidatos'
+    | '/entrevista'
     | '/ferias'
     | '/ficha-colaborador'
     | '/ponto'
@@ -191,6 +203,7 @@ export interface RootRouteChildren {
   ColaboradoresRoute: typeof ColaboradoresRoute
   EscalaRoute: typeof EscalaRoute
   CandidatosRoute: typeof CandidatosRoute
+  EntrevistaRoute: typeof EntrevistaRoute
   FeriasRoute: typeof FeriasRoute
   FichaColaboradorRoute: typeof FichaColaboradorRoute
   PontoRoute: typeof PontoRoute
@@ -250,6 +263,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CandidatosRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/entrevista': {
+      id: '/entrevista'
+      path: '/entrevista'
+      fullPath: '/entrevista'
+      preLoaderRoute: typeof EntrevistaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/ferias': {
       id: '/ferias'
       path: '/ferias'
@@ -303,6 +323,7 @@ const rootRouteChildren: RootRouteChildren = {
   ColaboradoresRoute: ColaboradoresRoute,
   EscalaRoute: EscalaRoute,
   CandidatosRoute: CandidatosRoute,
+  EntrevistaRoute: EntrevistaRoute,
   FeriasRoute: FeriasRoute,
   FichaColaboradorRoute: FichaColaboradorRoute,
   PontoRoute: PontoRoute,
