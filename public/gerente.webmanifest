@@ -1,13 +1,1 @@
-{
-  "name": "Formosa · App do Gerente",
-  "short_name": "Formosa Gerente",
-  "start_url": "/celular",
-  "scope": "/",
-  "display": "standalone",
-  "background_color": "#ffffff",
-  "theme_color": "#7a2440",
-  "icons": [
-    { "src": "/formosa-app-192.png", "sizes": "192x192", "type": "image/png" },
-    { "src": "/formosa-app-512.png", "sizes": "512x512", "type": "image/png" }
-  ]
-}
+{"name": "MN Patrimônios · App do Gerente", "short_name": "MN Patrimônios", "start_url": "/celular", "scope": "/", "display": "standalone", "background_color": "#ffffff", "theme_color": "#7a2440", "icons": [{"src": "/mn-app-192.png", "sizes": "192x192", "type": "image/png"}, {"src": "/mn-app-512.png", "sizes": "512x512", "type": "image/png"}]}
