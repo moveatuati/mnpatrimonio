@@ -14,7 +14,8 @@ import {
   INTERVIEWER_KEY, importReply, inviteMessage, inviteMissing, inviteUrl, makeInvite, readReply, whatsappUrl,
   type InterviewerProfile, type Reply,
 } from "@/domain/candidate-link";
-import { todayISO } from "@/lib/demo-storage";
+import { loadClients, todayISO } from "@/lib/demo-storage";
+import { demoClients, type ClientStore } from "@/domain/clients";
 import { printNode } from "@/lib/print";
 import { PrintHeader } from "@/components/print/PrintHeader";
 import "./CandidatesWorkspace.css";
@@ -48,6 +49,15 @@ export function CandidatesWorkspace() {
   const [notice, setNotice] = useState<Notice>(null);
   const [storageWarn, setStorageWarn] = useState("");
   const [me, setMeState] = useState<InterviewerProfile>({ name: "", phone: "" });
+  const [clients, setClients] = useState<ClientStore>(demoClients);
+  const [condoFilter, setCondoFilter] = useState("all");
+  useEffect(() => {
+    setClients(loadClients());
+    const onStorage = () => setClients(loadClients());
+    window.addEventListener("storage", onStorage);
+    return () => window.removeEventListener("storage", onStorage);
+  }, []);
+  const condoName = (id: string) => clients.condos.find(x => x.id === id)?.name ?? "";
   const [incoming, setIncoming] = useState<Reply | null>(null);
   const setMe = (p: InterviewerProfile) => {
     setMeState(p);
@@ -117,6 +127,7 @@ export function CandidatesWorkspace() {
 
   const list = store.candidates.filter(c => {
     if (filter !== "all" && c.stage !== filter) return false;
+    if (condoFilter !== "all" && c.condoId !== condoFilter) return false;
     const q = search.trim().toLocaleLowerCase("pt-BR");
     return !q || `${c.name} ${c.role} ${c.id}`.toLocaleLowerCase("pt-BR").includes(q);
   });
@@ -167,16 +178,20 @@ export function CandidatesWorkspace() {
             <option value="all">Todas as etapas</option>
             {(Object.keys(STAGE_LABELS) as Stage[]).map(s => <option key={s} value={s}>{STAGE_LABELS[s]}</option>)}
           </select>
+          <select aria-label="Filtrar condomínio" value={condoFilter} onChange={e => setCondoFilter(e.target.value)}>
+            <option value="all">Todos os condomínios</option>
+            {clients.condos.map(x => <option key={x.id} value={x.id}>{x.name}</option>)}
+          </select>
         </div>
         <ul>
           {list.map(c => <li key={c.id}><button className={c.id === selected ? "cd-item cd-item-on" : "cd-item"} onClick={() => setSelected(c.id)}>
-            <b>{c.name || "Sem nome"}</b><small>{c.role || "Cargo não informado"} · {br(c.interview.date)}</small>
+            <b>{c.name || "Sem nome"}</b><small>{c.role || "Função não definida"} · {condoName(c.condoId) || "Sem condomínio"} · {br(c.interview.date)}</small>
             <span className="cd-item-foot"><StageBadge c={c} /><em>{answeredCount(c)}/{INTERVIEW_QUESTIONS.length} respostas</em></span>
           </button></li>)}
           {!list.length && <li className="cd-empty"><Users size={18} /> Nenhum candidato encontrado.</li>}
         </ul>
       </aside>
-      {current ? <InterviewForm key={current.id} c={current} me={me} setMe={setMe} onChange={patch} onDecide={s => decideCurrent(current, s)}
+      {current ? <InterviewForm key={current.id} c={current} me={me} setMe={setMe} clients={clients} onChange={patch} onDecide={s => decideCurrent(current, s)}
         onReopen={() => apply(reopen(current), "Entrevista reaberta para edição.")} onRemove={() => removeCurrent(current)}
         onGoForm={() => { setFormId(current.id); setTab("ficha"); }} />
         : <div className="cd-panel cd-blank"><UserPlus size={26} /><p>Selecione um candidato ou clique em <b>Novo candidato</b>.</p></div>}
@@ -202,8 +217,8 @@ export function CandidatesWorkspace() {
 
 /* ─────────────────────────── Entrevista ─────────────────────────── */
 
-function InterviewForm({ c, me, setMe, onChange, onDecide, onReopen, onRemove, onGoForm }: {
-  c: Candidate; me: InterviewerProfile; setMe: (p: InterviewerProfile) => void; onChange: (c: Candidate) => void; onDecide: (s: Exclude<Stage, "entrevista">) => void;
+function InterviewForm({ c, me, setMe, clients, onChange, onDecide, onReopen, onRemove, onGoForm }: {
+  c: Candidate; me: InterviewerProfile; setMe: (p: InterviewerProfile) => void; clients: ClientStore; onChange: (c: Candidate) => void; onDecide: (s: Exclude<Stage, "entrevista">) => void;
   onReopen: () => void; onRemove: () => void; onGoForm: () => void;
 }) {
   const locked = c.stage !== "entrevista";
@@ -225,12 +240,21 @@ function InterviewForm({ c, me, setMe, onChange, onDecide, onReopen, onRemove, o
     <fieldset disabled={locked} className="cd-body">
       <div className="cd-grid">
         <label className="cd-f cd-wide"><span>Nome *</span><input value={c.name} onChange={e => onChange({ ...c, name: e.target.value })} /></label>
-        <label className="cd-f"><span>Candidato ao cargo de *</span><input value={c.role} onChange={e => onChange({ ...c, role: e.target.value })} /></label>
+        <label className="cd-f"><span>Condomínio da vaga *</span><select value={c.condoId} onChange={e => onChange({ ...c, condoId: e.target.value })}>
+          <option value="">Selecione</option>
+          {clients.condos.filter(x => x.active || x.id === c.condoId).map(x => <option key={x.id} value={x.id}>{x.name}</option>)}</select></label>
+        <label className="cd-f"><span>Função / vaga *</span><select value={c.functionId} onChange={e => {
+          const fn = clients.functions.find(x => x.id === e.target.value);
+          onChange({ ...c, functionId: e.target.value, role: fn?.name ?? "" });
+        }}>
+          <option value="">Selecione</option>
+          {clients.functions.filter(x => x.active || x.id === c.functionId).map(x => <option key={x.id} value={x.id}>{x.name}</option>)}
+          {!c.functionId && c.role && <option value="" disabled>Atual: {c.role}</option>}</select></label>
         <label className="cd-f"><span>WhatsApp do candidato *</span><input inputMode="tel" value={c.phone} onChange={e => onChange({ ...c, phone: formatPhone(e.target.value) })} /></label>
         <label className="cd-f"><span>Data *</span><input type="date" value={c.interview.date} onChange={e => setI({ date: e.target.value })} /></label>
         <label className="cd-f"><span>Entrevistador *</span><input value={c.interview.interviewer} placeholder={me.name || "Seu nome"} onChange={e => setI({ interviewer: e.target.value })} /></label>
       </div>
-      {!locked && <InviteBox c={c} me={me} setMe={setMe} onSent={at => onChange({ ...c, interview: { ...c.interview, interviewer: c.interview.interviewer || me.name, linkSentAt: at } })} />}
+      {!locked && <InviteBox c={c} me={me} setMe={setMe} condo={clients.condos.find(x => x.id === c.condoId)?.name ?? ""} onSent={at => onChange({ ...c, interview: { ...c.interview, interviewer: c.interview.interviewer || me.name, linkSentAt: at } })} />}
 
       <h3 className="cd-h3">Perguntas da entrevista <small>{answeredCount(c)}/{INTERVIEW_QUESTIONS.length}</small>
         {c.interview.source === "candidato" && <span className="cd-badge cd-b-aprovado">Respondido pelo candidato em {br(c.interview.receivedAt)}</span>}
@@ -274,7 +298,7 @@ function InterviewForm({ c, me, setMe, onChange, onDecide, onReopen, onRemove, o
     </footer>
 
     <div className="cd-offscreen" aria-hidden="true"><div ref={printRef} className="cd-print">
-      <PrintHeader title="Formulário de candidato — entrevista" subtitle={`${c.name} · ${c.role}`} right={`Data: ${br(c.interview.date)}`} />
+      <PrintHeader title="Formulário de candidato — entrevista" subtitle={`${c.name} · ${c.role}${c.condoId ? ` · ${clients.condos.find(x => x.id === c.condoId)?.name ?? ""}` : ""}`} right={`Data: ${br(c.interview.date)}`} />
       <p className="cd-p-meta">Entrevistador: <b>{c.interview.interviewer || "—"}</b> · Telefone: {c.phone || "—"} · Parecer: <b>{STAGE_LABELS[c.stage]}</b>{score !== null ? ` · Média ${score.toFixed(1)}/5` : ""}</p>
       {INTERVIEW_QUESTIONS.map((q, i) => <div key={q.id} className="cd-p-q"><b>{i + 1}. {q.label}</b><p>{c.interview.answers[q.id] || "—"}</p></div>)}
       <div className="cd-p-q"><b>Avaliação</b><p>{CRITERIA.map(k => `${k.label}: ${c.interview.scores[k.id] ?? "—"}/5`).join(" · ")}</p></div>
@@ -286,15 +310,15 @@ function InterviewForm({ c, me, setMe, onChange, onDecide, onReopen, onRemove, o
 
 /* ─────────────────────── Link para o candidato ─────────────────────── */
 
-function InviteBox({ c, me, setMe, onSent }: { c: Candidate; me: InterviewerProfile; setMe: (p: InterviewerProfile) => void; onSent: (at: string) => void }) {
+function InviteBox({ c, me, setMe, condo, onSent }: { c: Candidate; condo: string; me: InterviewerProfile; setMe: (p: InterviewerProfile) => void; onSent: (at: string) => void }) {
   const [editMe, setEditMe] = useState(!me.name || me.phone.replace(/\D/g, "").length < 10);
   const [copied, setCopied] = useState(false);
   const missing = inviteMissing(c, me);
   const origin = typeof window === "undefined" ? "" : window.location.origin;
-  const url = missing.length ? "" : inviteUrl(origin, makeInvite(c, me));
+  const url = missing.length ? "" : inviteUrl(origin, makeInvite(c, me, condo));
   async function copy() {
     if (!url) return;
-    try { await navigator.clipboard.writeText(inviteMessage(makeInvite(c, me), url)); setCopied(true); onSent(nowISO()); window.setTimeout(() => setCopied(false), 2500); }
+    try { await navigator.clipboard.writeText(inviteMessage(makeInvite(c, me, condo), url)); setCopied(true); onSent(nowISO()); window.setTimeout(() => setCopied(false), 2500); }
     catch { window.prompt("Copie o link:", url); }
   }
   return <div className="cd-invite">
@@ -307,7 +331,7 @@ function InviteBox({ c, me, setMe, onSent }: { c: Candidate; me: InterviewerProf
     </div> : <p className="cd-me-line">Entrevistador: <b>{me.name}</b> · respostas chegam no WhatsApp <b>{me.phone}</b> <button type="button" className="cd-link" onClick={() => setEditMe(true)}>alterar</button></p>}
     {missing.length ? <p className="cd-warn cd-invite-miss"><AlertTriangle size={14} /> Para gerar o link, informe: {missing.join(", ")}.</p>
       : <div className="cd-actions">
-        <a className="cd-btn cd-btn-wa" href={whatsappUrl(c.phone, inviteMessage(makeInvite(c, me), url))} target="_blank" rel="noopener noreferrer" onClick={() => onSent(nowISO())}>
+        <a className="cd-btn cd-btn-wa" href={whatsappUrl(c.phone, inviteMessage(makeInvite(c, me, condo), url))} target="_blank" rel="noopener noreferrer" onClick={() => onSent(nowISO())}>
           <MessageCircle size={15} /> Enviar link pelo WhatsApp</a>
         <button type="button" className="cd-btn" onClick={copy}><Copy size={15} /> {copied ? "Mensagem copiada!" : "Copiar link"}</button>
         <a className="cd-link" href={url} target="_blank" rel="noopener noreferrer">ver como o candidato vê</a>

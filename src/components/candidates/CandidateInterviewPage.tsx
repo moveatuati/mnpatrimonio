@@ -45,7 +45,7 @@ export function CandidateInterviewPage() {
 
   function send() {
     if (!invite || missing.length) return;
-    const rep: Reply = { v: 1, id: invite.id, name: draft.name.trim(), phone: draft.phone, role: invite.role, interviewer: invite.interviewer,
+    const rep: Reply = { v: 1, id: invite.id, name: draft.name.trim(), phone: draft.phone, role: invite.role, condoId: invite.condoId, functionId: invite.functionId, interviewer: invite.interviewer,
       answers, sentAt: new Date(Date.now() - 3 * 3600000).toISOString().slice(0, 19) };
     const url = replyUrl(window.location.origin, rep);
     const wa = whatsappUrl(invite.interviewerPhone, replyMessage(rep, url));
@@ -75,7 +75,7 @@ export function CandidateInterviewPage() {
         <span style={{ width: `${(Math.min(step, TOTAL + 1) / (TOTAL + 1)) * 100}%` }} /></div>}
 
       {step === 0 && <>
-        <p className="ci-eyebrow">Vaga: {invite.role}</p>
+        <p className="ci-eyebrow">Vaga: {invite.role}{invite.condo ? ` · ${invite.condo}` : ""}</p>
         <h1>Olá{invite.name ? `, ${invite.name.split(" ")[0]}` : ""}!</h1>
         <p>Você foi convidado(a) por <b>{invite.interviewer}</b> para a entrevista da <b>{BRAND.name}</b>. São {TOTAL} perguntas rápidas, uma por vez. Responda com calma e sinceridade.</p>
         <label className="ci-f"><span>Nome completo *</span><input autoComplete="name" value={draft.name} onChange={e => setDraft({ ...draft, name: e.target.value })} /></label>

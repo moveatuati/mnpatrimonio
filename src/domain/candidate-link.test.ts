@@ -23,7 +23,7 @@ describe("link da entrevista", () => {
   it("candidato precisa responder tudo; respostas entram no candidato certo", () => {
     expect(replyMissing("Bruno", "", {}).length).toBe(1 + INTERVIEW_QUESTIONS.length);
     const answers = Object.fromEntries(INTERVIEW_QUESTIONS.map(q => [q.id, "resp " + q.id]));
-    const rep: Reply = { v: 1, id: "CAND-002", name: "Bruno Lima", phone: "(91) 9 8100-0002", role: "Fiscal", interviewer: "Joana", answers, sentAt: "2026-10-21T18:00:00" };
+    const rep: Reply = { v: 1, id: "CAND-002", name: "Bruno Lima", phone: "(91) 9 8100-0002", role: "Fiscal", condoId: "COND-002", functionId: "FN-02", interviewer: "Joana", answers, sentAt: "2026-10-21T18:00:00" };
     const back = readReply(encode(rep))!;
     const r = importReply(demoCandidates(), back, "2026-10-21");
     if (typeof r === "string") throw new Error(r);

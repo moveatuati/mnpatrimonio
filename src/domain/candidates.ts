@@ -156,6 +156,9 @@ export type Candidate = {
   id: string;
   name: string;
   role: string;
+  /** Condomínio (cliente) e função da vaga — ver src/domain/clients.ts. */
+  condoId: string;
+  functionId: string;
   phone: string;
   createdAt: string;
   stage: Stage;
@@ -190,7 +193,8 @@ export function emptyApplication(c: Pick<Candidate, "name" | "role" | "phone">):
 export function interviewMissing(c: Candidate): string[] {
   const out: string[] = [];
   if (!c.name.trim()) out.push("Nome do candidato");
-  if (!c.role.trim()) out.push("Cargo pretendido");
+  if (!c.condoId) out.push("Condomínio da vaga");
+  if (!c.functionId || !c.role.trim()) out.push("Função da vaga");
   if (c.phone.replace(/\D/g, "").length < 10) out.push("WhatsApp do candidato");
   if (!c.interview.date) out.push("Data da entrevista");
   if (!c.interview.interviewer.trim()) out.push("Entrevistador");
@@ -295,7 +299,7 @@ export function newCandidate(store: CandidateStore, today: string): { store: Can
   const seq = store.seq + 1;
   const id = `CAND-${String(seq).padStart(3, "0")}`;
   const c: Candidate = {
-    id, name: "", role: "Operador(a) de caixa", phone: "", createdAt: today, stage: "entrevista", decidedAt: "",
+    id, name: "", role: "", condoId: "", functionId: "", phone: "", createdAt: today, stage: "entrevista", decidedAt: "",
     interview: { date: today, interviewer: "", answers: {}, scores: {}, opinion: "" }, application: null,
   };
   return { store: { ...store, seq, candidates: [c, ...store.candidates] }, id };
@@ -331,7 +335,7 @@ export function demoCandidates(): CandidateStore {
     supervisao: "Não, gosto de receber orientação.", parente: "Não.", sobre: "Trabalhei 2 anos como repositor, sou organizado e gosto de atender.",
   };
   const ana: Candidate = {
-    id: "CAND-001", name: "Ana Paula Ribeiro (fictícia)", role: "Operador(a) de caixa", phone: "(91) 9 8100-0001",
+    id: "CAND-001", name: "Ana Paula Ribeiro (fictícia)", role: "Agente de portaria", condoId: "COND-001", functionId: "FN-01", phone: "(91) 9 8100-0001",
     createdAt: "2026-10-19", stage: "aprovado", decidedAt: "2026-10-20T10:00:00",
     interview: { date: "2026-10-20", interviewer: "Supervisão de caixa", answers: full,
       scores: { comunicacao: 5, postura: 4, disponibilidade: 5, perfil: 4 }, opinion: "Boa comunicação e disponibilidade total. Aprovada para a ficha." },
@@ -339,7 +343,7 @@ export function demoCandidates(): CandidateStore {
   };
   ana.application = emptyApplication(ana);
   const bruno: Candidate = {
-    id: "CAND-002", name: "Bruno Lima (fictício)", role: "Fiscal de caixa", phone: "(91) 9 8100-0002",
+    id: "CAND-002", name: "Bruno Lima (fictício)", role: "Auxiliar de serviços gerais", condoId: "COND-002", functionId: "FN-02", phone: "(91) 9 8100-0002",
     createdAt: "2026-10-21", stage: "entrevista", decidedAt: "",
     interview: { date: "2026-10-21", interviewer: "", answers: { saida: "Mudança de bairro.", colaborador: "Honestidade." }, scores: {}, opinion: "" },
     application: null,
@@ -353,7 +357,7 @@ export function restoreCandidates(raw: unknown): CandidateStore {
   if (!r || r.version !== 1 || !Array.isArray(r.candidates)) return demoCandidates();
   const candidates = r.candidates.filter(c => c && typeof c.id === "string").map(c => {
     const base: Candidate = {
-      id: c.id, name: str(c.name), role: str(c.role), phone: str(c.phone), createdAt: str(c.createdAt),
+      id: c.id, name: str(c.name), role: str(c.role), condoId: str(c.condoId), functionId: str(c.functionId), phone: str(c.phone), createdAt: str(c.createdAt),
       stage: (["entrevista", "aprovado", "banco", "reprovado"] as Stage[]).includes(c.stage) ? c.stage : "entrevista",
       decidedAt: str(c.decidedAt),
       interview: { date: str(c.interview?.date), interviewer: str(c.interview?.interviewer), answers: { ...(c.interview?.answers ?? {}) },

@@ -1,11 +1,12 @@
 import {
-  LayoutDashboard, Users, CalendarClock, Fingerprint, Plane, Hourglass, FileText, FlaskConical, ScrollText, Smartphone, UserPlus,
+  LayoutDashboard, Users, CalendarClock, Fingerprint, Plane, Hourglass, FileText, FlaskConical, ScrollText, Smartphone, UserPlus, Building2,
 } from "lucide-react";
 
 export const NAV = [
   { to: "/", label: "Visão da operação", icon: LayoutDashboard },
-  { to: "/colaboradores", label: "Colaboradores", icon: Users },
+  { to: "/condominios", label: "Condomínios & funções", icon: Building2 },
   { to: "/candidatos", label: "Captação de candidatos", icon: UserPlus },
+  { to: "/colaboradores", label: "Colaboradores", icon: Users },
   { to: "/escala", label: "Escala & trocas", icon: CalendarClock },
   { to: "/ponto", label: "Ponto simulado", icon: Fingerprint },
   { to: "/ferias", label: "Férias & afastamentos", icon: Plane },

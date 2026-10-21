@@ -1,0 +1,18 @@
+/* Condomínios & funções — reaproveita o padrão visual da Captação (cd-*) */
+.cl-switch{display:inline-flex;align-items:center;gap:8px;padding:7px 11px;border:1px solid #cdd6e0;border-radius:9px;background:#fff;color:#2f4b68;font-size:12px;font-weight:750;cursor:pointer}
+.cl-switch input{width:17px;height:17px;accent-color:#16805a}
+.cl-posts{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:9px;margin-bottom:14px}
+.cl-post{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 12px;border:1px solid #e3e8ee;border-left:3px solid #41688e;border-radius:9px;background:#fbfcfe}
+.cl-post b{display:block;color:#2a3a4b;font-size:12.5px}.cl-post small{color:#7a848e;font-size:10.5px}
+.cl-post input{width:76px;padding:8px;border:1px solid #d0d7df;border-radius:8px;text-align:center;font-size:15px;font-weight:800;color:#2a4969}
+.cl-fns{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:13px;align-items:start}
+.cl-fn{display:flex;flex-direction:column;gap:10px;padding:16px 17px}
+.cl-fn-head{display:flex;align-items:center;gap:9px;color:#2f527a}
+.cl-fn-head h3{flex:1;margin:0;color:#243f5c;font-size:16px;font-weight:800}
+.cl-fn>p{margin:0;color:#4d5964;font-size:12.5px;line-height:1.5}
+.cl-fn-nums{display:flex;flex-wrap:wrap;gap:8px}
+.cl-fn-nums span{padding:6px 10px;border-radius:8px;background:#eef3f9;color:#4a5a6a;font-size:11.5px}
+.cl-fn-nums b{color:#2a4969;font-size:14px}
+.cl-fn .cd-btn{align-self:flex-start}
+.cl-fn-edit{border-top-color:#16805a}
+.cl-off{opacity:.7}

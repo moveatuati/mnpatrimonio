@@ -12,9 +12,9 @@ export const ABOUT_LIMIT = 1500;
 
 export type InterviewerProfile = { name: string; phone: string };
 /** Convite enviado ao candidato. */
-export type Invite = { v: 1; id: string; name: string; phone: string; role: string; interviewer: string; interviewerPhone: string; date: string };
+export type Invite = { v: 1; id: string; name: string; phone: string; role: string; condo: string; condoId: string; functionId: string; interviewer: string; interviewerPhone: string; date: string };
 /** Respostas devolvidas pelo candidato. */
-export type Reply = { v: 1; id: string; name: string; phone: string; role: string; interviewer: string; answers: Partial<Record<QuestionId, string>>; sentAt: string };
+export type Reply = { v: 1; id: string; name: string; phone: string; role: string; condoId: string; functionId: string; interviewer: string; answers: Partial<Record<QuestionId, string>>; sentAt: string };
 
 export function encode(value: unknown): string {
   const bytes = new TextEncoder().encode(JSON.stringify(value));
@@ -40,7 +40,7 @@ export function readInvite(code: string | null | undefined): Invite | null {
   if (!code) return null;
   const r = decode<Partial<Invite>>(code);
   if (!r || r.v !== 1 || typeof r.id !== "string" || !r.id) return null;
-  return { v: 1, id: s(r.id, 40), name: s(r.name), phone: s(r.phone, 30), role: s(r.role), interviewer: s(r.interviewer),
+  return { v: 1, id: s(r.id, 40), name: s(r.name), phone: s(r.phone, 30), role: s(r.role), condo: s(r.condo), condoId: s(r.condoId, 40), functionId: s(r.functionId, 40), interviewer: s(r.interviewer),
     interviewerPhone: s(r.interviewerPhone, 30), date: s(r.date, 10) };
 }
 
@@ -53,7 +53,7 @@ export function readReply(code: string | null | undefined): Reply | null {
     const a = s((r.answers as Record<string, unknown>)[q.id], q.id === "sobre" ? ABOUT_LIMIT : ANSWER_LIMIT);
     if (a) answers[q.id] = a;
   });
-  return { v: 1, id: s(r.id, 40), name: s(r.name), phone: s(r.phone, 30), role: s(r.role), interviewer: s(r.interviewer), answers, sentAt: s(r.sentAt, 19) };
+  return { v: 1, id: s(r.id, 40), name: s(r.name), phone: s(r.phone, 30), role: s(r.role), condoId: s(r.condoId, 40), functionId: s(r.functionId, 40), interviewer: s(r.interviewer), answers, sentAt: s(r.sentAt, 19) };
 }
 
 /** Pendências do convite antes de gerar o link. */
@@ -61,14 +61,15 @@ export function inviteMissing(c: Candidate, me: InterviewerProfile): string[] {
   const out: string[] = [];
   if (!c.name.trim()) out.push("nome do candidato");
   if (!isPhone(c.phone)) out.push("WhatsApp do candidato");
-  if (!c.role.trim()) out.push("cargo");
+  if (!c.condoId) out.push("condomínio");
+  if (!c.functionId || !c.role.trim()) out.push("função da vaga");
   if (!me.name.trim()) out.push("seu nome (entrevistador)");
   if (!isPhone(me.phone)) out.push("seu WhatsApp (para receber as respostas)");
   return out;
 }
 
-export function makeInvite(c: Candidate, me: InterviewerProfile): Invite {
-  return { v: 1, id: c.id, name: c.name.trim(), phone: c.phone, role: c.role.trim(), interviewer: me.name.trim(), interviewerPhone: digits(me.phone), date: c.interview.date };
+export function makeInvite(c: Candidate, me: InterviewerProfile, condo = ""): Invite {
+  return { v: 1, id: c.id, name: c.name.trim(), phone: c.phone, role: c.role.trim(), condo, condoId: c.condoId, functionId: c.functionId, interviewer: me.name.trim(), interviewerPhone: digits(me.phone), date: c.interview.date };
 }
 
 export const inviteUrl = (origin: string, inv: Invite) => `${origin}/entrevista?c=${encode(inv)}`;
@@ -82,7 +83,7 @@ export function whatsappUrl(phone: string, text: string): string {
 
 export function inviteMessage(inv: Invite, url: string): string {
   const first = inv.name.split(" ")[0] || "candidato(a)";
-  return `Olá, ${first}! Aqui é ${inv.interviewer}, da MN Patrimônios. Obrigado pelo interesse na vaga de ${inv.role}.\n\nResponda a entrevista pelo celular neste link (leva uns 10 minutos):\n${url}\n\nAo terminar, toque em "Enviar respostas".`;
+  return `Olá, ${first}! Aqui é ${inv.interviewer}, da MN Patrimônios. Obrigado pelo interesse na vaga de ${inv.role}${inv.condo ? ` (${inv.condo})` : ""}.\n\nResponda a entrevista pelo celular neste link (leva uns 10 minutos):\n${url}\n\nAo terminar, toque em "Enviar respostas".`;
 }
 export function replyMessage(rep: Reply, url: string): string {
   return `Entrevista respondida — ${rep.name} (${rep.role}).\nAbra no sistema MN Patrimônios para ver as respostas:\n${url}`;
@@ -114,7 +115,7 @@ export function importReply(store: CandidateStore, rep: Reply, today: string): {
   const seq = store.seq + 1;
   const id = `CAND-${String(seq).padStart(3, "0")}`;
   const c: Candidate = {
-    id, name: rep.name, role: rep.role, phone: rep.phone, createdAt: today, stage: "entrevista", decidedAt: "",
+    id, name: rep.name, role: rep.role, condoId: rep.condoId, functionId: rep.functionId, phone: rep.phone, createdAt: today, stage: "entrevista", decidedAt: "",
     interview: { date: today, interviewer: rep.interviewer, answers: rep.answers, scores: {}, opinion: "", source: "candidato", receivedAt: rep.sentAt || today },
     application: null,
   };
