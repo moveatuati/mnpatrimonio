@@ -208,8 +208,8 @@
   --op-success-bg: oklch(0.96 0.018 165);
   --op-warning: oklch(0.43 0.09 65);
   --op-warning-bg: oklch(0.97 0.025 80);
-  --op-danger: oklch(0.45 0.083 250);
-  --op-danger-bg: oklch(0.97 0.008 250);
+  --op-danger: oklch(0.45 0.15 25);
+  --op-danger-bg: oklch(0.97 0.014 25);
 }
 
 .formosa-skip-link {
