@@ -13,8 +13,11 @@
 .ma-duty{font-size:12.5px;color:#6f5f67;font-weight:600}
 .ma-layout{display:grid;grid-template-columns:400px minmax(0,1fr);gap:20px;align-items:start}
 .ma-phone{width:100%;max-width:400px;height:760px;display:flex;flex-direction:column;border:10px solid #1f1a1d;border-radius:36px;background:#f7f3f5;overflow:hidden;box-shadow:0 20px 40px -24px rgb(0 0 0 / 50%)}
-.ma-phone-head{padding:14px 16px 10px;background:linear-gradient(125deg,#a83b59,#6b1f39);color:#fff}
-.ma-phone-head b{display:block;font-size:16px}.ma-phone-head span{font-size:12px;opacity:.9}
+.ma-phone-head{display:flex;align-items:center;gap:10px;padding:12px 14px 10px;background:linear-gradient(125deg,#a83b59,#6b1f39);color:#fff}
+.ma-phone-logo{height:34px;width:auto;padding:4px 7px;border-radius:9px;background:#fff;flex-shrink:0}
+.ma-phone-hello{flex:1;min-width:0}
+.ma-phone-hello b{display:block;font-size:16px}.ma-phone-hello span{display:block;font-size:11.5px;opacity:.92}
+.ma-gear{border:0;background:rgb(255 255 255 / 18%);color:#fff;border-radius:10px;width:38px;height:38px;font-size:18px;cursor:pointer;flex-shrink:0}
 .ma-phone-body{flex:1;overflow:auto;padding:10px}
 .ma-tabs{display:grid;grid-template-columns:repeat(4,1fr);background:#fff;border-top:1px solid #e6d8de}
 .ma-tabs button{position:relative;display:flex;flex-direction:column;align-items:center;gap:2px;padding:8px 0 10px;border:0;background:none;color:#8a7480;font-size:11.5px;font-weight:700;cursor:pointer}
@@ -80,3 +83,18 @@
 .ma-history ul{margin:0;padding-left:18px;font-size:12.5px}
 .print-compact .ma-doc{border:0;padding:0;max-width:none}
 @media (max-width:900px){.ma-layout{grid-template-columns:1fr}.ma-phone{max-width:420px;margin:0 auto;height:680px}.ma{padding:16px 12px}}
+
+.ma-mobile-link{padding:7px 12px;border-radius:9px;background:#7a2440;color:#fff;font-weight:800;text-decoration:none}
+/* ===== Modo celular de verdade (/celular): tela cheia ===== */
+.mm{position:fixed;inset:0;display:flex;flex-direction:column;background:#f7f3f5;color:#2c2228;font-size:15px;font-family:inherit}
+.mm .ma-phone-head{padding:calc(env(safe-area-inset-top) + 12px) 14px 12px}
+.mm .ma-phone-body{flex:1;overflow:auto;padding:12px;-webkit-overflow-scrolling:touch}
+.mm .ma-tabs{padding-bottom:env(safe-area-inset-bottom)}
+.mm .ma-tabs button{font-size:12.5px;padding:9px 0 11px}
+.mm .ma-card-head b{font-size:16px}
+.mm .ma-rows li{font-size:14px}
+.mm-sheet-bg{position:fixed;inset:0;background:rgb(0 0 0 / 40%);display:flex;align-items:flex-end;z-index:50}
+.mm-sheet{width:100%;margin:0!important;border-radius:18px 18px 0 0!important;border:0!important;background:#fff!important;padding:16px 16px calc(env(safe-area-inset-bottom) + 16px)!important;flex-direction:column;align-items:stretch!important}
+.mm-sheet label{justify-content:space-between}
+.mm-sheet input,.mm-sheet select{font-size:16px!important}
+.mm-sheet .ma-steps{flex-wrap:wrap}.mm-sheet .ma-steps button{flex:1;padding:10px}

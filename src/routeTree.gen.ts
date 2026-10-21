@@ -17,6 +17,7 @@ import { Route as FeriasRouteImport } from './routes/ferias'
 import { Route as FichaColaboradorRouteImport } from './routes/ficha-colaborador'
 import { Route as PontoRouteImport } from './routes/ponto'
 import { Route as AppGerenteRouteImport } from './routes/app-gerente'
+import { Route as CelularRouteImport } from './routes/celular'
 import { Route as RegrasRouteImport } from './routes/regras'
 import { Route as RelatoriosRouteImport } from './routes/relatorios'
 import { Route as SimuladorRouteImport } from './routes/simulador'
@@ -61,6 +62,11 @@ const AppGerenteRoute = AppGerenteRouteImport.update({
   path: '/app-gerente',
   getParentRoute: () => rootRouteImport,
 } as any)
+const CelularRoute = CelularRouteImport.update({
+  id: '/celular',
+  path: '/celular',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const RegrasRoute = RegrasRouteImport.update({
   id: '/regras',
   path: '/regras',
@@ -86,6 +92,7 @@ export interface FileRoutesByFullPath {
   '/ficha-colaborador': typeof FichaColaboradorRoute
   '/ponto': typeof PontoRoute
   '/app-gerente': typeof AppGerenteRoute
+  '/celular': typeof CelularRoute
   '/regras': typeof RegrasRoute
   '/relatorios': typeof RelatoriosRoute
   '/simulador': typeof SimuladorRoute
@@ -99,6 +106,7 @@ export interface FileRoutesByTo {
   '/ficha-colaborador': typeof FichaColaboradorRoute
   '/ponto': typeof PontoRoute
   '/app-gerente': typeof AppGerenteRoute
+  '/celular': typeof CelularRoute
   '/regras': typeof RegrasRoute
   '/relatorios': typeof RelatoriosRoute
   '/simulador': typeof SimuladorRoute
@@ -113,6 +121,7 @@ export interface FileRoutesById {
   '/ficha-colaborador': typeof FichaColaboradorRoute
   '/ponto': typeof PontoRoute
   '/app-gerente': typeof AppGerenteRoute
+  '/celular': typeof CelularRoute
   '/regras': typeof RegrasRoute
   '/relatorios': typeof RelatoriosRoute
   '/simulador': typeof SimuladorRoute
@@ -128,6 +137,7 @@ export interface FileRouteTypes {
     | '/ficha-colaborador'
     | '/ponto'
     | '/app-gerente'
+    | '/celular'
     | '/regras'
     | '/relatorios'
     | '/simulador'
@@ -141,6 +151,7 @@ export interface FileRouteTypes {
     | '/ficha-colaborador'
     | '/ponto'
     | '/app-gerente'
+    | '/celular'
     | '/regras'
     | '/relatorios'
     | '/simulador'
@@ -154,6 +165,7 @@ export interface FileRouteTypes {
     | '/ficha-colaborador'
     | '/ponto'
     | '/app-gerente'
+    | '/celular'
     | '/regras'
     | '/relatorios'
     | '/simulador'
@@ -168,6 +180,7 @@ export interface RootRouteChildren {
   FichaColaboradorRoute: typeof FichaColaboradorRoute
   PontoRoute: typeof PontoRoute
   AppGerenteRoute: typeof AppGerenteRoute
+  CelularRoute: typeof CelularRoute
   RegrasRoute: typeof RegrasRoute
   RelatoriosRoute: typeof RelatoriosRoute
   SimuladorRoute: typeof SimuladorRoute
@@ -231,6 +244,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppGerenteRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/celular': {
+      id: '/celular'
+      path: '/celular'
+      fullPath: '/celular'
+      preLoaderRoute: typeof CelularRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/regras': {
       id: '/regras'
       path: '/regras'
@@ -264,6 +284,7 @@ const rootRouteChildren: RootRouteChildren = {
   FichaColaboradorRoute: FichaColaboradorRoute,
   PontoRoute: PontoRoute,
   AppGerenteRoute: AppGerenteRoute,
+  CelularRoute: CelularRoute,
   RegrasRoute: RegrasRoute,
   RelatoriosRoute: RelatoriosRoute,
   SimuladorRoute: SimuladorRoute,
