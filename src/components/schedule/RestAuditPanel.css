@@ -1,24 +1,24 @@
 /* Conferência de folgas — compacta na tela e em 1 a 2 folhas A4 */
-.ra{background:#fff;border:1px solid #e3d3da;border-radius:12px;padding:14px 16px;color:#2c2228;font-size:14px}
-.ra-btn{margin-left:auto;display:inline-flex;align-items:center;gap:6px;padding:7px 12px;border-radius:9px;border:0;background:#7a2440;color:#fff;font-weight:800;font-size:13px;cursor:pointer;white-space:nowrap}
+.ra{background:#fff;border:1px solid #d3d9df;border-radius:12px;padding:14px 16px;color:#22262a;font-size:14px}
+.ra-btn{margin-left:auto;display:inline-flex;align-items:center;gap:6px;padding:7px 12px;border-radius:9px;border:0;background:#2b4b6b;color:#fff;font-weight:800;font-size:13px;cursor:pointer;white-space:nowrap}
 .ra-cards{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-bottom:8px}
 .ra-card{display:inline-flex;align-items:baseline;gap:5px;padding:4px 10px;border-radius:8px;border:1px solid #ddd;font-size:12.5px;font-weight:700}
 .ra-card strong{font-size:17px;font-weight:850}
 .ra-ok{border-color:#4cb782;background:#f1fbf5}.ra-ok strong{color:#1c7a4c}
 .ra-bad{border-color:#e05a4f;background:#fff4f3}.ra-bad strong{color:#c0362c}
-.ra-sun{border-color:#cdb8c2;background:#fbf7f9}.ra-sun strong{color:#6f2240}
+.ra-sun{border-color:#b8c0c8;background:#fbf7f9}.ra-sun strong{color:#284562}
 .ra-tools{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-bottom:8px;font-size:13px}
-.ra-tools button,.ra-tools input:not([type=checkbox]){font-size:13px;padding:6px 10px;border-radius:8px;border:1px solid #d9c3cc;background:#fff}
+.ra-tools button,.ra-tools input:not([type=checkbox]){font-size:13px;padding:6px 10px;border-radius:8px;border:1px solid #c3cbd4;background:#fff}
 .ra-tools button{font-weight:700;cursor:pointer}
 .ra-tools label{display:flex;align-items:center;gap:5px;font-weight:700}
-.ra-scroll{max-height:560px;overflow:auto;border:1px solid #e3d3da;border-radius:8px}
+.ra-scroll{max-height:560px;overflow:auto;border:1px solid #d3d9df;border-radius:8px}
 .ra-table{width:100%;border-collapse:collapse;font-size:12px}
 .ra-table th{position:sticky;top:0;background:#f6eff2;padding:4px 6px;text-align:left;font-size:11px;z-index:1;white-space:nowrap}
-.ra-table td{padding:3px 6px;border-top:1px solid #efe4e9;white-space:nowrap}
-.ra-table td small{font-size:10.5px;color:#6d5d65}
+.ra-table td{padding:3px 6px;border-top:1px solid #e4e8ec;white-space:nowrap}
+.ra-table td small{font-size:10.5px;color:#5d636a}
 .ra-work b{color:#1c7a4c}
 .ra-miss{background:#fff1ef}.ra-miss b{color:#b02f25}
-.ra-off{color:#8a7a82}
+.ra-off{color:#7a8087}
 .ra-row-bad td:first-child{border-left:4px solid #e05a4f}
 .ra-tag-ok{font-weight:800;color:#1c7a4c}.ra-tag-bad{font-weight:800;color:#b02f25}
 .ra-empty{padding:12px;margin:0;font-weight:700}
