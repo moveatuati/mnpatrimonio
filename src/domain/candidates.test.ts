@@ -21,7 +21,7 @@ describe("captação de candidatos", () => {
     const c = complete(store.candidates.find(x => x.id === id)!);
     const ok = decide(c, "aprovado", "2026-10-21T10:00:00") as Candidate;
     expect(ok.stage).toBe("aprovado");
-    expect(ok.application?.fields.nome).toBe("Teste");
+    expect(ok.application?.fields["nome"]).toBe("Teste");
     expect((decide(c, "reprovado", "x") as Candidate).application).toBeNull();
   });
   it("valida CPF", () => {
@@ -48,6 +48,6 @@ describe("captação de candidatos", () => {
     expect(typeof setRhOpinion(ana, { ...ana.application!.rh, verdict: "apto" })).toBe("string");
     expect(restoreCandidates(null).candidates.length).toBe(2);
     const back = restoreCandidates(JSON.parse(JSON.stringify(demoCandidates())));
-    expect(back.candidates[1].application?.references.pessoais.length).toBe(2);
+    expect(back.candidates[1]!.application?.references.pessoais.length).toBe(2);
   });
 });
