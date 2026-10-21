@@ -376,12 +376,12 @@ function ApplicationForm({ c, onChange, onSubmit, onRh }: {
     try { setA({ photo: await resizePhoto(file) }); } catch { setPhotoErr("Não foi possível ler a foto. Tente outra imagem."); }
   }
 
-  const id = STEPS[step].id;
+  const id = STEPS[step]!.id;
   return <section className="cd-panel cd-main">
     <div className="cd-panel-head">
-      <div><p className="op-eyebrow">Solicitação de emprego · candidato aprovado</p><h2>{a.fields.nome || c.name}</h2>
-        <p>{a.fields.cargo || c.role} · <StageBadge c={c} /> · {progress}% preenchido{sent && <> · enviada em {br(a.sentAt)}</>}</p></div>
-      <div className="cd-actions"><button className="cd-btn" onClick={() => printNode(printRef.current, { title: `Ficha de emprego — ${a.fields.nome}` })}><Printer size={15} /> Imprimir ficha</button></div>
+      <div><p className="op-eyebrow">Solicitação de emprego · candidato aprovado</p><h2>{a.fields["nome"] || c.name}</h2>
+        <p>{a.fields["cargo"] || c.role} · <StageBadge c={c} /> · {progress}% preenchido{sent && <> · enviada em {br(a.sentAt)}</>}</p></div>
+      <div className="cd-actions"><button className="cd-btn" onClick={() => printNode(printRef.current, { title: `Ficha de emprego — ${a.fields["nome"]}` })}><Printer size={15} /> Imprimir ficha</button></div>
     </div>
 
     <ol className="cd-steps" aria-label="Etapas da ficha">
@@ -482,9 +482,9 @@ function ApplicationForm({ c, onChange, onSubmit, onRh }: {
     </footer>
 
     <div className="cd-offscreen" aria-hidden="true"><div ref={printRef} className="cd-print">
-      <PrintHeader title="Solicitação de emprego" subtitle={`Candidato ao cargo de: ${a.fields.cargo || "—"}`} right={sent ? `Enviada em ${br(a.sentAt)}` : "Rascunho"} />
+      <PrintHeader title="Solicitação de emprego" subtitle={`Candidato ao cargo de: ${a.fields["cargo"] || "—"}`} right={sent ? `Enviada em ${br(a.sentAt)}` : "Rascunho"} />
       <div className="cd-p-top">{a.photo ? <img src={a.photo} alt="" /> : <span>Foto 3x4</span>}
-        <div><b>{a.fields.nome}</b><p>Telefone: {a.fields.telefone || "—"}{a.fields.telefone2 ? ` · ${a.fields.telefone2Tipo || "Outro"}: ${a.fields.telefone2}` : ""}</p></div></div>
+        <div><b>{a.fields["nome"]}</b><p>Telefone: {a.fields["telefone"] || "—"}{a.fields["telefone2"] ? ` · ${a.fields["telefone2Tipo"] || "Outro"}: ${a.fields["telefone2"]}` : ""}</p></div></div>
       {FORM_SECTIONS.map(s => <div key={s.id} className="cd-p-sec"><h4>{s.title}</h4><dl>
         {s.fields.filter(f => f.key !== "nome" && f.key !== "cargo").map(f => <div key={f.key}><dt>{f.label}</dt><dd>{f.type === "date" ? br(a.fields[f.key]) : a.fields[f.key] || "—"}</dd></div>)}
       </dl></div>)}

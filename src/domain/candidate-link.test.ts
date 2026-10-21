@@ -9,7 +9,7 @@ describe("link da entrevista", () => {
     expect(decode("%%%")).toBeNull();
   });
   it("exige WhatsApp do candidato e dados do entrevistador", () => {
-    const bruno = demoCandidates().candidates[0];
+    const bruno = demoCandidates().candidates[0]!;
     expect(inviteMissing({ ...bruno, phone: "" }, me)).toEqual(["WhatsApp do candidato"]);
     expect(inviteMissing(bruno, { name: "", phone: "" }).length).toBe(2);
     const inv = readInvite(encode(makeInvite(bruno, me)))!;

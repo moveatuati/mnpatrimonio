@@ -260,7 +260,7 @@ export function formatPhone(value: string): string {
 export function applicationMissing(a: Application): string[] {
   const out: string[] = [];
   FORM_SECTIONS.forEach(s => s.fields.forEach(f => { if (f.required && !a.fields[f.key]?.trim()) out.push(f.label); }));
-  if (a.fields.cpf?.trim() && !isValidCPF(a.fields.cpf)) out.push("CPF válido");
+  if (a.fields["cpf"]?.trim() && !isValidCPF(a.fields["cpf"])) out.push("CPF válido");
   a.dependents.forEach((d, i) => { if (!d.nome.trim()) out.push(`Nome do dependente ${i + 1}`); });
   if (!a.declaration) out.push("Aceite da declaração do candidato");
   return out;
@@ -280,7 +280,7 @@ export function submit(c: Candidate, now: string): Candidate | string {
   if (missing.length) return `Faltam ${missing.length} item(ns): ${missing.slice(0, 4).join(", ")}${missing.length > 4 ? "…" : ""}.`;
   const f = c.application.fields;
   return {
-    ...c, name: f.nome.trim(), role: f.cargo.trim(), phone: f.telefone.trim(),
+    ...c, name: (f["nome"] ?? "").trim(), role: (f["cargo"] ?? "").trim(), phone: (f["telefone"] ?? "").trim(),
     application: { ...c.application, status: "enviada", sentAt: now, declarationDate: c.application.declarationDate || now.slice(0, 10) },
   };
 }
