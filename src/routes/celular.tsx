@@ -7,7 +7,7 @@ export const Route = createFileRoute("/celular")({
     meta: [
       { title: "MN Patrimônios · App do gerente" },
       { name: "description", content: "Demonstração do aplicativo do gerente da MN Patrimônios no celular." },
-      { name: "theme-color", content: "#7a2440" },
+      { name: "theme-color", content: "#2b4b6b" },
       { name: "apple-mobile-web-app-capable", content: "yes" },
       { name: "mobile-web-app-capable", content: "yes" },
       { name: "apple-mobile-web-app-title", content: "MN Patrimônios" },
