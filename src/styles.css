@@ -74,23 +74,23 @@
 
 :root {
   --radius: 0.875rem;
-  --background: oklch(0.976 0.006 20);
+  --background: oklch(0.976 0.003 250);
   --foreground: oklch(0.27 0.018 250);
   --card: oklch(1 0 0);
   --card-foreground: oklch(0.27 0.018 250);
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.27 0.018 250);
-  --primary: oklch(0.53 0.205 25);
+  --primary: oklch(0.53 0.11 250);
   --primary-foreground: oklch(0.99 0 0);
-  --primary-glow: oklch(0.62 0.23 24);
+  --primary-glow: oklch(0.62 0.11 250);
   --navy: oklch(0.31 0.04 250);
-  --navy-foreground: oklch(0.99 0.004 20);
+  --navy-foreground: oklch(0.99 0.002 250);
   --secondary: oklch(0.954 0.008 250);
   --secondary-foreground: oklch(0.32 0.033 250);
-  --muted: oklch(0.965 0.008 18);
+  --muted: oklch(0.965 0.004 250);
   --muted-foreground: oklch(0.53 0.014 250);
-  --accent: oklch(0.947 0.029 23);
-  --accent-foreground: oklch(0.42 0.16 24);
+  --accent: oklch(0.947 0.016 250);
+  --accent-foreground: oklch(0.42 0.088 250);
   --destructive: oklch(0.53 0.22 26);
   --destructive-foreground: oklch(0.99 0 0);
   --success: oklch(0.51 0.13 155);
@@ -99,28 +99,28 @@
   --warning-foreground: oklch(0.36 0.08 65);
   --info: oklch(0.49 0.12 255);
   --info-foreground: oklch(0.99 0 0);
-  --border: oklch(0.917 0.012 22);
+  --border: oklch(0.917 0.007 250);
   --input: oklch(0.908 0.008 250);
-  --ring: oklch(0.58 0.2 25);
-  --chart-1: oklch(0.53 0.205 25);
-  --chart-2: oklch(0.66 0.16 24);
+  --ring: oklch(0.58 0.11 250);
+  --chart-1: oklch(0.53 0.11 250);
+  --chart-2: oklch(0.66 0.088 250);
   --chart-3: oklch(0.32 0.041 250);
   --chart-4: oklch(0.73 0.14 76);
   --chart-5: oklch(0.51 0.13 155);
-  --sidebar: oklch(0.37 0.145 24);
-  --sidebar-foreground: oklch(0.98 0.004 20);
+  --sidebar: oklch(0.37 0.08 250);
+  --sidebar-foreground: oklch(0.98 0.002 250);
   --sidebar-primary: oklch(0.99 0 0);
-  --sidebar-primary-foreground: oklch(0.47 0.18 25);
-  --sidebar-accent: oklch(0.44 0.15 24);
+  --sidebar-primary-foreground: oklch(0.47 0.099 250);
+  --sidebar-accent: oklch(0.44 0.083 250);
   --sidebar-accent-foreground: oklch(0.99 0 0);
-  --sidebar-border: oklch(0.56 0.13 24 / 42%);
+  --sidebar-border: oklch(0.56 0.072 250 / 42%);
   --sidebar-ring: oklch(0.99 0 0);
-  --gradient-brand: linear-gradient(160deg, oklch(0.6 0.23 25), var(--primary));
+  --gradient-brand: linear-gradient(160deg, oklch(0.6 0.11 250), var(--primary));
   --gradient-header: linear-gradient(
     112deg,
-    oklch(0.34 0.13 23) 0%,
-    oklch(0.43 0.17 24) 58%,
-    oklch(0.56 0.22 25) 100%
+    oklch(0.34 0.072 250) 0%,
+    oklch(0.43 0.094 250) 58%,
+    oklch(0.56 0.11 250) 100%
   );
   --shadow-card: 0 2px 4px oklch(0.31 0.039 250 / 5%), 0 14px 34px -18px oklch(0.31 0.039 250 / 18%);
   --font-sans: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
@@ -163,7 +163,7 @@
 
 /* Acabamento institucional Formosa */
 ::selection {
-  background: oklch(0.72 0.13 25 / 35%);
+  background: oklch(0.72 0.072 250 / 35%);
 }
 :focus-visible {
   outline: 2px solid var(--ring);
@@ -189,7 +189,7 @@
 
 /* Gestão Formosa: materiais sóbrios e estados semânticos compartilhados. */
 :root {
-  --background: oklch(0.976 0.004 80);
+  --background: oklch(0.982 0.005 250);
   --foreground: oklch(0.29 0.026 260);
   --card-foreground: var(--foreground);
   --primary: oklch(0.43 0.077 250);
@@ -200,7 +200,7 @@
   --accent: oklch(0.96 0.01 250);
   --accent-foreground: var(--primary);
   --ring: var(--primary);
-  --sidebar: oklch(0.25 0.036 250);
+  --sidebar: oklch(0.3 0.06 252);
   --sidebar-border: oklch(0.97 0 0 / 13%);
   --gradient-header: linear-gradient(120deg, oklch(0.29 0.044 250), var(--primary));
   --shadow-card: 0 3px 14px oklch(0.25 0.025 260 / 4%);
@@ -274,7 +274,7 @@
   gap: 11px;
   font-size: 12px;
   font-weight: 500;
-  color: oklch(0.9 0.01 12);
+  color: oklch(0.9 0.006 250);
   transition: background 0.15s;
 }
 .formosa-shell-nav-link:hover {
@@ -292,7 +292,7 @@
   margin-top: auto;
   padding: 14px 0 0;
   border-top: 1px solid var(--sidebar-border);
-  color: oklch(0.82 0.012 12);
+  color: oklch(0.82 0.007 250);
   font-size: 11px;
   line-height: 1.65;
 }
