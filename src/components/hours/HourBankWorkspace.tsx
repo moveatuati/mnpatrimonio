@@ -171,7 +171,7 @@ export function HourBankWorkspace(){
   }
   return <div className="bh-app formosa-operation">
     <header className="bh-head">
-      <div><p className="op-eyebrow">FORMOSA · GESTÃO DE PESSOAS · {UNIT.unit.toUpperCase()}</p>
+      <div><p className="op-eyebrow">MN PATRIMÔNIOS · GESTÃO DE PESSOAS · {UNIT.unit.toUpperCase()}</p>
         <h1>Banco <span>de horas</span></h1>
         <p>Minutos a mais na saída viram crédito. Com 7h acumuladas, o colaborador ganha uma folga.</p></div>
       <label className="bh-date"><CalendarDays size={17}/><span>Posição até</span>

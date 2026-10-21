@@ -148,7 +148,7 @@ export function PointSimulator() {
   }
   return <div className="fp-app formosa-operation">
     <header className="fp-head">
-      <div><p className="op-eyebrow">Formosa · Gestão de Pessoas · {UNIT.unit}</p>
+      <div><p className="op-eyebrow">MN Patrimônios · Gestão de Pessoas · {UNIT.unit}</p>
         <h1>Ponto <span>simulado.</span></h1>
         <p>Registre quatro marcações fictícias, confira desvios e acompanhe o movimento do dia.</p>
       </div>

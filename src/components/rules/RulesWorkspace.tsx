@@ -165,7 +165,7 @@ export function RulesWorkspace(){
     <PageHeader title="Regras & histórico" subtitle="Central de parâmetros, políticas operacionais e rastreabilidade das alterações do RH."/>
     <main className="rh-config">
       <section className="rh-hero">
-        <div><p className="rh-eyebrow">FORMOSA · AUGUSTO MONTENEGRO</p>
+        <div><p className="rh-eyebrow">MN PATRIMÔNIOS · AUGUSTO MONTENEGRO</p>
           <h2>Central de regras da operação</h2>
           <p>Configure horários, intervalos, limites e escalas especiais em um só lugar. Os módulos de Escala, Ponto, Dashboard, Férias, Relatórios e Simulador consultam essas referências.</p></div>
         <div className="rh-hero-count"><span>Equipe de referência</span><strong>63</strong><small>Operadores de caixa · A / B / C</small></div>

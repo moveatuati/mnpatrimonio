@@ -53,9 +53,9 @@ export function EmployeePrintableSheet({ employeeId, date }: { employeeId: strin
       </div>
       <article className="rh-print-sheet" aria-label={`Ficha A4 de ${employee.name}`}>
         <header className="rh-print-head">
-          <img src="/formosa-logo.svg" alt="Formosa" className="rh-print-logo" />
+          <img src={BRAND.logoUrl} alt={BRAND.name} className="rh-print-logo" />
           <div className="rh-print-brand">
-            <span className="rh-print-eyebrow">Formosa · Gestão de Pessoas</span>
+            <span className="rh-print-eyebrow">MN Patrimônios · Gestão de Pessoas</span>
             <h1>Ficha individual do colaborador</h1>
             <p>Unidade {UNIT.unit} · {UNIT.city}</p>
           </div>

@@ -4,9 +4,9 @@ import { FiveTwoWorkspace } from "@/components/simulator/FiveTwoWorkspace";
 export const Route = createFileRoute("/simulador")({
   head: () => ({
     meta: [
-      { title: "Simulador 5×2 · EC 141/2026 — Formosa | Augusto Montenegro" },
+      { title: "Simulador 5×2 · EC 141/2026 — MN Patrimônios | Augusto Montenegro" },
       { name: "description", content: "Estudo de quatro semanas: folgas, jornadas, reforços, cobertura e transição da escala 6×1 para 5×2." },
-      { property: "og:title", content: "Simulador 5×2 · EC 141/2026 — Formosa | Augusto Montenegro" },
+      { property: "og:title", content: "Simulador 5×2 · EC 141/2026 — MN Patrimônios | Augusto Montenegro" },
       { property: "og:description", content: "Estudo de quatro semanas: folgas, jornadas, reforços, cobertura e transição da escala 6×1 para 5×2." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },

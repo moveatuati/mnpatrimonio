@@ -162,7 +162,7 @@ export function CollaboratorsDirectory() {
       <div ref={tableScroll} className="rh-directory-scroll" role="region" tabIndex={0}
         aria-label="Tabela de colaboradores com rolagem vertical; em telas pequenas também horizontal">
         <table className="rh-directory-table w-full min-w-[870px] text-left text-xs">
-          <caption className="sr-only">Colaboradores fictícios da Formosa em {showDate(date)}</caption>
+          <caption className="sr-only">Colaboradores fictícios da MN Patrimônios em {showDate(date)}</caption>
           <thead className="bg-muted/60 text-[11px] uppercase tracking-wide text-muted-foreground">
             <tr>{["Colaborador", "Grupo", "Jornada-base", "Hoje", "Entrada simulada", "Banco de horas", "Atrasos/mês*"].map(label =>
               <th scope="col" className="px-4 py-3 font-semibold" key={label}>{label}</th>)}

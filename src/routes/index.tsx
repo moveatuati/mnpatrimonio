@@ -4,14 +4,14 @@ import { OperationDashboard } from "@/components/dashboard/OperationDashboard";
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Visão da operação — Formosa | Augusto Montenegro" },
+      { title: "Visão da operação — MN Patrimônios | Augusto Montenegro" },
       {
         name: "description",
         content:
-          "Visão gerencial demonstrativa de equipes, entradas e pendências da Formosa, unidade Augusto Montenegro.",
+          "Visão gerencial demonstrativa de equipes, entradas e pendências da MN Patrimônios, unidade Augusto Montenegro.",
       },
-      { property: "og:title", content: "Visão da operação — Formosa | Augusto Montenegro" },
-      { property: "og:description", content: "Visão gerencial demonstrativa de equipes, entradas e pendências da Formosa, unidade Augusto Montenegro." },
+      { property: "og:title", content: "Visão da operação — MN Patrimônios | Augusto Montenegro" },
+      { property: "og:description", content: "Visão gerencial demonstrativa de equipes, entradas e pendências da MN Patrimônios, unidade Augusto Montenegro." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
     ],

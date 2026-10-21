@@ -170,7 +170,7 @@ export function ReportsWorkspace(){
   const ranking=model?.personnel.filter(r=>r.overAlert>0).slice(0,5)??[];
   return <div className="rm-app formosa-operation">
     <header className="rm-top no-print"><div>
-      <p className="op-eyebrow">FORMOSA · GESTÃO DE PESSOAS · {UNIT.unit.toUpperCase()}</p>
+      <p className="op-eyebrow">MN PATRIMÔNIOS · GESTÃO DE PESSOAS · {UNIT.unit.toUpperCase()}</p>
       <h1>Central de <span>relatórios</span></h1>
       <p>Relatórios prontos para o gerente e o RH: riscos de multa, banco de horas, escala de domingo e folgas da semana.</p>
     </div><div className="rm-top-actions">
@@ -243,8 +243,8 @@ export function ReportsWorkspace(){
           </section>:<>
           <section className="rm-paper rm-panel">
             <div className="rm-paper-head">
-              <img src="/formosa-logo.svg" alt="Marca Formosa" className="rm-logo"/>
-              <div><p>FORMOSA · GESTÃO DE PESSOAS</p><h2>{caption.title}</h2>
+              <img src={BRAND.logoUrl} alt={BRAND.name} className="rm-logo"/>
+              <div><p>MN PATRIMÔNIOS · GESTÃO DE PESSOAS</p><h2>{caption.title}</h2>
                 <span>Unidade {UNIT.unit} · {UNIT.city}</span></div>
               <div className="rm-report-label"><b>DEMONSTRAÇÃO</b><span>Relatório gerencial</span></div>
             </div>
@@ -356,7 +356,7 @@ export function ReportsWorkspace(){
             </div>}
             <div className="rm-method"><Info size={15}/><p><b>Critério e ressalva:</b> {sheet.note}</p></div>
             <div className="rm-paper-footer">
-              <span>FORMOSA · {UNIT.unit} · {UNIT.city}</span>
+              <span>MN PATRIMÔNIOS · {UNIT.unit} · {UNIT.city}</span>
               <span>Arquivo demonstrativo — dados fictícios · não oficial</span>
               <span className="rm-page-number">Página </span>
             </div>

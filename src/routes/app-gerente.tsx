@@ -4,9 +4,9 @@ import { ManagerApp } from "@/components/manager/ManagerApp";
 export const Route = createFileRoute("/app-gerente")({
   head: () => ({
     meta: [
-      { title: "App do gerente (prévia) — Formosa | Augusto Montenegro" },
+      { title: "App do gerente (prévia) — MN Patrimônios | Augusto Montenegro" },
       { name: "description", content: "Prévia do aplicativo dos gerentes: chegadas por turno, alertas de atraso, banco de horas e envio ao RH." },
-      { property: "og:title", content: "App do gerente (prévia) — Formosa | Augusto Montenegro" },
+      { property: "og:title", content: "App do gerente (prévia) — MN Patrimônios | Augusto Montenegro" },
       { property: "og:description", content: "Prévia do aplicativo dos gerentes: chegadas por turno, alertas de atraso, banco de horas e envio ao RH." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },

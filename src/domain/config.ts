@@ -7,7 +7,7 @@ export const UNIT = {
   cnpj: "63.864.771/0007-32",
   unit: "Augusto Montenegro",
   city: "Belém/PA",
-  system: "Formosa • Gestão de Pessoas",
+  system: "MN Patrimônios • Gestão de Pessoas",
 };
 
 /** Horários-base (configuráveis). Jornada de 7h20 em todos os grupos. */
