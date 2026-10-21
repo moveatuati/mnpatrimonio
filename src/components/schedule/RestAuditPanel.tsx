@@ -1,7 +1,9 @@
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { Printer } from "lucide-react";
 import { GROUPS } from "@/domain/config";
 import { dateOffset, restAudit, startOfWeek, type ScheduleStore } from "@/domain/schedule";
+import { PrintHeader } from "@/components/print/PrintHeader";
+import { printNode } from "@/lib/print";
 import "./RestAuditPanel.css";
 
 const br = (d: string | null) => (d ? d.slice(8, 10) + "/" + d.slice(5, 7) : "—");
@@ -16,27 +18,17 @@ export function RestAuditPanel({ store, date }: { store: ScheduleStore; date: st
   const rows = audit.rows.filter(r => (!onlyIssues || r.problems.length > 0) &&
     (!q || (r.employee.name + " " + r.employee.id).toLocaleLowerCase("pt-BR").includes(q)));
 
-  function printIt() {
-    document.body.dataset.printing = "audit";
-    const done = () => { delete document.body.dataset.printing; window.removeEventListener("afterprint", done); };
-    window.addEventListener("afterprint", done);
-    window.print();
-    window.setTimeout(done, 1500);
-  }
+  const ref = useRef<HTMLElement | null>(null);
+  function printIt() { printNode(ref.current, { title: "Conferência de folgas " + br(start) }); }
 
-  return <article className="ra ra-print">
-    <header className="ra-head">
-      <div>
-        <h2>Conferência de folgas · 4 domingos</h2>
-        <p><b>Regra:</b> trabalhou no domingo → <b>1 folga antes</b> (segunda a sábado da mesma semana) e <b>1 folga depois</b> (segunda a sábado da semana seguinte). Não trabalhou → folga no domingo.</p>
-      </div>
-      <button type="button" className="ra-btn" onClick={printIt}><Printer size={16} /> Imprimir</button>
-    </header>
-
+  return <article className="ra ra-print" ref={ref}>
+    <PrintHeader title="Conferência de folgas · 4 domingos"
+      subtitle={"Regra: trabalhou no domingo = 1 folga antes + 1 folga depois. Não trabalhou = folga no domingo. A partir de " + br(start)} />
     <div className="ra-cards">
-      <div className="ra-card ra-ok"><strong>{audit.ok}</strong><span>✅ Pessoas com folgas em dia</span></div>
-      <div className={"ra-card " + (audit.pending ? "ra-bad" : "ra-ok")}><strong>{audit.pending}</strong><span>{audit.pending ? "⚠️ Com folga faltando" : "Nenhuma pendência"}</span></div>
-      {audit.sundays.map((s, i) => <div key={s} className="ra-card ra-sun"><strong>{audit.workersPerSunday[i]}</strong><span>Trabalham dom. {br(s)}</span></div>)}
+      <span className="ra-card ra-ok"><strong>{audit.ok}</strong> em dia</span>
+      <span className={"ra-card " + (audit.pending ? "ra-bad" : "ra-ok")}><strong>{audit.pending}</strong> {audit.pending ? "com folga faltando" : "pendências"}</span>
+      {audit.sundays.map((s, i) => <span key={s} className="ra-card ra-sun"><strong>{audit.workersPerSunday[i]}</strong> no dom. {br(s)}</span>)}
+      <button type="button" className="ra-btn no-print" onClick={printIt}><Printer size={16} /> Imprimir</button>
     </div>
 
     <div className="ra-tools">
@@ -51,13 +43,13 @@ export function RestAuditPanel({ store, date }: { store: ScheduleStore; date: st
       <table className="ra-table">
         <thead><tr><th>Colaborador</th>{audit.sundays.map(s => <th key={s}>Domingo {br(s)}</th>)}<th>Situação</th></tr></thead>
         <tbody>{rows.map(r => <tr key={r.employee.id} className={r.problems.length ? "ra-row-bad" : ""}>
-          <td><b>{r.employee.name}</b><small>{r.employee.id} · {GROUPS[r.employee.group].name}</small></td>
+          <td><b>{r.employee.name}</b> <small>{r.employee.id} · {GROUPS[r.employee.group].name}</small></td>
           {r.checks.map(c => <td key={c.sunday} className={c.worked ? (c.ok ? "ra-work" : "ra-miss") : "ra-off"}>
             {c.worked
-              ? <><b>Trabalha</b><small>antes: {br(c.before)} · depois: {br(c.after)}</small></>
-              : <b>Folga no domingo</b>}
+              ? <><b>Trabalha</b> <small>folgas {br(c.before)} e {br(c.after)}</small></>
+              : <span>Folga</span>}
           </td>)}
-          <td>{r.problems.length ? <span className="ra-tag-bad" title={r.problems.join(" ")}>⚠️ {r.problems.length} pendência(s)</span> : <span className="ra-tag-ok">✅ Em dia</span>}</td>
+          <td>{r.problems.length ? <span className="ra-tag-bad" title={r.problems.join(" ")}>⚠️ {r.problems.length}</span> : <span className="ra-tag-ok">✅ OK</span>}</td>
         </tr>)}</tbody>
       </table>
       {!rows.length && <p className="ra-empty">{onlyIssues ? "Ninguém com pendência. 👍" : "Nenhum colaborador encontrado."}</p>}
