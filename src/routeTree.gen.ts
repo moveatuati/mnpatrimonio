@@ -10,14 +10,14 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AppGerenteRouteImport } from './routes/app-gerente'
 import { Route as BancoDeHorasRouteImport } from './routes/banco-de-horas'
+import { Route as CelularRouteImport } from './routes/celular'
 import { Route as ColaboradoresRouteImport } from './routes/colaboradores'
 import { Route as EscalaRouteImport } from './routes/escala'
 import { Route as FeriasRouteImport } from './routes/ferias'
 import { Route as FichaColaboradorRouteImport } from './routes/ficha-colaborador'
 import { Route as PontoRouteImport } from './routes/ponto'
-import { Route as AppGerenteRouteImport } from './routes/app-gerente'
-import { Route as CelularRouteImport } from './routes/celular'
 import { Route as RegrasRouteImport } from './routes/regras'
 import { Route as RelatoriosRouteImport } from './routes/relatorios'
 import { Route as SimuladorRouteImport } from './routes/simulador'
@@ -27,9 +27,19 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AppGerenteRoute = AppGerenteRouteImport.update({
+  id: '/app-gerente',
+  path: '/app-gerente',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const BancoDeHorasRoute = BancoDeHorasRouteImport.update({
   id: '/banco-de-horas',
   path: '/banco-de-horas',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CelularRoute = CelularRouteImport.update({
+  id: '/celular',
+  path: '/celular',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ColaboradoresRoute = ColaboradoresRouteImport.update({
@@ -57,16 +67,6 @@ const PontoRoute = PontoRouteImport.update({
   path: '/ponto',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AppGerenteRoute = AppGerenteRouteImport.update({
-  id: '/app-gerente',
-  path: '/app-gerente',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const CelularRoute = CelularRouteImport.update({
-  id: '/celular',
-  path: '/celular',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const RegrasRoute = RegrasRouteImport.update({
   id: '/regras',
   path: '/regras',
@@ -85,28 +85,28 @@ const SimuladorRoute = SimuladorRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/app-gerente': typeof AppGerenteRoute
   '/banco-de-horas': typeof BancoDeHorasRoute
+  '/celular': typeof CelularRoute
   '/colaboradores': typeof ColaboradoresRoute
   '/escala': typeof EscalaRoute
   '/ferias': typeof FeriasRoute
   '/ficha-colaborador': typeof FichaColaboradorRoute
   '/ponto': typeof PontoRoute
-  '/app-gerente': typeof AppGerenteRoute
-  '/celular': typeof CelularRoute
   '/regras': typeof RegrasRoute
   '/relatorios': typeof RelatoriosRoute
   '/simulador': typeof SimuladorRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/app-gerente': typeof AppGerenteRoute
   '/banco-de-horas': typeof BancoDeHorasRoute
+  '/celular': typeof CelularRoute
   '/colaboradores': typeof ColaboradoresRoute
   '/escala': typeof EscalaRoute
   '/ferias': typeof FeriasRoute
   '/ficha-colaborador': typeof FichaColaboradorRoute
   '/ponto': typeof PontoRoute
-  '/app-gerente': typeof AppGerenteRoute
-  '/celular': typeof CelularRoute
   '/regras': typeof RegrasRoute
   '/relatorios': typeof RelatoriosRoute
   '/simulador': typeof SimuladorRoute
@@ -114,14 +114,14 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/app-gerente': typeof AppGerenteRoute
   '/banco-de-horas': typeof BancoDeHorasRoute
+  '/celular': typeof CelularRoute
   '/colaboradores': typeof ColaboradoresRoute
   '/escala': typeof EscalaRoute
   '/ferias': typeof FeriasRoute
   '/ficha-colaborador': typeof FichaColaboradorRoute
   '/ponto': typeof PontoRoute
-  '/app-gerente': typeof AppGerenteRoute
-  '/celular': typeof CelularRoute
   '/regras': typeof RegrasRoute
   '/relatorios': typeof RelatoriosRoute
   '/simulador': typeof SimuladorRoute
@@ -130,42 +130,42 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/app-gerente'
     | '/banco-de-horas'
+    | '/celular'
     | '/colaboradores'
     | '/escala'
     | '/ferias'
     | '/ficha-colaborador'
     | '/ponto'
-    | '/app-gerente'
-    | '/celular'
     | '/regras'
     | '/relatorios'
     | '/simulador'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/app-gerente'
     | '/banco-de-horas'
+    | '/celular'
     | '/colaboradores'
     | '/escala'
     | '/ferias'
     | '/ficha-colaborador'
     | '/ponto'
-    | '/app-gerente'
-    | '/celular'
     | '/regras'
     | '/relatorios'
     | '/simulador'
   id:
     | '__root__'
     | '/'
+    | '/app-gerente'
     | '/banco-de-horas'
+    | '/celular'
     | '/colaboradores'
     | '/escala'
     | '/ferias'
     | '/ficha-colaborador'
     | '/ponto'
-    | '/app-gerente'
-    | '/celular'
     | '/regras'
     | '/relatorios'
     | '/simulador'
@@ -173,14 +173,14 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AppGerenteRoute: typeof AppGerenteRoute
   BancoDeHorasRoute: typeof BancoDeHorasRoute
+  CelularRoute: typeof CelularRoute
   ColaboradoresRoute: typeof ColaboradoresRoute
   EscalaRoute: typeof EscalaRoute
   FeriasRoute: typeof FeriasRoute
   FichaColaboradorRoute: typeof FichaColaboradorRoute
   PontoRoute: typeof PontoRoute
-  AppGerenteRoute: typeof AppGerenteRoute
-  CelularRoute: typeof CelularRoute
   RegrasRoute: typeof RegrasRoute
   RelatoriosRoute: typeof RelatoriosRoute
   SimuladorRoute: typeof SimuladorRoute
@@ -195,11 +195,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/app-gerente': {
+      id: '/app-gerente'
+      path: '/app-gerente'
+      fullPath: '/app-gerente'
+      preLoaderRoute: typeof AppGerenteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/banco-de-horas': {
       id: '/banco-de-horas'
       path: '/banco-de-horas'
       fullPath: '/banco-de-horas'
       preLoaderRoute: typeof BancoDeHorasRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/celular': {
+      id: '/celular'
+      path: '/celular'
+      fullPath: '/celular'
+      preLoaderRoute: typeof CelularRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/colaboradores': {
@@ -237,20 +251,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PontoRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/app-gerente': {
-      id: '/app-gerente'
-      path: '/app-gerente'
-      fullPath: '/app-gerente'
-      preLoaderRoute: typeof AppGerenteRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/celular': {
-      id: '/celular'
-      path: '/celular'
-      fullPath: '/celular'
-      preLoaderRoute: typeof CelularRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/regras': {
       id: '/regras'
       path: '/regras'
@@ -277,14 +277,14 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AppGerenteRoute: AppGerenteRoute,
   BancoDeHorasRoute: BancoDeHorasRoute,
+  CelularRoute: CelularRoute,
   ColaboradoresRoute: ColaboradoresRoute,
   EscalaRoute: EscalaRoute,
   FeriasRoute: FeriasRoute,
   FichaColaboradorRoute: FichaColaboradorRoute,
   PontoRoute: PontoRoute,
-  AppGerenteRoute: AppGerenteRoute,
-  CelularRoute: CelularRoute,
   RegrasRoute: RegrasRoute,
   RelatoriosRoute: RelatoriosRoute,
   SimuladorRoute: SimuladorRoute,
