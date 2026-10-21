@@ -4,7 +4,7 @@ import { INTERVIEW_QUESTIONS, formatPhone } from "@/domain/candidates";
 import {
   ABOUT_LIMIT, ANSWER_LIMIT, isPhone, readInvite, replyMessage, replyMissing, replyUrl, whatsappUrl, type Invite, type Reply,
 } from "@/domain/candidate-link";
-import { BRAND } from "@/lib/brand";
+import { BRAND, publicOrigin } from "@/lib/brand";
 import "./CandidateInterviewPage.css";
 
 type Draft = { name: string; phone: string; answers: Reply["answers"]; step: number };
@@ -47,11 +47,10 @@ export function CandidateInterviewPage() {
     if (!invite || missing.length) return;
     const rep: Reply = { v: 1, id: invite.id, name: draft.name.trim(), phone: draft.phone, role: invite.role, condoId: invite.condoId, functionId: invite.functionId, interviewer: invite.interviewer,
       answers, sentAt: new Date(Date.now() - 3 * 3600000).toISOString().slice(0, 19) };
-    const url = replyUrl(window.location.origin, rep);
+    const url = replyUrl(publicOrigin(), rep);
     const wa = whatsappUrl(invite.interviewerPhone, replyMessage(rep, url));
     setSent({ wa, url });
     try { window.localStorage.removeItem(draftKey(invite.id)); } catch { /* ok */ }
-    window.open(wa, "_blank", "noopener");
   }
   async function copy(text: string) {
     try { await navigator.clipboard.writeText(text); setCopied(true); window.setTimeout(() => setCopied(false), 2500); } catch { setCopied(false); }
@@ -65,9 +64,9 @@ export function CandidateInterviewPage() {
 
     {sent ? <main className="ci-card ci-center">
       <span className="ci-done"><Check size={30} /></span>
-      <h1>Respostas prontas para envio!</h1>
-      <p>O WhatsApp foi aberto com a mensagem para <b>{invite.interviewer}</b>. Toque em <b>enviar</b> no WhatsApp para concluir.</p>
-      <a className="ci-btn ci-btn-wa" href={sent.wa} target="_blank" rel="noopener noreferrer"><MessageCircle size={18} /> Abrir WhatsApp novamente</a>
+      <h1>Falta só um passo!</h1>
+      <p>Toque no botão verde para enviar suas respostas pelo WhatsApp para <b>{invite.interviewer}</b>. No WhatsApp, toque em <b>enviar</b>.</p>
+      <a className="ci-btn ci-btn-wa" href={sent.wa} target="_blank" rel="noopener noreferrer"><MessageCircle size={18} /> Enviar pelo WhatsApp</a>
       <button className="ci-btn ci-btn-ghost" onClick={() => copy(sent.url)}><Copy size={16} /> {copied ? "Link copiado!" : "Copiar link das respostas"}</button>
       <p className="ci-small">Obrigado pelo interesse na MN Patrimônios. Entraremos em contato.</p>
     </main> : <main className="ci-card">

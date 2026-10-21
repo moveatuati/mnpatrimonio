@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   AlertTriangle, Archive, Camera, Check, CheckCircle2, ChevronLeft, ChevronRight, ClipboardCheck, FileSignature,
-  Copy, Info, Link2, Lock, MessageCircle, MessageSquareText, Plus, Printer, RotateCcw, Search, Send, Star, Trash2, UserCheck, UserPlus, UserX, Users, X,
+  Copy, Eye, Info, Link2, Lock, MessageCircle, MessageSquareText, Plus, Printer, RotateCcw, Search, Send, Star, Trash2, UserCheck, UserPlus, UserX, Users, X,
 } from "lucide-react";
 import {
   CANDIDATE_KEY, CRITERIA, EXPERIENCE_SLOTS, FORM_SECTIONS, INTERVIEW_QUESTIONS, REFERENCE_GROUPS, STAGE_LABELS,
@@ -17,6 +17,7 @@ import {
 import { loadClients, todayISO } from "@/lib/demo-storage";
 import { demoClients, type ClientStore } from "@/domain/clients";
 import { printNode } from "@/lib/print";
+import { publicOrigin } from "@/lib/brand";
 import { PrintHeader } from "@/components/print/PrintHeader";
 import "./CandidatesWorkspace.css";
 
@@ -314,7 +315,7 @@ function InviteBox({ c, me, setMe, condo, onSent }: { c: Candidate; condo: strin
   const [editMe, setEditMe] = useState(!me.name || me.phone.replace(/\D/g, "").length < 10);
   const [copied, setCopied] = useState(false);
   const missing = inviteMissing(c, me);
-  const origin = typeof window === "undefined" ? "" : window.location.origin;
+  const origin = publicOrigin();
   const url = missing.length ? "" : inviteUrl(origin, makeInvite(c, me, condo));
   async function copy() {
     if (!url) return;
@@ -329,12 +330,12 @@ function InviteBox({ c, me, setMe, condo, onSent }: { c: Candidate; condo: strin
       <label className="cd-f"><span>Seu WhatsApp (recebe as respostas) *</span><input inputMode="tel" value={me.phone} onChange={e => setMe({ ...me, phone: formatPhone(e.target.value) })} /></label>
       <button type="button" className="cd-btn cd-btn-sm cd-me-ok" disabled={!me.name.trim() || me.phone.replace(/\D/g, "").length < 10} onClick={() => setEditMe(false)}><Check size={14} /> Salvar meus dados</button>
     </div> : <p className="cd-me-line">Entrevistador: <b>{me.name}</b> · respostas chegam no WhatsApp <b>{me.phone}</b> <button type="button" className="cd-link" onClick={() => setEditMe(true)}>alterar</button></p>}
-    {missing.length ? <p className="cd-warn cd-invite-miss"><AlertTriangle size={14} /> Para gerar o link, informe: {missing.join(", ")}.</p>
+    {missing.length ? <p className="cd-warn cd-invite-miss"><AlertTriangle size={14} /> O link aparece aqui assim que você informar: <b>{missing.join(", ")}</b>.</p>
       : <div className="cd-actions">
         <a className="cd-btn cd-btn-wa" href={whatsappUrl(c.phone, inviteMessage(makeInvite(c, me, condo), url))} target="_blank" rel="noopener noreferrer" onClick={() => onSent(nowISO())}>
           <MessageCircle size={15} /> Enviar link pelo WhatsApp</a>
         <button type="button" className="cd-btn" onClick={copy}><Copy size={15} /> {copied ? "Mensagem copiada!" : "Copiar link"}</button>
-        <a className="cd-link" href={url} target="_blank" rel="noopener noreferrer">ver como o candidato vê</a>
+        <a className="cd-btn" href={url} target="_blank" rel="noopener noreferrer"><Eye size={15} /> Ver como o candidato vê</a>
       </div>}
   </div>;
 }
