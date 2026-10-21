@@ -60,14 +60,17 @@ function PhoneScreen({ d, tab, setTab, onSettings }: {
   d: ReturnType<typeof useManagerDemo>; tab: PhoneTab; setTab: (t: PhoneTab) => void; onSettings?: () => void;
 }) {
   return <>
+    <div className="ma-brand">
+      <img src="/formosa-logo-oficial.png" alt="Formosa" className="ma-brand-logo" />
+      <div className="ma-brand-text"><b>App do Gerente</b><span>{UNIT.unit}</span></div>
+      {onSettings && <button type="button" className="ma-gear" aria-label="Controles da demonstração" onClick={onSettings}>⚙️</button>}
+    </div>
     <div className="ma-phone-head">
-      <img src="/formosa-logo.svg" alt="Formosa" className="ma-phone-logo" />
       <div className="ma-phone-hello">
         <b>Olá, Gerente</b>
         <span>{d.me.name.replace(" (demo)", "")} · {br(d.date)} · {d.now}</span>
         <span>{movementPeriod(d.date).kind === "alta" ? "🔴 Alto movimento" : "🟢 Baixo movimento"}</span>
       </div>
-      {onSettings && <button type="button" className="ma-gear" aria-label="Controles da demonstração" onClick={onSettings}>⚙️</button>}
     </div>
     <div className="ma-phone-body">
       {tab === "agora" && <NowTab board={d.board} />}

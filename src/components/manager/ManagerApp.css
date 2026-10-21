@@ -98,3 +98,15 @@
 .mm-sheet label{justify-content:space-between}
 .mm-sheet input,.mm-sheet select{font-size:16px!important}
 .mm-sheet .ma-steps{flex-wrap:wrap}.mm-sheet .ma-steps button{flex:1;padding:10px}
+
+/* Faixa da marca no topo do app: logo oficial Formosa em destaque */
+.ma-brand{display:flex;align-items:center;gap:10px;padding:8px 12px;background:#fff;border-bottom:3px solid #ed1d26}
+.ma-brand-logo{height:46px;width:auto;display:block}
+.ma-brand-text{flex:1;min-width:0;line-height:1.15}
+.ma-brand-text b{display:block;font-size:15px;color:#20419c;font-weight:850}
+.ma-brand-text span{font-size:11.5px;color:#6d5d65}
+.ma-brand .ma-gear{background:#f4eef1;color:#7a2440}
+.ma-phone-head{padding:9px 14px}
+.mm .ma-brand{padding:calc(env(safe-area-inset-top) + 8px) 12px 8px}
+.mm .ma-brand-logo{height:50px}
+.mm .ma-phone-head{padding:9px 14px}

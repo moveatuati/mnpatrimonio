@@ -12,6 +12,11 @@ export const Route = createFileRoute("/celular")({
       { name: "mobile-web-app-capable", content: "yes" },
       { name: "apple-mobile-web-app-title", content: "Formosa Gerente" },
     ],
+    links: [
+      { rel: "manifest", href: "/gerente.webmanifest" },
+      { rel: "apple-touch-icon", href: "/formosa-apple-touch.png" },
+      { rel: "icon", type: "image/png", sizes: "192x192", href: "/formosa-app-192.png" },
+    ],
   }),
   component: MobileManagerApp,
 });
