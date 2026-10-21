@@ -32,3 +32,10 @@ Demonstração com dados fictícios. Baseada nas folhas reais da Formosa (escala
 1. ~~Domingo trabalhado gera duas folgas?~~ Confirmado: uma antes e uma depois.
 2. A pausa de 15 minutos do domingo é registrada no ponto?
 3. Metas mínimas dos dias úteis no alto e no baixo movimento (hoje: 50 e 48 operadores).
+
+## App do gerente (prévia) — aba provisória `/app-gerente`
+
+- **Celular do gerente:** Agora (chegadas por turno, tolerância de 10 min), Alertas (atraso no momento da batida, só para gerentes na loja naquele horário; botões Ciente e Enviar ao RH), Banco (busca por nome, “pode sair mais cedo?”, autoriza e informa o RH), Equipe (folgas, férias, domingo, banco ≥ 7h).
+- **Computador do RH:** fila de ocorrências, “Gerar advertência” (numerada, com logo, dados do colaborador e horários), impressão em A4, “Assinada ✔” arquiva no histórico.
+- **O gerente não vê:** salário, diagnóstico de atestados, histórico disciplinar completo, simulador e configurações.
+- Simulação: hora ajustável e batidas fictícias; o relógio de ponto oficial será conectado depois.

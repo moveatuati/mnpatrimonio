@@ -1,5 +1,5 @@
 import {
-  LayoutDashboard, Users, CalendarClock, Fingerprint, Plane, Hourglass, FileText, FlaskConical, ScrollText,
+  LayoutDashboard, Users, CalendarClock, Fingerprint, Plane, Hourglass, FileText, FlaskConical, ScrollText, Smartphone,
 } from "lucide-react";
 
 export const NAV = [
@@ -12,4 +12,5 @@ export const NAV = [
   { to: "/relatorios", label: "Relatórios", icon: FileText },
   { to: "/simulador", label: "Simulador 5×2", icon: FlaskConical },
   { to: "/regras", label: "Regras & histórico", icon: ScrollText },
+  { to: "/app-gerente", label: "App do gerente (prévia)", icon: Smartphone },
 ] as const;

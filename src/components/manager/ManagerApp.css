@@ -1,0 +1,82 @@
+/* App do gerente (prévia) — celular simulado + painel do RH */
+.ma{max-width:1300px;margin:0 auto;padding:22px 24px 48px;color:#2c2228;font-size:14px}
+.ma-top{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-end;gap:12px;margin-bottom:12px}
+.ma-top h1{margin:4px 0 2px;font-size:28px;font-weight:850}.ma-top h1 span{color:#a23756;font-size:18px}
+.ma-top p{margin:0;color:#6f5f67}
+.ma-switch{display:flex;gap:6px;padding:4px;border-radius:12px;background:#f6ecf0}
+.ma-switch button{display:flex;align-items:center;gap:6px;padding:9px 14px;border-radius:9px;border:0;background:transparent;font-weight:800;color:#7a2440;cursor:pointer}
+.ma-switch button.on{background:#7a2440;color:#fff}
+.ma-sim{display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px;padding:10px 12px;margin-bottom:14px;border:1px dashed #d6bcc7;border-radius:12px;background:#fffafc;font-weight:700}
+.ma-sim label{display:flex;align-items:center;gap:6px}
+.ma-sim input,.ma-sim select{padding:7px 9px;border-radius:8px;border:1px solid #d9c3cc;background:#fff;font-size:14px}
+.ma-steps{display:flex;gap:4px}.ma-steps button{padding:7px 9px;border-radius:8px;border:1px solid #d9c3cc;background:#fff;font-weight:800;cursor:pointer}
+.ma-duty{font-size:12.5px;color:#6f5f67;font-weight:600}
+.ma-layout{display:grid;grid-template-columns:400px minmax(0,1fr);gap:20px;align-items:start}
+.ma-phone{width:100%;max-width:400px;height:760px;display:flex;flex-direction:column;border:10px solid #1f1a1d;border-radius:36px;background:#f7f3f5;overflow:hidden;box-shadow:0 20px 40px -24px rgb(0 0 0 / 50%)}
+.ma-phone-head{padding:14px 16px 10px;background:linear-gradient(125deg,#a83b59,#6b1f39);color:#fff}
+.ma-phone-head b{display:block;font-size:16px}.ma-phone-head span{font-size:12px;opacity:.9}
+.ma-phone-body{flex:1;overflow:auto;padding:10px}
+.ma-tabs{display:grid;grid-template-columns:repeat(4,1fr);background:#fff;border-top:1px solid #e6d8de}
+.ma-tabs button{position:relative;display:flex;flex-direction:column;align-items:center;gap:2px;padding:8px 0 10px;border:0;background:none;color:#8a7480;font-size:11.5px;font-weight:700;cursor:pointer}
+.ma-tabs button.on{color:#7a2440}
+.ma-tabs b{position:absolute;top:4px;right:22%;min-width:18px;padding:1px 5px;border-radius:10px;background:#d33b2f;color:#fff;font-size:11px}
+.ma-list{display:flex;flex-direction:column;gap:8px}
+.ma-card{background:#fff;border-radius:14px;padding:10px 12px;border:1px solid #eadde3}
+.ma-card-head{display:flex;justify-content:space-between;align-items:center;gap:8px;width:100%;border:0;background:none;padding:0;text-align:left;cursor:pointer}
+.ma-card-head.static{cursor:default}
+.ma-card-head b{display:block;font-size:15px}.ma-card-head small{font-size:11.5px;color:#7c6670}
+.ma-card-head strong{font-size:22px;font-weight:850;color:#6f2240}
+.ma-chips{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px}
+.ma-chips span{font-size:12px;font-weight:700;padding:3px 8px;border-radius:12px}
+.c-ok{background:#eafaf1;color:#176840}.c-late{background:#fff0ef;color:#a3271d}.c-wait{background:#fff8e6;color:#8a5d00}.c-miss{background:#f1f1f3;color:#4e5864}
+.ma-rows{list-style:none;margin:8px 0 0;padding:0;display:flex;flex-direction:column;gap:3px}
+.ma-rows li{display:grid;grid-template-columns:22px minmax(0,1fr) auto;align-items:center;gap:4px;font-size:13px;padding:3px 0;border-top:1px solid #f2e9ed}
+.ma-rows li small{color:#6d5d65;font-size:12px}
+.ma-rows li.s-atrasado small{color:#b02f25;font-weight:800}
+.ma-link{margin-top:6px;border:0;background:none;color:#7a2440;font-weight:800;font-size:12.5px;cursor:pointer;padding:0}
+.ma-muted{margin:6px 0 0;font-size:12.5px;color:#7c6670}
+.ma-empty{padding:16px;text-align:center;color:#6d5d65;font-weight:700}
+.ma-alert{background:#fff;border-radius:14px;padding:10px 12px;border:1px solid #eadde3;border-left:5px solid #e05a4f;display:flex;flex-direction:column;gap:5px}
+.ma-alert.st-ciente{border-left-color:#e8b33b}.ma-alert.st-enviado_rh,.ma-alert.st-advertencia,.ma-alert.st-arquivado{border-left-color:#9aa3ad;opacity:.85}
+.ma-alert-top{display:flex;justify-content:space-between;gap:6px;align-items:center}
+.ma-alert p{margin:0;font-size:13.5px}.ma-alert small{font-size:11.5px;color:#7c6670}
+.ma-status{font-size:11px;font-weight:800;padding:2px 7px;border-radius:10px;background:#f4eef1;color:#6f2240;white-space:nowrap}
+.ma-alert input,.ma-card input,.ma-card select,.ma-search{width:100%;padding:9px 10px;border-radius:10px;border:1px solid #d9c3cc;font-size:14px;background:#fff}
+.ma-actions{display:flex;gap:6px}.ma-actions button{flex:1;padding:9px;border-radius:10px;border:1px solid #d9c3cc;background:#fff;font-weight:800;cursor:pointer}
+.ma-actions .primary,.ma-big{background:#7a2440!important;color:#fff;border-color:#7a2440}
+.ma-big{width:100%;margin-top:6px;padding:11px;border-radius:12px;border:0;font-weight:800;font-size:14.5px;cursor:pointer}
+.ma-pick{text-align:left;padding:9px 10px;border-radius:10px;border:1px solid #eadde3;background:#fff;font-weight:700;cursor:pointer}
+.ma-pick small{color:#8a7480;margin-left:6px}
+.ma-row{display:flex;gap:6px;margin-top:8px}
+.ma-answer{margin:6px 0;padding:8px 10px;border-radius:10px;font-weight:700;font-size:13px}.ma-answer.yes{background:#eafaf1;color:#176840}.ma-answer.no{background:#fff0ef;color:#a3271d}
+.ma-msg{margin:0;padding:10px;border-radius:10px;background:#eef5ff;color:#24527d;font-weight:700}
+.bl-vermelho .ma-card-head strong{color:#c0362c}.bl-amarelo .ma-card-head strong{color:#a87300}.bl-verde .ma-card-head strong{color:#1c7a4c}.bl-negativo .ma-card-head strong{color:#4e5864}
+.ma-guide{background:#fff;border:1px solid #eadde3;border-radius:14px;padding:16px 18px}
+.ma-guide h2{margin:0 0 6px;font-size:17px;color:#6f2240}
+.ma-guide ul{margin:0 0 14px;padding-left:18px;display:flex;flex-direction:column;gap:5px;font-size:14px}
+.ma-guide ul.hide li::marker{content:"🚫 "}.ma-guide ul.see li::marker{content:"✅ "}
+.ma-rh{display:flex;flex-direction:column;gap:12px}
+.ma-rh-cards{display:flex;flex-wrap:wrap;gap:8px}
+.ma-rh-cards span{padding:6px 12px;border-radius:10px;border:1px solid #eadde3;background:#fff;font-weight:700}
+.ma-rh-cards b{font-size:18px;color:#6f2240;margin-right:4px}
+.ma-table{width:100%;border-collapse:collapse;background:#fff;border:1px solid #eadde3;border-radius:12px;overflow:hidden;font-size:13px}
+.ma-table th{background:#f6eff2;text-align:left;padding:7px 8px;font-size:12px}
+.ma-table td{padding:6px 8px;border-top:1px solid #f0e6ea}
+.ma-table tr.sel td{background:#fff6f9}
+.ma-td-actions{display:flex;gap:4px;flex-wrap:wrap}
+.ma-td-actions button,.ma-doc-actions button{padding:6px 10px;border-radius:8px;border:1px solid #d9c3cc;background:#fff;font-weight:800;color:#7a2440;cursor:pointer}
+.st-novo{background:#fff0ef!important;color:#a3271d!important}.st-enviado_rh{background:#fff8e6!important;color:#8a5d00!important}.st-advertencia{background:#eef3fb!important;color:#1e4fa3!important}.st-arquivado,.st-informado{background:#eafaf1!important;color:#176840!important}
+.ma-doc{background:#fff;border:1px solid #cfc6ca;border-radius:6px;padding:20px 24px;max-width:820px;font-family:Arial,Helvetica,sans-serif;font-size:13.5px;line-height:1.55}
+.ma-doc-data{width:100%;border-collapse:collapse;margin:6px 0 12px;font-size:12.5px}
+.ma-doc-data th,.ma-doc-data td{border:1px solid #555;padding:4px 6px;text-align:left}.ma-doc-data th{background:#f4f4f4;width:16%}
+.ma-doc-place{margin-top:14px}
+.ma-sign{display:flex;gap:20px;margin-top:42px}
+.ma-sign span{flex:1;border-top:1px solid #333;padding-top:4px;text-align:center;font-size:11.5px;font-weight:700}
+.ma-sign small{display:block;font-weight:400}
+.ma-doc-note{font-size:11px;color:#8a5a00;margin-top:12px}
+.ma-doc-actions{display:flex;gap:8px;margin-top:10px}
+.ma-history{background:#fff;border:1px solid #eadde3;border-radius:12px;padding:10px 14px}
+.ma-history h3{display:flex;align-items:center;gap:6px;margin:0 0 6px;font-size:14px}
+.ma-history ul{margin:0;padding-left:18px;font-size:12.5px}
+.print-compact .ma-doc{border:0;padding:0;max-width:none}
+@media (max-width:900px){.ma-layout{grid-template-columns:1fr}.ma-phone{max-width:420px;margin:0 auto;height:680px}.ma{padding:16px 12px}}

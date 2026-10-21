@@ -16,6 +16,7 @@ import { Route as EscalaRouteImport } from './routes/escala'
 import { Route as FeriasRouteImport } from './routes/ferias'
 import { Route as FichaColaboradorRouteImport } from './routes/ficha-colaborador'
 import { Route as PontoRouteImport } from './routes/ponto'
+import { Route as AppGerenteRouteImport } from './routes/app-gerente'
 import { Route as RegrasRouteImport } from './routes/regras'
 import { Route as RelatoriosRouteImport } from './routes/relatorios'
 import { Route as SimuladorRouteImport } from './routes/simulador'
@@ -55,6 +56,11 @@ const PontoRoute = PontoRouteImport.update({
   path: '/ponto',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AppGerenteRoute = AppGerenteRouteImport.update({
+  id: '/app-gerente',
+  path: '/app-gerente',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const RegrasRoute = RegrasRouteImport.update({
   id: '/regras',
   path: '/regras',
@@ -79,6 +85,7 @@ export interface FileRoutesByFullPath {
   '/ferias': typeof FeriasRoute
   '/ficha-colaborador': typeof FichaColaboradorRoute
   '/ponto': typeof PontoRoute
+  '/app-gerente': typeof AppGerenteRoute
   '/regras': typeof RegrasRoute
   '/relatorios': typeof RelatoriosRoute
   '/simulador': typeof SimuladorRoute
@@ -91,6 +98,7 @@ export interface FileRoutesByTo {
   '/ferias': typeof FeriasRoute
   '/ficha-colaborador': typeof FichaColaboradorRoute
   '/ponto': typeof PontoRoute
+  '/app-gerente': typeof AppGerenteRoute
   '/regras': typeof RegrasRoute
   '/relatorios': typeof RelatoriosRoute
   '/simulador': typeof SimuladorRoute
@@ -104,6 +112,7 @@ export interface FileRoutesById {
   '/ferias': typeof FeriasRoute
   '/ficha-colaborador': typeof FichaColaboradorRoute
   '/ponto': typeof PontoRoute
+  '/app-gerente': typeof AppGerenteRoute
   '/regras': typeof RegrasRoute
   '/relatorios': typeof RelatoriosRoute
   '/simulador': typeof SimuladorRoute
@@ -118,6 +127,7 @@ export interface FileRouteTypes {
     | '/ferias'
     | '/ficha-colaborador'
     | '/ponto'
+    | '/app-gerente'
     | '/regras'
     | '/relatorios'
     | '/simulador'
@@ -130,6 +140,7 @@ export interface FileRouteTypes {
     | '/ferias'
     | '/ficha-colaborador'
     | '/ponto'
+    | '/app-gerente'
     | '/regras'
     | '/relatorios'
     | '/simulador'
@@ -142,6 +153,7 @@ export interface FileRouteTypes {
     | '/ferias'
     | '/ficha-colaborador'
     | '/ponto'
+    | '/app-gerente'
     | '/regras'
     | '/relatorios'
     | '/simulador'
@@ -155,6 +167,7 @@ export interface RootRouteChildren {
   FeriasRoute: typeof FeriasRoute
   FichaColaboradorRoute: typeof FichaColaboradorRoute
   PontoRoute: typeof PontoRoute
+  AppGerenteRoute: typeof AppGerenteRoute
   RegrasRoute: typeof RegrasRoute
   RelatoriosRoute: typeof RelatoriosRoute
   SimuladorRoute: typeof SimuladorRoute
@@ -211,6 +224,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PontoRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/app-gerente': {
+      id: '/app-gerente'
+      path: '/app-gerente'
+      fullPath: '/app-gerente'
+      preLoaderRoute: typeof AppGerenteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/regras': {
       id: '/regras'
       path: '/regras'
@@ -243,6 +263,7 @@ const rootRouteChildren: RootRouteChildren = {
   FeriasRoute: FeriasRoute,
   FichaColaboradorRoute: FichaColaboradorRoute,
   PontoRoute: PontoRoute,
+  AppGerenteRoute: AppGerenteRoute,
   RegrasRoute: RegrasRoute,
   RelatoriosRoute: RelatoriosRoute,
   SimuladorRoute: SimuladorRoute,

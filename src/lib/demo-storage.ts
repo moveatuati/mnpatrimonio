@@ -3,6 +3,7 @@ import { ABSENCE_STORAGE_KEY, SCHEDULE_STORAGE_KEY, demoAbsences, restoreAbsence
 import { HOUR_KEY, demoHourStore, restoreHours, type HourStore } from "@/domain/hour-bank";
 import { EMPTY_POINT_STORE, readPointStore, type PointStore } from "@/domain/point-simulator";
 import { RH_POINT_KEY } from "@/domain/rh-settings";
+import { EMPTY_MANAGER_STORE, MANAGER_KEY, restoreManagerStore, type ManagerStore } from "@/domain/manager-app";
 import { DEFAULT_SCHEDULE, reviseStore, type ScheduleStore } from "@/domain/schedule";
 
 function read<T>(key: string, restore: (raw: unknown) => T, fallback: () => T): T {
@@ -35,3 +36,6 @@ export function todayISO(): string {
   const now = new Date(Date.now() - 3 * 3600000);
   return now.toISOString().slice(0, 10);
 }
+
+export const loadManager = (): ManagerStore => read(MANAGER_KEY, restoreManagerStore, () => EMPTY_MANAGER_STORE);
+export const saveManager = (store: ManagerStore) => write(MANAGER_KEY, store);
