@@ -8,7 +8,7 @@ import "./RestAuditPanel.css";
 
 const br = (d: string | null) => (d ? d.slice(8, 10) + "/" + d.slice(5, 7) : "—");
 
-/** Conferência das folgas de todo o pessoal: domingo trabalhado = 1 folga antes + 1 folga depois. */
+/** Conferência das folgas dos serviços gerais: domingo trabalhado = 1 folga antes + 1 folga depois. A portaria 12×36 não entra (DSR compensado). */
 export function RestAuditPanel({ store, date }: { store: ScheduleStore; date: string }) {
   const [start, setStart] = useState(startOfWeek(date));
   const [onlyIssues, setOnlyIssues] = useState(false);
@@ -22,8 +22,8 @@ export function RestAuditPanel({ store, date }: { store: ScheduleStore; date: st
   function printIt() { printNode(ref.current, { title: "Conferência de folgas " + br(start) }); }
 
   return <article className="ra ra-print" ref={ref}>
-    <PrintHeader title="Conferência de folgas · 4 domingos"
-      subtitle={"Regra: trabalhou no domingo = 1 folga antes + 1 folga depois. Não trabalhou = folga no domingo. A partir de " + br(start)} />
+    <PrintHeader title="Conferência de folgas · serviços gerais · 4 domingos"
+      subtitle={"Regra: trabalhou no domingo = 1 folga antes + 1 folga depois. Não trabalhou = descanso no domingo (DSR). Portaria 12×36 não se aplica. A partir de " + br(start)} />
     <div className="ra-cards">
       <span className="ra-card ra-ok"><strong>{audit.ok}</strong> em dia</span>
       <span className={"ra-card " + (audit.pending ? "ra-bad" : "ra-ok")}><strong>{audit.pending}</strong> {audit.pending ? "com folga faltando" : "pendências"}</span>

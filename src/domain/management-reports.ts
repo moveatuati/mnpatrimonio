@@ -122,23 +122,26 @@ function filteredPeople(filters: ReportFilters) {
   return DEMO_EMPLOYEES.filter(e => (filters.group === "all" || filters.group === e.group) &&
     (filters.employeeId === "all" || filters.employeeId === e.id));
 }
-/** Jornadas por semana na escala real (domingo sim/não + folga antecipada e do 7º dia), média de 4 semanas. */
-export function realWeeklyShifts(schedule: ScheduleStore = DEFAULT_SCHEDULE, start: ISODate = "2026-10-19") {
+/** Jornadas por semana na escala real (média de 4 semanas). `group` restringe a um grupo (ex.: serviços gerais). */
+export function realWeeklyShifts(schedule: ScheduleStore = DEFAULT_SCHEDULE, start: ISODate = "2026-10-19", group?: GroupId) {
   let total = 0;
+  const people = DEMO_EMPLOYEES.filter(e => !group || e.group === group);
   for (let i = 0; i < 28; i++) {
     const day = dateOffset(start, i);
-    total += DEMO_EMPLOYEES.filter(e => assignmentFor(schedule, e, day) !== null).length;
+    total += people.filter(e => assignmentFor(schedule, e, day) !== null).length;
   }
   return Math.round(total / 4);
 }
+/** Estudo da transição dos serviços gerais (6×1 → 5×2). A portaria 12×36 não muda com a EC 141/2026. */
 export function capacityStudy(schedule: ScheduleStore = DEFAULT_SCHEDULE) {
   // Aritmética de jornadas por semana; não é escala pronta nem dimensionamento aprovado.
-  const real = realWeeklyShifts(schedule);
+  const n = DEMO_EMPLOYEES.filter(e => e.group === "S" && e.status === "ativo").length;
+  const real = realWeeklyShifts(schedule, "2026-10-19", "S");
   const equivalent = Math.ceil(real / 5);
   return [
-    { scenario: "6×1 atual · 63 colaboradores (escala real)", people: 63, daysPerWeek: Math.round(real / 63 * 10) / 10, theoreticalShifts: real, delta: 0 },
-    { scenario: "5×2 · 63 colaboradores", people: 63, daysPerWeek: 5, theoreticalShifts: 315, delta: 315 - real },
-    { scenario: `5×2 · ${equivalent} colaboradores (mesmo nº de jornadas de hoje)`, people: equivalent, daysPerWeek: 5, theoreticalShifts: equivalent * 5, delta: equivalent * 5 - real },
+    { scenario: `6×1 atual · ${n} de serviços gerais (escala real)`, people: n, daysPerWeek: Math.round(real / Math.max(1, n) * 10) / 10, theoreticalShifts: real, delta: 0 },
+    { scenario: `5×2 · ${n} de serviços gerais (sem sábado)`, people: n, daysPerWeek: 5, theoreticalShifts: n * 5, delta: n * 5 - real },
+    { scenario: `5×2 · ${equivalent} de serviços gerais (mantém o sábado coberto)`, people: equivalent, daysPerWeek: 5, theoreticalShifts: equivalent * 5, delta: equivalent * 5 - real },
   ];
 }
 export function buildReport(sources: ReportSources, filters: ReportFilters) {

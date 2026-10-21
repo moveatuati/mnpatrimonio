@@ -1,15 +1,23 @@
-import { GROUPS, GROUP_IDS, RULES, SUNDAY_SHIFTS } from "./config";
+import { GROUPS, PORTARIA_SHIFTS, RULES, SERVICE_SHIFTS, shiftMinutes } from "./config";
 import { toMinutes } from "./time";
-import type { GroupId, ShiftPattern } from "./types";
+import type { ShiftPattern } from "./types";
+
+/** Horários configuráveis: dois turnos da portaria 12×36 e a jornada 6×1 dos serviços gerais. */
+export type ShiftKey = "portariaDiurno" | "portariaNoturno" | "servicos";
+export const SHIFT_KEYS: ShiftKey[] = ["portariaDiurno", "portariaNoturno", "servicos"];
+export const SHIFT_KEY_LABEL: Record<ShiftKey, string> = {
+  portariaDiurno: "Portaria 12×36 · diurno",
+  portariaNoturno: "Portaria 12×36 · noturno",
+  servicos: "Serviços gerais · 6×1",
+};
 
 /** Preferências operacionais do protótipo. Não substituem lei ou acordo coletivo. */
-export const RH_SETTINGS_KEY = "formosa:augusto-montenegro:regras-rh-demo:v1";
-export const RH_SETTINGS_EVENT = "formosa:rh-settings-changed";
-export const RH_POINT_KEY = "formosa:augusto-montenegro:ponto-demo:v1";
+export const RH_SETTINGS_KEY = "mn:condominios:regras-rh-demo:v1";
+export const RH_SETTINGS_EVENT = "mn:rh-settings-changed";
+export const RH_POINT_KEY = "mn:condominios:ponto-demo:v1";
 
 export interface RhSettings {
-  shifts: Record<GroupId, ShiftPattern>;
-  sundayShifts: { start: string; end: string }[];
+  shifts: Record<ShiftKey, ShiftPattern>;
   lateAlertMinutes: number;
   minRestHours: number;
 }
@@ -25,13 +33,15 @@ export interface RhSettingsStore {
   history: RhChange[];
 }
 const clone = <T,>(item: T): T => JSON.parse(JSON.stringify(item)) as T;
+const pick = (s: ShiftPattern): ShiftPattern => ({ start: s.start, breakStart: s.breakStart, breakEnd: s.breakEnd, end: s.end });
+/** Duração em minutos de a até b, atravessando a meia-noite. */
+const span = (a: string, b: string) => ((toMinutes(b) - toMinutes(a)) + 1440) % 1440;
 const defaults: RhSettings = {
   shifts: {
-    A: clone(GROUPS.A.shift),
-    B: clone(GROUPS.B.shift),
-    C: clone(GROUPS.C.shift),
+    portariaDiurno: pick(PORTARIA_SHIFTS.diurno),
+    portariaNoturno: pick(PORTARIA_SHIFTS.noturno),
+    servicos: pick(SERVICE_SHIFTS["6x1"]),
   },
-  sundayShifts: SUNDAY_SHIFTS.map(s => ({ start: s.start, end: s.end })),
   lateAlertMinutes: RULES.lateAlertMinutes,
   minRestHours: RULES.minRestHours,
 };
@@ -45,26 +55,21 @@ export function validateRhSettings(value: RhSettings): string[] {
     errors.push("O alerta operacional deve estar entre 0 e 60 minutos.");
   if (!Number.isInteger(value.minRestHours) || value.minRestHours < 11 || value.minRestHours > 16)
     errors.push("O descanso mínimo deve ser de pelo menos 11 horas (máximo configurável: 16).");
-  for (const id of GROUP_IDS) {
+  for (const id of SHIFT_KEYS) {
     const shift = value.shifts?.[id];
+    const name = SHIFT_KEY_LABEL[id];
     if (!shift || ![shift.start,shift.breakStart,shift.breakEnd,shift.end].every(isClock)) {
-      errors.push("Grupo " + id + ": informe os quatro horários válidos.");
+      errors.push(name + ": informe os quatro horários válidos.");
       continue;
     }
-    const [a,b,c,d] = [shift.start,shift.breakStart,shift.breakEnd,shift.end].map(toMinutes);
-    if (!(a! < b! && b! < c! && c! < d!)) errors.push("Grupo " + id + ": mantenha entrada, saída e retorno do intervalo e saída final em ordem.");
-    if (c! - b! < 30 || c! - b! > 180)
-      errors.push("Grupo " + id + ": intervalo entre 30 minutos e 3 horas, sujeito à norma coletiva.");
-    if (b! - a! + d! - c! > 600) errors.push("Grupo " + id + ": máximo técnico de 10 horas líquidas na demonstração; conferir limite legal.");
-  }
-  if (!Array.isArray(value.sundayShifts) || value.sundayShifts.length !== 3)
-    errors.push("Cadastre exatamente os três horários especiais.");
-  else for (let i=0; i<3; i++) {
-    const v = value.sundayShifts[i];
-    if (!v || !isClock(v.start) || !isClock(v.end) || toMinutes(v.start) >= toMinutes(v.end))
-      errors.push("Turno especial " + (i+1) + ": entrada deve ser anterior à saída.");
-    else if (toMinutes(v.end) - toMinutes(v.start) > 600)
-      errors.push("Turno especial " + (i+1) + ": duração acima do limite técnico de 10 horas.");
+    const total = span(shift.start, shift.end), toBreak = span(shift.start, shift.breakStart), pause = span(shift.breakStart, shift.breakEnd);
+    if (total === 0 || toBreak === 0 || toBreak + pause >= total)
+      errors.push(name + ": o intervalo deve ficar dentro da jornada (entrada → intervalo → retorno → saída).");
+    if (pause < 60 || pause > 120)
+      errors.push(name + ": intervalo entre 1h e 2h (art. 71 da CLT para jornadas acima de 6h).");
+    const net = total - pause;
+    if (id === "servicos" && net > 8 * 60) errors.push(name + ": máximo de 8h por dia (art. 7º, XIII, da Constituição).");
+    if (id !== "servicos" && total > 12 * 60) errors.push(name + ": a 12×36 tem no máximo 12 horas seguidas (art. 59-A da CLT).");
   }
   return errors;
 }
@@ -101,11 +106,12 @@ export function readRhSettingsStore(): RhSettingsStore {
 }
 export function applyRhSettings(settings: RhSettings): void {
   if (validateRhSettings(settings).length) return;
-  for (const id of GROUP_IDS) Object.assign(GROUPS[id].shift, settings.shifts[id]);
-  settings.sundayShifts.forEach((s,i) => {
-    const target = SUNDAY_SHIFTS[i];
-    if (target) { target.start=s.start; target.end=s.end; }
-  });
+  Object.assign(PORTARIA_SHIFTS.diurno, settings.shifts.portariaDiurno);
+  Object.assign(PORTARIA_SHIFTS.noturno, settings.shifts.portariaNoturno);
+  Object.assign(SERVICE_SHIFTS["6x1"], settings.shifts.servicos);
+  SERVICE_SHIFTS["6x1"].dailyMinutes = shiftMinutes(settings.shifts.servicos);
+  Object.assign(GROUPS.P.shift, settings.shifts.portariaDiurno);
+  Object.assign(GROUPS.S.shift, settings.shifts.servicos);
   RULES.lateAlertMinutes = settings.lateAlertMinutes;
   RULES.minRestHours = settings.minRestHours;
 }
@@ -118,16 +124,12 @@ export function describeChanges(before: RhSettings, after: RhSettings): string[]
     labels.push("Alerta de atraso: " + before.lateAlertMinutes + " → " + after.lateAlertMinutes + " min");
   if (before.minRestHours !== after.minRestHours)
     labels.push("Descanso entre jornadas: " + before.minRestHours + " → " + after.minRestHours + " h");
-  for (const id of GROUP_IDS) {
+  const KEY_LABEL = { start: "entrada", breakStart: "início do intervalo", breakEnd: "fim do intervalo", end: "saída" } as const;
+  for (const id of SHIFT_KEYS) {
     for (const key of ["start","breakStart","breakEnd","end"] as const)
-      if (before.shifts[id][key] !== after.shifts[id][key])
-        labels.push("Grupo "+id+" / "+key+": "+before.shifts[id][key]+" → "+after.shifts[id][key]);
+      if (before.shifts[id]?.[key] !== after.shifts[id][key])
+        labels.push(SHIFT_KEY_LABEL[id]+" / "+KEY_LABEL[key]+": "+(before.shifts[id]?.[key] ?? "—")+" → "+after.shifts[id][key]);
   }
-  after.sundayShifts.forEach((v,i) => {
-    for (const key of ["start","end"] as const)
-      if (before.sundayShifts[i]?.[key] !== v[key])
-        labels.push("Domingo turno "+(i+1)+" / "+key+": "+before.sundayShifts[i]?.[key]+" → "+v[key]);
-  });
   return labels;
 }
 export function saveRhSettings(next: RhSettings, actor: string, note: string): {ok:boolean; error:string;store:RhSettingsStore} {

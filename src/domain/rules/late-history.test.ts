@@ -1,17 +1,19 @@
 import { describe, expect, it } from "vitest";
 import { countMonthlyLateArrivals, rankMonthlyLateArrivals } from "./late-history";
-import { GROUPS } from "../config";
+import { PORTARIA_SHIFTS, SERVICE_SHIFTS } from "../config";
 import type { Employee, PunchRecord, ISODate } from "../types";
 
+// A1 = portaria diurna (07h), B1 = serviços gerais (07h), C1 = portaria noturna (19h).
 const employee = (id: string, group: "A" | "B" | "C"): Employee => ({
-  id, name: id, group, status: "ativo", demo: true,
+  id, name: id, group: group === "B" ? "S" : "P", ...(group === "C" ? { turn: "noturno" as const } : group === "A" ? { turn: "diurno" as const } : {}),
+  status: "ativo", demo: true,
 });
 const emps: Employee[] = [employee("A1","A"), employee("B1","B"), employee("C1","C")];
 const marks: Record<string, string[]> = {
-  "2026-10-01": ["07:11", "08:10", "12:52"],
-  "2026-10-02": ["07:10", "08:12", "12:40"],
-  "2026-10-03": ["07:25", "08:15", ""],
-  "2026-10-04": ["07:15", "", "12:53"],
+  "2026-10-01": ["07:11", "07:10", "19:12"],
+  "2026-10-02": ["07:10", "07:12", "19:00"],
+  "2026-10-03": ["07:25", "07:15", ""],
+  "2026-10-04": ["07:15", "", "19:13"],
 };
 const getPunches = (date: ISODate, employees: Employee[]): PunchRecord[] =>
   employees.map((emp, index) => {
@@ -35,14 +37,14 @@ describe("Histórico demonstrativo mensal de atrasos", () => {
     expect(countMonthlyLateArrivals("2026-10-01", emps, getPunches)["A1"]).toBe(1);
   });
   it("mantém a entrada base de cada grupo correta", () => {
-    expect(GROUPS.A.shift.start).toBe("07:00");
-    expect(GROUPS.B.shift.start).toBe("08:00");
-    expect(GROUPS.C.shift.start).toBe("12:40");
+    expect(PORTARIA_SHIFTS.diurno.start).toBe("07:00");
+    expect(PORTARIA_SHIFTS.noturno.start).toBe("19:00");
+    expect(SERVICE_SHIFTS["6x1"].start).toBe("07:00");
   });
 });
 
 describe("Top 5 de atrasos no mês", () => {
-  it("inclui os três grupos, ordena reincidência e desempata pelo nome", () => {
+  it("inclui as duas funções, ordena reincidência e desempata pelo nome", () => {
     const people = [
       { ...employee("A1", "A"), name: "Alana" },
       { ...employee("B1", "B"), name: "Bruna" },

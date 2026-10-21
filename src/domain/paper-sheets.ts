@@ -1,5 +1,5 @@
-/** Folhas no mesmo formato do papel usado hoje pela Formosa (escala de domingo e folgas da semana). */
-import { GROUPS, GROUP_IDS, SPECIAL_SLOT_LABEL } from "./config";
+/** Folhas para impressão (escala de domingo e semana), no formato de papel usado nos condomínios. */
+import { GROUPS, GROUP_IDS, PORTARIA_SHIFTS, REGIME_LABEL, employeeShift, serviceRegime } from "./config";
 import { DEMO_EMPLOYEES } from "./demo-data";
 import type { AbsenceStore } from "./absences";
 import { assignmentFor, dateOffset, dayOfWeek, restReason, startOfWeek, sundayOf, type ScheduleStore } from "./schedule";
@@ -12,7 +12,7 @@ export interface SundaySheetRow {
 }
 export interface SundaySheet {
   date: ISODate;
-  blocks: { slot: GroupId; title: string; target: number; rows: SundaySheetRow[] }[];
+  blocks: { slot: GroupId; key: string; title: string; target: number; rows: SundaySheetRow[] }[];
   total: number;
   target: number;
 }
@@ -25,18 +25,25 @@ function firstRest(store: ScheduleStore, employee: Employee, monday: ISODate): I
   return null;
 }
 
-/** Escala de domingo: três blocos (08h, 09h, 15h15) com folga antecipada e folga do 7º dia. */
+/** Escala de domingo: portaria diurna, portaria noturna e serviços gerais (com as folgas compensatórias). */
 export function sundaySheet(store: ScheduleStore, date: ISODate): SundaySheet {
   const sunday = dayOfWeek(date) === 0 ? date : sundayOf(date);
   const monday = startOfWeek(sunday);
-  const blocks = GROUP_IDS.map(slot => {
-    const rows = DEMO_EMPLOYEES.filter(e => assignmentFor(store, e, sunday) === slot).map(employee => ({
-      employee,
-      folgaAntecipada: firstRest(store, employee, monday),
-      folga7Dia: firstRest(store, employee, dateOffset(monday, 7)),
-    }));
-    return { slot, title: "ENTRADA " + SPECIAL_SLOT_LABEL[slot].replace("Turno das ", "DE ").toUpperCase(), target: store.rules.sunday[slot], rows };
-  });
+  const rowsOf = (list: Employee[], withRests: boolean) => list.map(employee => ({
+    employee,
+    folgaAntecipada: withRests ? firstRest(store, employee, monday) : null,
+    folga7Dia: withRests ? firstRest(store, employee, dateOffset(monday, 7)) : null,
+  }));
+  const working = DEMO_EMPLOYEES.filter(e => assignmentFor(store, e, sunday) !== null);
+  const portaria = working.filter(e => e.group === "P");
+  const blocks = [
+    { slot: "P" as GroupId, key: "P-diurno", title: "PORTARIA 12×36 · " + PORTARIA_SHIFTS.diurno.label.toUpperCase(),
+      target: Math.ceil(store.rules.sunday.P / 2), rows: rowsOf(portaria.filter(e => e.turn !== "noturno"), false) },
+    { slot: "P" as GroupId, key: "P-noturno", title: "PORTARIA 12×36 · " + PORTARIA_SHIFTS.noturno.label.toUpperCase(),
+      target: Math.floor(store.rules.sunday.P / 2), rows: rowsOf(portaria.filter(e => e.turn === "noturno"), false) },
+    { slot: "S" as GroupId, key: "S", title: "SERVIÇOS GERAIS · " + employeeShift({ group: "S" }, sunday).label.toUpperCase(),
+      target: store.rules.sunday.S, rows: rowsOf(working.filter(e => e.group === "S"), true) },
+  ];
   return {
     date: sunday, blocks,
     total: blocks.reduce((n, b) => n + b.rows.length, 0),
@@ -56,17 +63,19 @@ export interface WeekSheet {
   restsPerDay: number[];
 }
 
-/** Folha da semana (segunda a sábado), como a planilha de papel: X = trabalha, FOLGA, FÉRIAS. */
+/** Folha da semana (segunda a domingo): X = trabalha, FOLGA, FÉRIAS. */
 export function weekSheet(store: ScheduleStore, absences: AbsenceStore | null, date: ISODate): WeekSheet {
   const monday = startOfWeek(date);
-  const days = Array.from({ length: 6 }, (_, i) => dateOffset(monday, i));
+  const days = Array.from({ length: 7 }, (_, i) => dateOffset(monday, i));
   const active = (employeeId: string, day: ISODate) => absences?.entries.find(a =>
     a.employeeId === employeeId && a.status === "aprovado" && a.start <= day && a.end >= day);
   const groups = GROUP_IDS.map(group => {
-    const shift = GROUPS[group].shift;
+    const shift = employeeShift({ group }, monday);
     return {
       group,
-      title: GROUPS[group].name.toUpperCase() + " · " + shift.start + " ÀS " + shift.breakStart + " / " + shift.breakEnd + " ÀS " + shift.end,
+      title: group === "P"
+        ? "AGENTE DE PORTARIA · 12×36 · DIURNO " + PORTARIA_SHIFTS.diurno.start + "–" + PORTARIA_SHIFTS.diurno.end + " / NOTURNO " + PORTARIA_SHIFTS.noturno.start + "–" + PORTARIA_SHIFTS.noturno.end
+        : GROUPS[group].name.toUpperCase() + " · " + REGIME_LABEL[serviceRegime(monday)].toUpperCase() + " · " + shift.start + " ÀS " + shift.breakStart + " / " + shift.breakEnd + " ÀS " + shift.end,
       rows: DEMO_EMPLOYEES.filter(e => e.group === group).map(employee => ({
         employee,
         cells: days.map(day => {

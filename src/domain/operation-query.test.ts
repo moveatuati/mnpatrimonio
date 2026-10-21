@@ -10,23 +10,23 @@ type Arrival = {
 
 const arrivals: readonly Arrival[] = [
   {
-    employee: { id: "FM-001", name: "João Barros", group: "A" },
+    employee: { id: "MN-001", name: "João Barros", group: "P" },
     status: "no_horario",
     entry: "06:58",
   },
   {
-    employee: { id: "FM-002", name: "João Costa", group: "B" },
+    employee: { id: "MN-002", name: "João Costa", group: "S" },
     status: "atraso_alerta",
     entry: "08:10",
   },
   {
-    employee: { id: "FM-003", name: "João Lima", group: "B" },
+    employee: { id: "MN-003", name: "João Lima", group: "S" },
     status: "atraso_acima",
     entry: "08:11",
   },
-  { employee: { id: "FM-004", name: "Lúcia Lima", group: "B" }, status: "sem_registro" },
+  { employee: { id: "MN-004", name: "Lúcia Lima", group: "S" }, status: "sem_registro" },
   {
-    employee: { id: "FM-005", name: "Sérgio Lima", group: "C" },
+    employee: { id: "MN-005", name: "Sérgio Lima", group: "P" },
     status: "atraso_acima",
     entry: "12:52",
   },
@@ -35,12 +35,12 @@ const arrivals: readonly Arrival[] = [
 describe("Consulta operacional unificada", () => {
   it("intersecta grupo, situação e busca sem incluir resultados parciais", () => {
     const result = filterArrivals(arrivals, {
-      group: "B",
+      group: "S",
       status: "atraso_acima",
       query: "  JOAO  ",
     });
-    expect(result.map(({ employee }) => employee.id)).toEqual(["FM-003"]);
-    expect(filterArrivals(arrivals, { group: "A", status: "atraso_acima", query: "joao" })).toEqual(
+    expect(result.map(({ employee }) => employee.id)).toEqual(["MN-003"]);
+    expect(filterArrivals(arrivals, { group: "P", status: "atraso_acima", query: "joao" })).toEqual(
       [],
     );
   });
@@ -50,9 +50,9 @@ describe("Consulta operacional unificada", () => {
       filterArrivals(arrivals, { group: "all", status: "all", query: "lucia" }).map(
         ({ employee }) => employee.id,
       ),
-    ).toEqual(["FM-004"]);
+    ).toEqual(["MN-004"]);
     expect(
-      filterArrivals(arrivals, { group: "all", status: "all", query: " fm-005 " }).map(
+      filterArrivals(arrivals, { group: "all", status: "all", query: " mn-005 " }).map(
         ({ employee }) => employee.name,
       ),
     ).toEqual(["Sérgio Lima"]);
@@ -61,25 +61,25 @@ describe("Consulta operacional unificada", () => {
   it("entradas registradas inclui pontuais e ambos os níveis de atraso", () => {
     const result = filterArrivals(arrivals, { group: "all", status: "registered", query: "" });
     expect(result.map(({ employee }) => employee.id)).toEqual([
-      "FM-001",
-      "FM-002",
-      "FM-003",
-      "FM-005",
+      "MN-001",
+      "MN-002",
+      "MN-003",
+      "MN-005",
     ]);
     expect(
-      filterArrivals(arrivals, { group: "B", status: "registered", query: "" }).map(
+      filterArrivals(arrivals, { group: "S", status: "registered", query: "" }).map(
         ({ employee }) => employee.id,
       ),
-    ).toEqual(["FM-002", "FM-003"]);
+    ).toEqual(["MN-002", "MN-003"]);
   });
 
   it("mantém pendências separadas dos atrasos e respeita o grupo selecionado", () => {
     expect(
-      filterArrivals(arrivals, { group: "B", status: "sem_registro", query: "" }).map(
+      filterArrivals(arrivals, { group: "S", status: "sem_registro", query: "" }).map(
         ({ employee }) => employee.id,
       ),
-    ).toEqual(["FM-004"]);
-    expect(filterArrivals(arrivals, { group: "C", status: "sem_registro", query: "" })).toEqual([]);
+    ).toEqual(["MN-004"]);
+    expect(filterArrivals(arrivals, { group: "P", status: "sem_registro", query: "" })).toEqual([]);
   });
 
   it("preserva a ordem e os dados de origem, inclusive sem filtros", () => {

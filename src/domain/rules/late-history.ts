@@ -1,5 +1,5 @@
 import { DEMO_EMPLOYEES, demoPunches } from "../demo-data";
-import { GROUPS, RULES } from "../config";
+import { RULES, employeeShift } from "../config";
 import { classifyArrival } from "./punctuality";
 import type { Employee, ISODate, PunchRecord } from "../types";
 
@@ -26,7 +26,7 @@ export function countMonthlyLateArrivals(
     for (const punch of getPunches(date, employees)) {
       const employee = employeesById.get(punch.employeeId);
       if (!employee || !punch.entry) continue;
-      const planned = GROUPS[employee.group].shift.start;
+      const planned = employeeShift(employee, date).start;
       if (classifyArrival(planned, punch.entry, RULES.lateAlertMinutes).status === "atraso_acima") {
         result[punch.employeeId] = (result[punch.employeeId] ?? 0) + 1;
       }

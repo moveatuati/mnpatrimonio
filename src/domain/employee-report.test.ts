@@ -4,16 +4,16 @@ import { buildEmployeeDemoReport } from "./employee-report";
 import { countMonthlyLateArrivals } from "./rules/late-history";
 
 describe("Relatório mensal fictício de colaborador", () => {
-  const employee = DEMO_EMPLOYEES.find(item => item.id === "FM-047")!;
+  const employee = DEMO_EMPLOYEES.find(item => item.id === "MN-003")!;
   it("usa somente os dias 1 até a data consultada e a unidade/grupo de origem", () => {
     const result = buildEmployeeDemoReport(employee, "2026-10-20");
-    expect(result.employee.id).toBe("FM-047");
-    expect(result.employee.group).toBe("C");
+    expect(result.employee.id).toBe("MN-003");
+    expect(result.employee.group).toBe("P");
     expect(result.periodStart).toBe("2026-10-01");
     expect(result.days).toHaveLength(20);
     expect(result.days[0]?.date).toBe("2026-10-01");
     expect(result.days[19]?.date).toBe("2026-10-20");
-    expect(result.days.every(row => row.planned === "12:40")).toBe(true);
+    expect(result.days.every(row => row.planned === "19:00")).toBe(true);
   });
   it("reconcilia os totais do documento com o histórico mensal existente", () => {
     const result = buildEmployeeDemoReport(employee, "2026-10-20");

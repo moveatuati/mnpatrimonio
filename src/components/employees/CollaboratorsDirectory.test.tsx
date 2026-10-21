@@ -14,13 +14,13 @@ describe("Colaboradores - consulta demonstrativa", () => {
     expect(screen.queryByRole("button", { name: "Próxima página" })).not.toBeInTheDocument();
 
     region.scrollTop = 210;
-    fireEvent.click(screen.getByRole("button", { name: /Grupo B/ }));
+    fireEvent.click(screen.getByRole("button", { name: /Serviços gerais/ }));
     expect(region.scrollTop).toBe(0);
     expect(within(region).getAllByRole("row")).toHaveLength(30);
 
     region.scrollTop = 170;
     fireEvent.change(screen.getByRole("searchbox", { name: "Buscar por nome ou código" }), {
-      target: { value: "FM-005" },
+      target: { value: "MN-005" },
     });
     expect(region.scrollTop).toBe(0);
     expect(within(region).getAllByRole("row")).toHaveLength(2);
@@ -29,21 +29,20 @@ describe("Colaboradores - consulta demonstrativa", () => {
     expect(within(region).getAllByRole("row")).toHaveLength(64);
   });
 
-  it("exibe os 63 colaboradores em três grupos e não usa o placeholder antigo", () => {
+  it("exibe os 21 colaboradores em duas funções e não usa o placeholder antigo", () => {
     render(<CollaboratorsDirectory />);
     expect(screen.getByRole("heading", { name: "Colaboradores." })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /Quadro completo/ })).toHaveTextContent("63");
-    expect(screen.getByRole("button", { name: /Grupo A/ })).toHaveTextContent("4");
-    expect(screen.getByRole("button", { name: /Grupo B/ })).toHaveTextContent("29");
-    expect(screen.getByRole("button", { name: /Grupo C/ })).toHaveTextContent("30");
-    expect(screen.getByText("63 colaboradores na lista · role para consultar todos")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Quadro completo/ })).toHaveTextContent("21");
+    expect(screen.getByRole("button", { name: /Agente de portaria/ })).toHaveTextContent("12");
+    expect(screen.getByRole("button", { name: /Serviços gerais/ })).toHaveTextContent("9");
+    expect(screen.getByText("21 colaboradores na lista · role para consultar todos")).toBeInTheDocument();
     expect(screen.queryByText("O que este módulo vai oferecer")).not.toBeInTheDocument();
   });
   it("filtra por grupo e matrícula, com estado vazio e limpeza", () => {
     render(<CollaboratorsDirectory />);
-    fireEvent.click(screen.getByRole("button", { name: /Grupo B/ }));
+    fireEvent.click(screen.getByRole("button", { name: /Serviços gerais/ }));
     expect(screen.getByText("29 colaboradores na lista · role para consultar todos")).toBeInTheDocument();
-    const employee = DEMO_EMPLOYEES.find(e => e.group === "B")!;
+    const employee = DEMO_EMPLOYEES.find(e => e.group === "S")!;
     const input = screen.getByRole("searchbox", { name: "Buscar por nome ou código" });
     fireEvent.change(input, { target: { value: employee.id } });
     expect(screen.getByText("1 colaborador na lista · role para consultar todos")).toBeInTheDocument();
@@ -51,7 +50,7 @@ describe("Colaboradores - consulta demonstrativa", () => {
     fireEvent.change(input, { target: { value: "nenhum-nome-encontrado" } });
     expect(screen.getByText("Nenhum colaborador encontrado")).toBeInTheDocument();
     fireEvent.click(screen.getAllByRole("button", { name: "Limpar filtros" })[0]!);
-    expect(screen.getByText("63 colaboradores na lista · role para consultar todos")).toBeInTheDocument();
+    expect(screen.getByText("21 colaboradores na lista · role para consultar todos")).toBeInTheDocument();
   });
   it("abre ficha individual sem inventar informações de admissão ou banco de horas", () => {
     render(<CollaboratorsDirectory />);
@@ -72,6 +71,6 @@ describe("Colaboradores - consulta demonstrativa", () => {
     fireEvent.change(date, { target: { value: "2026-02-30" } });
     expect(date).toHaveAttribute("aria-invalid", "true");
     expect(screen.getByRole("alert")).toHaveTextContent("Mantendo 20/10/2026");
-    expect(screen.getByText("63 colaboradores na lista · role para consultar todos")).toBeInTheDocument();
+    expect(screen.getByText("21 colaboradores na lista · role para consultar todos")).toBeInTheDocument();
   });
 });

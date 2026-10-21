@@ -1,4 +1,4 @@
-import { GROUPS, RULES } from "./config";
+import { RULES, employeeShift } from "./config";
 import { demoPunches } from "./demo-data";
 import { isValidReferenceDate } from "./operation-query";
 import { classifyArrival } from "./rules/punctuality";
@@ -32,7 +32,7 @@ export interface EmployeeDemoReport {
 export function buildEmployeeDemoReport(employee: Employee, throughDate: ISODate): EmployeeDemoReport {
   if (!isValidReferenceDate(throughDate)) throw new Error("Data de referência inválida");
   const [year = 0, month = 0, day = 0] = throughDate.split("-").map(Number);
-  const planned = GROUPS[employee.group].shift.start;
+  const planned = employeeShift(employee, throughDate).start;
   const periodStart = `${year}-${String(month).padStart(2, "0")}-01`;
   const days: EmployeeDemoDay[] = [];
   for (let i = 1; i <= day; i++) {

@@ -1,6 +1,6 @@
 import { Printer, ArrowLeft } from "lucide-react";
 import { BRAND } from "@/lib/brand";
-import { GROUPS, RULES, UNIT } from "@/domain/config";
+import { GROUPS, REGIME_LABEL, RULES, UNIT, employeeShift, serviceRegime } from "@/domain/config";
 import { DEMO_EMPLOYEES } from "@/domain/demo-data";
 import { buildEmployeeDemoReport } from "@/domain/employee-report";
 import type { ArrivalStatus } from "@/domain/types";
@@ -36,7 +36,7 @@ export function EmployeePrintableSheet({ employeeId, date }: { employeeId: strin
     <a className="mt-4 inline-block font-semibold text-primary" href="/colaboradores">Voltar aos colaboradores</a>
   </div>;
   const report = buildEmployeeDemoReport(employee, date);
-  const shift = GROUPS[employee.group].shift;
+  const shift = employeeShift(employee, date);
   const totals = [
     { label: "No horário", value: report.totals.onTime, tone: "success" },
     { label: "Até 10 minutos", value: report.totals.withinAlert, tone: "neutral" },
@@ -69,7 +69,7 @@ export function EmployeePrintableSheet({ employeeId, date }: { employeeId: strin
         <dl className="rh-print-details">
           <div><dt>Colaborador</dt><dd>{employee.name}</dd></div>
           <div><dt>Código</dt><dd>{employee.id}</dd></div>
-          <div><dt>Grupo operacional</dt><dd>Grupo {employee.group} — {GROUPS[employee.group].name}</dd></div>
+          <div><dt>Função</dt><dd>{GROUPS[employee.group].name}{employee.group === "P" ? " · 12×36 · turma " + (employee.turn === "noturno" ? "noturna " : "diurna ") + ((employee.team ?? 0) + 1) : " · " + REGIME_LABEL[serviceRegime(date)]}</dd></div>
           <div><dt>Situação cadastral</dt><dd>Ativo · demonstração</dd></div>
           <div><dt>Jornada-base</dt><dd>{shift.start}–{shift.end}</dd></div>
           <div><dt>Intervalo-base</dt><dd>{shift.breakStart}–{shift.breakEnd}</dd></div>

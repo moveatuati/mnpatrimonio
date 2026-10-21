@@ -1,6 +1,9 @@
 /** Modelo de dados tipado — MN Patrimônios • Gestão de Pessoas (modo demonstração). */
 
-export type GroupId = "A" | "B" | "C";
+/** P = Agente de portaria (12×36) · S = Serviços gerais (6×1 → 5×2). */
+export type GroupId = "P" | "S";
+/** Turma da portaria 12×36. */
+export type PortariaTurn = "diurno" | "noturno";
 
 /** Horário no formato "HH:MM". */
 export type Time = string;
@@ -29,6 +32,11 @@ export interface Employee {
   id: string;
   name: string;
   group: GroupId;
+  /** Portaria: turno (diurno/noturno) e turma (0/1 = dias alternados da 12×36). */
+  turn?: PortariaTurn;
+  team?: 0 | 1;
+  /** Condomínio onde está lotado (cadastro de clientes). */
+  condoId?: string;
   status: EmployeeStatus;
   admissionDate?: ISODate;
   hourBankMinutes?: number;

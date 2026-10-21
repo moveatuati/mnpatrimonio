@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { BRAND } from "@/lib/brand";
 import { Bell, CalendarDays, Clock3, Monitor, Printer, Smartphone, Users, Wallet } from "lucide-react";
-import { GROUPS, UNIT } from "@/domain/config";
+import { GROUPS, REGIME_LABEL, UNIT, employeeShift, serviceRegime } from "@/domain/config";
 import { DEMO_EMPLOYEES } from "@/domain/demo-data";
 import { BANK_LEVEL_TEXT, balanceOf, bankBoard, bankLevel, canUseBank, hoursText, requestBankUse, type HourStore } from "@/domain/hour-bank";
 import {
@@ -9,7 +9,6 @@ import {
   informEarlyExit, issueWarning, liveAlerts, managersOnDuty, monthlyLateCount, sendToRH,
   type ManagerId, type ManagerStore, type Occurrence,
 } from "@/domain/manager-app";
-import { movementPeriod } from "@/domain/movement";
 import { assignmentFor, restReason, sundayOf, type ScheduleStore } from "@/domain/schedule";
 import { fromMinutes, toMinutes } from "@/domain/time";
 import type { AbsenceStore } from "@/domain/absences";
@@ -46,7 +45,7 @@ function useManagerDemo() {
   const me = DEMO_MANAGERS.find(m => m.id === manager)!;
   const board = useMemo(() => arrivalBoard(schedule, absences, date, now), [schedule, absences, date, now]);
   const alerts = useMemo(() => liveAlerts(board, store, date), [board, store, date]);
-  // Cada gerente só recebe os alertas que aconteceram enquanto ele estava na loja.
+  // Cada supervisor só recebe os alertas que aconteceram durante o plantão dele.
   const myAlerts = alerts.filter(a => {
     const at = toMinutes(a.actual ?? fromMinutes(toMinutes(a.planned) + TOLERANCE_MINUTES));
     return at >= toMinutes(me.from) && at <= toMinutes(me.to);
@@ -63,20 +62,20 @@ function PhoneScreen({ d, tab, setTab, onSettings }: {
   return <>
     <div className="ma-brand">
       <img src={BRAND.logoUrl} alt={BRAND.name} className="ma-brand-logo" />
-      <div className="ma-brand-text"><b>App do Gerente</b><span>{UNIT.unit}</span></div>
+      <div className="ma-brand-text"><b>App do Supervisor</b><span>{UNIT.unit}</span></div>
       {onSettings && <button type="button" className="ma-gear" aria-label="Controles da demonstração" onClick={onSettings}>⚙️</button>}
     </div>
     <div className="ma-phone-head">
       <div className="ma-phone-hello">
-        <b>Olá, Gerente</b>
+        <b>Olá, Supervisor(a)</b>
         <span>{d.me.name.replace(" (demo)", "")} · {br(d.date)} · {d.now}</span>
-        <span>{movementPeriod(d.date).kind === "alta" ? "🔴 Alto movimento" : "🟢 Baixo movimento"}</span>
+        <span>Portaria 12×36 · Serviços gerais {REGIME_LABEL[serviceRegime(d.date)]}</span>
       </div>
     </div>
     <div className="ma-phone-body">
       {tab === "agora" && <NowTab board={d.board} />}
-      {tab === "alertas" && <AlertsTab alerts={d.myAlerts} store={d.store} setStore={d.setStore} manager="Gerente" date={d.date} />}
-      {tab === "banco" && <BankTab hours={d.hours} setHours={d.setHours} store={d.store} setStore={d.setStore} manager="Gerente" date={d.date} schedule={d.schedule} />}
+      {tab === "alertas" && <AlertsTab alerts={d.myAlerts} store={d.store} setStore={d.setStore} manager="Supervisor(a)" date={d.date} />}
+      {tab === "banco" && <BankTab hours={d.hours} setHours={d.setHours} store={d.store} setStore={d.setStore} manager="Supervisor(a)" date={d.date} schedule={d.schedule} />}
       {tab === "equipe" && <TeamTab schedule={d.schedule} absences={d.absences} hours={d.hours} date={d.date} />}
     </div>
     <nav className="ma-tabs">
@@ -88,7 +87,7 @@ function PhoneScreen({ d, tab, setTab, onSettings }: {
   </>;
 }
 
-/** Controles da simulação (hora, dia e turno do gerente) — só para conduzir a demonstração. */
+/** Controles da simulação (hora, dia e plantão do supervisor) — só para conduzir a demonstração. */
 function SimControls({ d }: { d: ReturnType<typeof useManagerDemo> }) {
   return <>
     <label>Dia <input type="date" value={d.date} onChange={e => e.target.value && d.setDate(e.target.value)} /></label>
@@ -97,7 +96,7 @@ function SimControls({ d }: { d: ReturnType<typeof useManagerDemo> }) {
       {[["−10 min", -10], ["+5 min", 5], ["+10 min", 10], ["+1 h", 60]].map(([t, n]) =>
         <button key={t} type="button" onClick={() => d.setNow(fromMinutes(Math.min(23 * 60 + 59, Math.max(0, toMinutes(d.now) + (n as number)))))}>{t}</button>)}
     </div>
-    <label>Gerente <select value={d.manager} onChange={e => d.setManager(e.target.value as ManagerId)}>
+    <label>Supervisor(a) <select value={d.manager} onChange={e => d.setManager(e.target.value as ManagerId)}>
       {DEMO_MANAGERS.map(m => <option key={m.id} value={m.id}>{m.name.replace(" (demo)", "")} ({m.from}–{m.to})</option>)}
     </select></label>
   </>;
@@ -131,18 +130,18 @@ export function ManagerApp() {
     <header className="ma-top">
       <div>
         <p className="op-eyebrow">MN PATRIMÔNIOS · GESTÃO DE PESSOAS · {UNIT.unit.toUpperCase()}</p>
-        <h1>App do gerente <span>(prévia)</span></h1>
+        <h1>App do supervisor <span>(prévia)</span></h1>
         <p>Simulação do aplicativo de celular dos gerentes e do painel do RH. Batidas de ponto fictícias.</p>
       </div>
       <div className="ma-switch" role="tablist">
-        <button type="button" className={view === "gerente" ? "on" : ""} onClick={() => setView("gerente")}><Smartphone size={16} /> Celular do gerente</button>
+        <button type="button" className={view === "gerente" ? "on" : ""} onClick={() => setView("gerente")}><Smartphone size={16} /> Celular do supervisor</button>
         <button type="button" className={view === "rh" ? "on" : ""} onClick={() => setView("rh")}><Monitor size={16} /> Computador do RH</button>
       </div>
     </header>
 
     <section className="ma-sim" aria-label="Controles da simulação">
       <SimControls d={d} />
-      <span className="ma-duty">Na loja agora: {onDuty.length ? onDuty.map(m => m.name.replace(" (demo)", "")).join(", ") : "nenhum gerente"}</span>
+      <span className="ma-duty">De plantão agora: {onDuty.length ? onDuty.map(m => m.name.replace(" (demo)", "")).join(", ") : "nenhum supervisor"}</span>
       <a className="ma-mobile-link" href="/celular" target="_blank" rel="noopener noreferrer">📱 Abrir modo celular</a>
     </section>
 
@@ -165,8 +164,8 @@ function NowTab({ board }: { board: ReturnType<typeof arrivalBoard> }) {
       const arrived = card.counts.no_horario + card.counts.atrasado;
       const total = card.rows.length;
       const started = card.counts.ainda_nao === 0;
-      return <div key={card.slot} className="ma-card">
-        <button type="button" className="ma-card-head" onClick={() => setOpen(open === card.slot ? null : card.slot)}>
+      return <div key={card.key} className="ma-card">
+        <button type="button" className="ma-card-head" onClick={() => setOpen(open === card.key ? null : card.key)}>
           <div><b>{card.label}</b><small>{card.start} às {card.end} · tolerância {TOLERANCE_MINUTES} min</small></div>
           <strong>{started ? arrived + "/" + total : "—"}</strong>
         </button>
@@ -177,13 +176,13 @@ function NowTab({ board }: { board: ReturnType<typeof arrivalBoard> }) {
           {card.counts.sem_entrada > 0 && <span className="c-miss">❌ {card.counts.sem_entrada} sem entrada</span>}
         </div>}
         {!started && <p className="ma-muted">Turno começa às {card.start}.</p>}
-        {open === card.slot && <ul className="ma-rows">
+        {open === card.key && <ul className="ma-rows">
           {card.rows.map(r => <li key={r.employee.id} className={"s-" + r.state}>
             <span>{ICON[r.state]}</span><b>{r.employee.name}</b>
             <small>{r.punch ? r.punch + (r.state === "atrasado" ? " (+" + r.lateMinutes + " min)" : "") : ARRIVAL_TEXT[r.state]}</small>
           </li>)}
         </ul>}
-        <button type="button" className="ma-link" onClick={() => setOpen(open === card.slot ? null : card.slot)}>{open === card.slot ? "Fechar lista" : "Ver nomes"}</button>
+        <button type="button" className="ma-link" onClick={() => setOpen(open === card.key ? null : card.key)}>{open === card.key ? "Fechar lista" : "Ver nomes"}</button>
       </div>;
     })}
   </div>;
@@ -231,7 +230,7 @@ function BankTab({ hours, setHours, store, setStore, manager, date, schedule }: 
   const slot = person ? assignmentFor(schedule, person, date) : null;
   function authorize() {
     if (!person) return;
-    const result = requestBankUse(hours, person, date, kind, need, reason || "Pedido no app do gerente", manager);
+    const result = requestBankUse(hours, person, date, kind, need, reason || "Pedido no app do supervisor", manager);
     if (!result.ok) { setMsg(result.message); return; }
     setHours(result.store);
     setStore(informEarlyExit(store, person, date, kind, need, reason, manager, result.approved, hoursText(balance)));
@@ -268,22 +267,22 @@ function TeamTab({ schedule, absences, hours, date }: { schedule: ScheduleStore;
       <ul className="ma-rows">{off.slice(0, 20).map(e => <li key={e.id}><span>🏖️</span><b>{e.name}</b><small>{restReason(schedule, e, date)}</small></li>)}</ul></div>
     <div className="ma-card"><div className="ma-card-head static"><div><b>Férias / atestado</b><small>sem detalhes médicos</small></div><strong>{away.length}</strong></div>
       <ul className="ma-rows">{away.map(a => <li key={a.id}><span>📋</span><b>{nameOf(a.employeeId)}</b><small>{a.type === "ferias" ? "Férias" : "Ausência aprovada"} até {br(a.end)}</small></li>)}</ul></div>
-    <div className="ma-card"><div className="ma-card-head static"><div><b>Domingo {br(sunday)}</b><small>domingo sim, domingo não</small></div><strong>{sundayCount}</strong></div></div>
-    <div className="ma-card"><div className="ma-card-head static"><div><b>Precisam de folga (banco ≥ 7h)</b><small>programar do dia 19 ao 27</small></div><strong>{due.length}</strong></div>
+    <div className="ma-card"><div className="ma-card-head static"><div><b>Domingo {br(sunday)}</b><small>portaria 12×36 · serviços gerais conforme a escala</small></div><strong>{sundayCount}</strong></div></div>
+    <div className="ma-card"><div className="ma-card-head static"><div><b>Precisam de folga (banco ≥ 1 jornada)</b><small>compensar dentro do prazo do acordo</small></div><strong>{due.length}</strong></div>
       <ul className="ma-rows">{due.map(r => <li key={r.employee.id}><span>🔴</span><b>{r.employee.name}</b><small>{hoursText(r.minutes)}</small></li>)}</ul></div>
   </div>;
 }
 
 function GuideCard() {
   return <aside className="ma-guide">
-    <h2>O que o gerente vê no app</h2>
+    <h2>O que o supervisor vê no app</h2>
     <ul className="see">
       <li><b>Agora:</b> cada turno do dia, quem chegou, quem está atrasado e quem não bateu o ponto (tolerância de {TOLERANCE_MINUTES} min).</li>
-      <li><b>Alertas:</b> aviso no momento da batida atrasada, só para os gerentes que estão na loja naquele horário. Botões <i>Ciente</i> e <i>Enviar ao RH</i>.</li>
+      <li><b>Alertas:</b> aviso no momento da batida atrasada, só para os supervisores de plantão naquele horário. Botões <i>Ciente</i> e <i>Enviar ao RH</i>.</li>
       <li><b>Banco:</b> busca pelo nome, saldo na hora, “pode sair mais cedo?” e autorização que já informa o RH.</li>
       <li><b>Equipe:</b> quem está de folga, de férias, quantos trabalham no domingo e quem precisa de folga do banco.</li>
     </ul>
-    <h2>O que o gerente NÃO vê</h2>
+    <h2>O que o supervisor NÃO vê</h2>
     <ul className="hide">
       <li>Salário, descontos e folha de pagamento.</li>
       <li>Atestados com diagnóstico (só “ausência aprovada”).</li>
@@ -291,7 +290,7 @@ function GuideCard() {
       <li>Simulador 5×2, regras e configurações do sistema.</li>
       <li>Colaboradores de outros setores.</li>
     </ul>
-    <p className="ma-muted">Fluxo: batida atrasada → alerta ao gerente → ciência → envio ao RH → advertência impressa → assinatura → arquivo na ficha.</p>
+    <p className="ma-muted">Fluxo: batida atrasada → alerta ao supervisor → ciência → envio ao RH → advertência impressa → assinatura → arquivo na ficha.</p>
   </aside>;
 }
 
@@ -310,7 +309,7 @@ function RhPanel({ store, setStore, date }: { store: ManagerStore; setStore: (s:
       <span><b>{list.filter(o => o.status === "arquivado").length}</b> arquivadas</span>
       <span><b>{list.filter(o => o.status === "informado").length}</b> saídas/entradas informadas</span>
     </div>
-    {!list.length && <p className="ma-empty">Nenhuma ocorrência ainda. No celular do gerente, avance a hora, abra <b>Alertas</b> e clique em <b>Enviar ao RH</b>.</p>}
+    {!list.length && <p className="ma-empty">Nenhuma ocorrência ainda. No celular do supervisor, avance a hora, abra <b>Alertas</b> e clique em <b>Enviar ao RH</b>.</p>}
     {list.length > 0 && <table className="ma-table"><thead><tr><th>Data</th><th>Colaborador</th><th>Ocorrência</th><th>Detalhe</th><th>Situação</th><th></th></tr></thead>
       <tbody>{list.map(o => <tr key={o.id} className={o.id === selected ? "sel" : ""}>
         <td>{br(o.date)}</td><td><b>{nameOf(o.employeeId)}</b><small> {o.employeeId}</small></td>
@@ -329,7 +328,7 @@ function RhPanel({ store, setStore, date }: { store: ManagerStore; setStore: (s:
       <PrintHeader title={"ADVERTÊNCIA DISCIPLINAR Nº " + current.warningNumber} subtitle={UNIT.legalName + " · CNPJ " + UNIT.cnpj} right={"Unidade " + UNIT.unit + " · " + UNIT.city} />
       <table className="ma-doc-data"><tbody>
         <tr><th>Colaborador(a)</th><td>{employee.name}</td><th>Matrícula</th><td>{employee.id}</td></tr>
-        <tr><th>Setor</th><td>Operadora de caixa</td><th>Horário</th><td>{GROUPS[employee.group].name} · {GROUPS[employee.group].shift.start} às {GROUPS[employee.group].shift.end}</td></tr>
+        <tr><th>Função</th><td>{GROUPS[employee.group].name}</td><th>Horário</th><td>{employeeShift(employee, current.date).label} · {employeeShift(employee, current.date).start} às {employeeShift(employee, current.date).end}</td></tr>
         <tr><th>Data da ocorrência</th><td>{br(current.date)}</td><th>Registro de entrada</th><td>{current.actual ?? "sem registro"} (previsto {current.planned})</td></tr>
       </tbody></table>
       <p>Prezado(a) colaborador(a),</p>
@@ -337,12 +336,12 @@ function RhPanel({ store, setStore, date }: { store: ManagerStore; setStore: (s:
         ? <>atraso no início da jornada no dia {br(current.date)}: horário previsto às {current.planned} e registro de entrada às {current.actual}, ou seja, {current.minutes} minutos após o horário, além da tolerância de {TOLERANCE_MINUTES} minutos.</>
         : <>ausência de registro de entrada no dia {br(current.date)}, turno com início às {current.planned}.</>}</p>
       <p>Solicitamos que a pontualidade seja observada. A repetição da conduta poderá resultar em outras medidas disciplinares previstas na legislação trabalhista e no regulamento interno.</p>
-      {current.managerNote && <p><b>Observação do gerente:</b> {current.managerNote}</p>}
+      {current.managerNote && <p><b>Observação do supervisor:</b> {current.managerNote}</p>}
       <p className="ma-doc-place">{UNIT.city}, {br(date)}.</p>
       <div className="ma-sign">
         <span>Assinatura do(a) colaborador(a)<small>Ciente em ___/___/______</small></span>
         <span>Responsável pelo RH</span>
-        <span>Gerente do setor</span>
+        <span>Supervisor(a) MN Patrimônios</span>
       </div>
       <div className="ma-sign">
         <span>Testemunha 1<small>(em caso de recusa em assinar)</small></span>

@@ -337,7 +337,7 @@ export function demoCandidates(): CandidateStore {
   const ana: Candidate = {
     id: "CAND-001", name: "Ana Paula Ribeiro (fictícia)", role: "Agente de portaria", condoId: "COND-001", functionId: "FN-01", phone: "(91) 9 8100-0001",
     createdAt: "2026-10-19", stage: "aprovado", decidedAt: "2026-10-20T10:00:00",
-    interview: { date: "2026-10-20", interviewer: "Supervisão de caixa", answers: full,
+    interview: { date: "2026-10-20", interviewer: "Supervisão de portaria", answers: full,
       scores: { comunicacao: 5, postura: 4, disponibilidade: 5, perfil: 4 }, opinion: "Boa comunicação e disponibilidade total. Aprovada para a ficha." },
     application: null,
   };

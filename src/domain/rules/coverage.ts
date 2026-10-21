@@ -1,13 +1,15 @@
-import { GROUPS, GROUP_IDS } from "../config";
+import { GROUP_IDS, employeeShift } from "../config";
 import { fromMinutes, toMinutes } from "../time";
 import type { Employee, GroupId, ShiftPattern } from "../types";
 
+/** Faixa [a, b) em minutos do dia, atravessando a meia-noite quando b <= a (turno noturno). */
+function inRange(minute: number, a: number, b: number) {
+  return b > a ? minute >= a && minute < b : minute >= a || minute < b;
+}
 export function isWorkingAt(shift: ShiftPattern, minute: number): boolean {
-  const s = toMinutes(shift.start);
-  const bs = toMinutes(shift.breakStart);
-  const be = toMinutes(shift.breakEnd);
-  const e = toMinutes(shift.end);
-  return (minute >= s && minute < bs) || (minute >= be && minute < e);
+  const m = ((minute % 1440) + 1440) % 1440;
+  return inRange(m, toMinutes(shift.start), toMinutes(shift.end)) &&
+    !inRange(m, toMinutes(shift.breakStart), toMinutes(shift.breakEnd));
 }
 
 export interface CoverageSlot {
@@ -17,13 +19,13 @@ export interface CoverageSlot {
 }
 
 /** Quantidade de colaboradores em atividade ao longo do dia (passos de 20 min). */
-export function coverageOverDay(scheduled: Employee[], step = 20, from = "06:40", to = "22:20",
-  shiftOf: (e: Employee) => ShiftPattern = (e) => GROUPS[e.group].shift): CoverageSlot[] {
+export function coverageOverDay(scheduled: Employee[], step = 20, from = "00:00", to = "23:40",
+  shiftOf: (e: Employee) => ShiftPattern = (e) => employeeShift(e)): CoverageSlot[] {
   const slots: CoverageSlot[] = [];
   for (let m = toMinutes(from); m <= toMinutes(to); m += step) {
-    const byGroup = { A: 0, B: 0, C: 0 } as Record<GroupId, number>;
+    const byGroup: Record<GroupId, number> = { P: 0, S: 0 };
     for (const e of scheduled) if (isWorkingAt(shiftOf(e), m)) byGroup[e.group]++;
-    slots.push({ time: fromMinutes(m), total: byGroup.A + byGroup.B + byGroup.C, byGroup });
+    slots.push({ time: fromMinutes(m), total: byGroup.P + byGroup.S, byGroup });
   }
   return slots;
 }

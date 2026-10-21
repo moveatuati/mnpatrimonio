@@ -7,7 +7,7 @@ import { DEMO_EMPLOYEES } from "@/domain/demo-data";
 afterEach(() => { cleanup(); vi.restoreAllMocks(); });
 describe("Ficha A4 para impressão", () => {
   it("mostra logo, unidade, colaborador e todos os dias do mês até a referência", () => {
-    const employee = DEMO_EMPLOYEES.find(item => item.id === "FM-047")!;
+    const employee = DEMO_EMPLOYEES.find(item => item.id === "MN-047")!;
     render(<EmployeePrintableSheet employeeId={employee.id} date="2026-10-20" />);
     expect(screen.getByRole("img", { name: BRAND.name })).toHaveAttribute("src", BRAND.logoUrl);
     expect(screen.getByText("Unidade Condomínio Ananinville · Ananindeua/PA")).toBeInTheDocument();
@@ -20,7 +20,7 @@ describe("Ficha A4 para impressão", () => {
     expect(spy).toHaveBeenCalledOnce();
   });
   it("não produz relatório para identificador desconhecido", () => {
-    render(<EmployeePrintableSheet employeeId="FM-999" date="2026-10-20" />);
+    render(<EmployeePrintableSheet employeeId="MN-999" date="2026-10-20" />);
     expect(screen.getByRole("heading", { name: "Colaborador não encontrado" })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Imprimir / salvar PDF" })).not.toBeInTheDocument();
   });

@@ -1,6 +1,5 @@
-import { BANK_RULES } from "./config";
+import { BANK_RULES, employeeShift, shiftMinutes } from "./config";
 import { DEMO_EMPLOYEES } from "./demo-data";
-import { nextLowMovementWeekday, movementKind } from "./movement";
 import { isValidReferenceDate } from "./operation-query";
 import { DEFAULT_SCHEDULE, assignmentFor, dateOffset, dayOfWeek, shiftFor, type AssignmentChange, type ScheduleStore } from "./schedule";
 import type { Employee, ISODate } from "./types";
@@ -32,8 +31,8 @@ export type EntryDraft = {
   employeeId:string; date:ISODate; kind:Exclude<HourKind,"estorno">;
   hours:string; minutes:string; description:string; responsible:string;
 };
-/** v2: demonstração com saldo simulado para os 63 operadores (acúmulo pelo ponto). */
-export const HOUR_KEY = "formosa:augusto-montenegro:banco-horas-demo:v2";
+/** Demonstração com saldo simulado (acúmulo pelo ponto eletrônico). */
+export const HOUR_KEY = "mn:condominios:banco-horas-demo:v1";
 export const REFERENCE_DAY = "2026-10-20";
 export const KINDS: Record<HourKind, string> = {
   credito_extra:"Crédito autorizado",
@@ -52,26 +51,26 @@ export const ENTRY_STATUSES: Record<EntryStatus,string> = {
 export const DEBIT_KINDS:HourKind[] = ["debito_ausencia","debito_ajuste","compensacao","baixa_informada","saida_antecipada","entrada_tardia"];
 export const CREDIT_KINDS:HourKind[] = ["credito_extra","credito_ajuste"];
 export const DEFAULT_DRAFT:EntryDraft = {
-  employeeId:"FM-001",date:REFERENCE_DAY,kind:"credito_extra",
+  employeeId:"MN-001",date:REFERENCE_DAY,kind:"credito_extra",
   hours:"1",minutes:"00",description:"",responsible:"Gestão demonstrativa",
 };
 const demoRows = [
-  ["BH-001","FM-001","2026-10-01","credito_extra",90,"Extensão autorizada do atendimento"],
-  ["BH-002","FM-001","2026-10-08","compensacao",-30,"Compensação autorizada em escala"],
-  ["BH-003","FM-002","2026-10-05","credito_extra",110,"Apoio em horário extraordinário"],
-  ["BH-004","FM-002","2026-10-16","debito_ausencia",-45,"Ajuste demonstrativo autorizado"],
-  ["BH-005","FM-006","2026-10-03","credito_ajuste",35,"Acerto de conferência da jornada"],
-  ["BH-006","FM-006","2026-10-19","compensacao",-20,"Compensação aprovada"],
-  ["BH-007","FM-018","2026-10-11","credito_extra",75,"Extensão de expediente demonstrativa"],
-  ["BH-008","FM-018","2026-10-20","debito_ajuste",-15,"Ajuste de saldo em revisão"],
-  ["BH-009","FM-049","2026-09-25","credito_extra",120,"Saldo inicial ilustrativo anterior ao mês"],
-  ["BH-010","FM-049","2026-10-14","compensacao",-60,"Compensação de período anterior"],
-  ["BH-011","FM-055","2026-10-21","credito_extra",80,"Solicitação futura ilustrativa"],
-  ["BH-012","FM-020","2026-10-19","debito_ajuste",-75,"Apontamento pendente de justificativa"],
-  ["BH-013","FM-020","2026-10-14","debito_ajuste",-95,"Débito ilustrativo já aprovado"],
+  ["BH-001","MN-001","2026-10-01","credito_extra",90,"Cobertura de troca de turno na portaria"],
+  ["BH-002","MN-001","2026-10-08","compensacao",-30,"Compensação autorizada em escala"],
+  ["BH-003","MN-002","2026-10-05","credito_extra",110,"Apoio em horário extraordinário"],
+  ["BH-004","MN-002","2026-10-16","debito_ausencia",-45,"Ajuste demonstrativo autorizado"],
+  ["BH-005","MN-006","2026-10-03","credito_ajuste",35,"Acerto de conferência da jornada"],
+  ["BH-006","MN-006","2026-10-19","compensacao",-20,"Compensação aprovada"],
+  ["BH-007","MN-012","2026-10-11","credito_extra",75,"Extensão de expediente demonstrativa"],
+  ["BH-008","MN-012","2026-10-20","debito_ajuste",-15,"Ajuste de saldo em revisão"],
+  ["BH-009","MN-016","2026-09-25","credito_extra",120,"Saldo inicial ilustrativo anterior ao mês"],
+  ["BH-010","MN-016","2026-10-14","compensacao",-60,"Compensação de período anterior"],
+  ["BH-011","MN-020","2026-10-21","credito_extra",80,"Solicitação futura ilustrativa"],
+  ["BH-012","MN-010","2026-10-19","debito_ajuste",-75,"Apontamento pendente de justificativa"],
+  ["BH-013","MN-010","2026-10-14","debito_ajuste",-95,"Débito ilustrativo já aprovado"],
 ] as const;
 function hash(text:string){let h=2166136261;for(let i=0;i<text.length;i++){h^=text.charCodeAt(i);h=Math.imul(h,16777619);}return h>>>0;}
-/** Saldo-alvo fictício por pessoa, para a demonstração parecer uma loja real:
+/** Saldo-alvo fictício por pessoa, para a demonstração parecer uma operação real:
  * ~1 em 8 já passou de 7h, ~1 em 4 entre 4h e 7h, a maioria abaixo de 4h e alguns negativos. */
 function simulatedTarget(employeeId:string){
   const r=hash("bh:"+employeeId)%100;
@@ -91,7 +90,7 @@ export function simulatedPointEntries(until:ISODate=REFERENCE_DAY):HourEntry[]{
     if(target<0){
       const date=working[(hash(employee.id)%Math.max(1,working.length))]??until;
       rows.push({id:"PT-"+employee.id+"-1",employeeId:employee.id,date,kind:"saida_antecipada",minutes:target,
-        description:"Saída antecipada autorizada (consulta médica)",responsible:"Gerente de setor",status:"aprovado",
+        description:"Saída antecipada autorizada (consulta médica)",responsible:"Supervisor(a) do condomínio",status:"aprovado",
         createdAt:date+"T18:00:00.000Z",decidedAt:date+"T18:00:00.000Z",decisionNote:"Simulação"});
       continue;
     }
@@ -99,9 +98,9 @@ export function simulatedPointEntries(until:ISODate=REFERENCE_DAY):HourEntry[]{
     while(left>0&&working.length){
       const amount=Math.min(left,10+((hash(employee.id+n)%9)*5));
       const date=working[(n*3+hash(employee.id)%3)%working.length]!;
-      const shift=shiftFor(date,assignmentFor(DEFAULT_SCHEDULE,employee,date)??employee.group,DEFAULT_SCHEDULE.rules);
+      const shift=shiftFor(date,employee.group,DEFAULT_SCHEDULE.rules,employee);
       rows.push({id:"PT-"+employee.id+"-"+(n+1),employeeId:employee.id,date,kind:"credito_extra",minutes:amount,
-        description:"Saída após o horário ("+shift.end+") registrada no ponto",responsible:"Ponto simulado",
+        description:"Saída após o horário ("+shift.end+") registrada no ponto eletrônico",responsible:"Ponto eletrônico (simulado)",
         status:"aprovado",createdAt:date+"T23:00:00.000Z",decidedAt:date+"T23:00:00.000Z",decisionNote:"Acúmulo automático"});
       left-=amount;n++;
     }
@@ -293,8 +292,8 @@ export type BankLevel = "negativo" | "verde" | "amarelo" | "vermelho";
 export const BANK_LEVEL_TEXT: Record<BankLevel, { label: string; advice: string }> = {
   negativo: { label: "Saldo negativo", advice: "Deve horas: combinar reposição." },
   verde: { label: "Tranquilo", advice: "Saldo baixo, nada a fazer." },
-  amarelo: { label: "Planejar folga", advice: "Programe a folga no próximo período de baixo movimento." },
-  vermelho: { label: "Dar folga agora", advice: "Já acumulou 7h ou mais: conceda a folga para não gerar custo." },
+  amarelo: { label: "Planejar folga", advice: "Combine a folga de compensação dentro do prazo do acordo (até 6 meses)." },
+  vermelho: { label: "Dar folga agora", advice: "Saldo de 1 jornada ou mais: conceda a folga de compensação para não virar hora extra paga." },
 };
 export function bankLevel(minutes: number): BankLevel {
   if (minutes < 0) return "negativo";
@@ -314,15 +313,33 @@ export interface BankRow {
   level: BankLevel;
   pending: number;
   lastCredit: ISODate | null;
+  /** Crédito aprovado mais antigo e o prazo para compensar (acordo individual: 6 meses). */
+  oldestCredit: ISODate | null;
+  deadline: ISODate | null;
+}
+/** Minutos de uma folga de compensação = 1 jornada do colaborador (12×36: 11h; 6×1: 7h20; 5×2: 8h24/8h). */
+export function compensationMinutesFor(employee: Pick<Employee, "group" | "turn">, date: ISODate): number {
+  return shiftMinutes(employeeShift(employee, date));
+}
+/** Prazo final de compensação a partir da data do crédito. */
+export function compensationDeadline(date: ISODate, months = BANK_RULES.compensationMonths): ISODate {
+  const [y = 2026, m = 1, d = 1] = date.split("-").map(Number);
+  const target = new Date(Date.UTC(y, m - 1 + months, 1, 12));
+  const last = new Date(Date.UTC(target.getUTCFullYear(), target.getUTCMonth() + 1, 0, 12)).getUTCDate();
+  target.setUTCDate(Math.min(d, last));
+  return target.toISOString().slice(0, 10);
 }
 export function bankBoard(store: HourStore, date: ISODate): BankRow[] {
   return DEMO_EMPLOYEES.map(employee => {
     const minutes = balanceOf(store, employee.id, date);
     const credits = store.entries.filter(e => e.employeeId === employee.id && e.status === "aprovado" && e.minutes > 0 && e.date <= date);
+    const dates = credits.map(e => e.date).sort();
+    const oldestCredit = minutes > 0 ? dates[0] ?? null : null;
     return {
       employee, minutes, level: bankLevel(minutes),
       pending: store.entries.filter(e => e.employeeId === employee.id && e.status === "pendente").length,
-      lastCredit: credits.map(e => e.date).sort().at(-1) ?? null,
+      lastCredit: dates.at(-1) ?? null,
+      oldestCredit, deadline: oldestCredit ? compensationDeadline(oldestCredit) : null,
     };
   }).sort((a, b) => b.minutes - a.minutes || a.employee.name.localeCompare(b.employee.name));
 }
@@ -342,24 +359,26 @@ export function canUseBank(balance: number, request: number) {
   if (remaining >= 0) return { ok: true, remaining, message: "Sim. Tem saldo. Depois do pedido ficará com " + hoursText(remaining) + "." };
   return { ok: false, remaining, message: "Não tem saldo suficiente. Faltam " + hoursText(-remaining) + ". Precisa de autorização do RH." };
 }
-/** Próxima data de baixo movimento (seg–sex) em que a pessoa estaria trabalhando. */
+/** Próximo dia (a partir de amanhã) em que a pessoa estaria trabalhando — vira a folga de compensação.
+ * Serviços gerais: prefere segunda a sexta. Portaria: o próximo plantão da turma. */
 export function suggestCompensationDate(schedule: ScheduleStore, employee: Employee, from: ISODate): ISODate {
-  let date = nextLowMovementWeekday(dateOffset(from, 1));
+  let date = dateOffset(from, 1);
   for (let i = 0; i < 70; i++) {
     const weekday = dayOfWeek(date);
-    if (movementKind(date) === "baixa" && weekday >= 1 && weekday <= 5 && assignmentFor(schedule, employee, date) !== null) return date;
+    const okDay = employee.group === "P" || (weekday >= 1 && weekday <= 5);
+    if (okDay && assignmentFor(schedule, employee, date) !== null) return date;
     date = dateOffset(date, 1);
   }
   return date;
 }
 function newId(prefix: string, now: string) { return prefix + "-" + Date.parse(now).toString(36) + "-" + Math.random().toString(36).slice(2, 7); }
-/** Programa a folga de compensação: lança o débito de 7h e devolve o ajuste da escala (folga no dia). */
+/** Programa a folga de compensação: lança o débito de 1 jornada e devolve o ajuste da escala (folga no dia). */
 export function scheduleCompensation(store: HourStore, employee: Employee, date: ISODate, actor: string, now = new Date().toISOString()) {
   if (!isValidReferenceDate(date)) return { ok: false as const, message: "Data inválida.", store, change: null };
   const row: HourEntry = {
-    id: newId("FC", now), employeeId: employee.id, date, kind: "compensacao", minutes: -BANK_RULES.folgaMinutes,
+    id: newId("FC", now), employeeId: employee.id, date, kind: "compensacao", minutes: -compensationMinutesFor(employee, date),
     description: "Folga de compensação do banco de horas", responsible: clean(actor || "Gerente", 100),
-    status: "aprovado", createdAt: now, decidedAt: now, decisionNote: "Folga programada pelo gerente",
+    status: "aprovado", createdAt: now, decidedAt: now, decisionNote: "Folga programada pelo gestor",
   };
   const change: AssignmentChange = { employeeId: employee.id, date, group: null };
   return {

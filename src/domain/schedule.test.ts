@@ -1,203 +1,156 @@
 import { describe, expect, it } from "vitest";
 import { DEMO_EMPLOYEES } from "./demo-data";
+import { LABOR_LAW, RULES, employeeShift, serviceRegime, shiftMinutes } from "./config";
 import {
   DEFAULT_SCHEDULE, adjacentRestProblems, assignmentFor, coverageFor, dateOffset, dayOfWeek,
   holidayTargetsFor, plannedRestFor, requiredFor, restAudit, restReason, reviseStore, scheduleForDate, sundayRestCheck,
-  startOfWeek, swapProposal, validateChanges, withChanges, type ScheduleStore,
+  swapProposal, validateChanges, withChanges, works12x36, type ScheduleStore,
 } from "./schedule";
 
 const WEEKDAY = "2026-10-20";
 const SATURDAY = "2026-10-24";
 const SUNDAY = "2026-10-25";
-const working = (group: "A" | "B" | "C", date = WEEKDAY) =>
-  DEMO_EMPLOYEES.find(e => e.group === group && assignmentFor(DEFAULT_SCHEDULE, e, date) === group)!;
-const a = working("A");
-const b = working("B");
-const c = working("C");
-const total = (date: string) => coverageFor(DEFAULT_SCHEDULE, date).reduce((n, row) => n + row.assigned, 0);
+const portaria = DEMO_EMPLOYEES.filter(e => e.group === "P");
+const servicos = DEMO_EMPLOYEES.filter(e => e.group === "S");
+const workingOn = (group: "P" | "S", date: string, store: ScheduleStore = DEFAULT_SCHEDULE) =>
+  DEMO_EMPLOYEES.filter(e => e.group === group && assignmentFor(store, e, date) === group);
+const offOn = (group: "P" | "S", date: string, store: ScheduleStore = DEFAULT_SCHEDULE) =>
+  DEMO_EMPLOYEES.filter(e => e.group === group && assignmentFor(store, e, date) === null);
+const withSundayS = (n: number): ScheduleStore => ({ ...DEFAULT_SCHEDULE, rules: { ...DEFAULT_SCHEDULE.rules, sunday: { P: 6, S: n } } });
 
-describe("Escala Formosa — revezamento real (6×1, domingo sim / domingo não)", () => {
-  it("dia útil: cada pessoa folga um dia e a meta mínima do período é cumprida", () => {
-    const coverage = coverageFor(DEFAULT_SCHEDULE, WEEKDAY);
-    expect(coverage.every(row => row.assigned >= row.required)).toBe(true);
-    expect(total(WEEKDAY)).toBeGreaterThanOrEqual(48);
-    expect(total(WEEKDAY)).toBeLessThan(63);
-    for (const e of DEMO_EMPLOYEES) {
-      const week = Array.from({ length: 5 }, (_, i) => dateOffset(startOfWeek(WEEKDAY), i));
-      expect(week.filter(d => plannedRestFor(e, d) !== null)).toHaveLength(1);
+describe("Quadro dos condomínios — portaria 12×36 e serviços gerais", () => {
+  it("dois grupos: portaria com turmas diurna/noturna e serviços gerais", () => {
+    expect(portaria.length).toBe(12);
+    expect(servicos.length).toBe(9);
+    expect(portaria.filter(e => e.turn === "noturno")).toHaveLength(6);
+    expect(DEMO_EMPLOYEES.every(e => e.condoId)).toBe(true);
+  });
+  it("portaria 12×36: cada agente trabalha um dia sim, outro não, inclusive domingo e feriado", () => {
+    for (const e of portaria) {
+      const days = Array.from({ length: 14 }, (_, i) => dateOffset(WEEKDAY, i));
+      const worked = days.filter(d => assignmentFor(DEFAULT_SCHEDULE, e, d) === "P");
+      expect(worked).toHaveLength(7);
+      for (const d of worked) expect(assignmentFor(DEFAULT_SCHEDULE, e, dateOffset(d, 1))).toBeNull();
+    }
+    for (const d of [WEEKDAY, SATURDAY, SUNDAY]) expect(workingOn("P", d)).toHaveLength(6);
+    expect(restReason(DEFAULT_SCHEDULE, offOn("P", WEEKDAY)[0]!, WEEKDAY)).toContain("12×36");
+  });
+  it("portaria tem 12h com 1h de intervalo; turno noturno atravessa a meia-noite", () => {
+    const night = portaria.find(e => e.turn === "noturno")!;
+    const day = portaria.find(e => e.turn === "diurno")!;
+    expect(employeeShift(day)).toMatchObject({ start: "07:00", end: "19:00" });
+    expect(employeeShift(night)).toMatchObject({ start: "19:00", end: "07:00" });
+    expect(shiftMinutes(employeeShift(night))).toBe(11 * 60);
+    const row = scheduleForDate(DEFAULT_SCHEDULE, WEEKDAY).find(r => r.employee.id === night.id && r.group)
+      ?? scheduleForDate(DEFAULT_SCHEDULE, dateOffset(WEEKDAY, 1)).find(r => r.employee.id === night.id)!;
+    expect(row.shift?.start).toBe("19:00");
+  });
+  it("serviços gerais 6×1: segunda a sábado, 7h20, descanso no domingo", () => {
+    expect(serviceRegime(WEEKDAY)).toBe("6x1");
+    expect(workingOn("S", WEEKDAY)).toHaveLength(9);
+    expect(workingOn("S", SATURDAY)).toHaveLength(9);
+    expect(workingOn("S", SUNDAY)).toHaveLength(0);
+    expect(restReason(DEFAULT_SCHEDULE, servicos[0]!, SUNDAY)).toBe("Descanso semanal (domingo)");
+    expect(shiftMinutes(employeeShift(servicos[0]!, WEEKDAY))).toBe(440);
+    expect(coverageFor(DEFAULT_SCHEDULE, WEEKDAY).every(r => r.assigned >= r.required)).toBe(true);
+  });
+  it("EC 141/2026: serviços gerais passam sozinhos para 5×2 de 42h e depois 40h", () => {
+    const monday = "2026-12-21";
+    expect(LABOR_LAW.fiveTwoStart).toBe("2026-12-15");
+    expect(serviceRegime(monday)).toBe("5x2-42h");
+    expect(serviceRegime("2027-12-20")).toBe("5x2-40h");
+    expect(workingOn("S", monday)).toHaveLength(9);
+    expect(workingOn("S", "2026-12-26")).toHaveLength(0);
+    expect(restReason(DEFAULT_SCHEDULE, servicos[0]!, "2026-12-26")).toBe("Folga do sábado (5×2)");
+    expect(shiftMinutes(employeeShift(servicos[0]!, monday))).toBe(504);
+    expect(shiftMinutes(employeeShift(servicos[0]!, "2027-12-20"))).toBe(480);
+    expect(requiredFor(DEFAULT_SCHEDULE, "2026-12-26", "S")).toBe(0);
+    // Portaria não muda.
+    expect(workingOn("P", monday)).toHaveLength(6);
+  });
+  it("28 dias sem descanso curto e sem dias seguidos acima do limite, inclusive na transição", () => {
+    for (const start of ["2026-10-19", "2026-12-07"]) for (let i = 0; i < 28; i++) {
+      const d = dateOffset(start, i);
+      for (const e of DEMO_EMPLOYEES) expect(adjacentRestProblems(DEFAULT_SCHEDULE, e, d)).toEqual([]);
     }
   });
-  it("sábado tem equipe completa (63)", () => {
-    expect(total(SATURDAY)).toBe(63);
-    expect(coverageFor(DEFAULT_SCHEDULE, SATURDAY).map(r => r.assigned)).toEqual([4, 29, 30]);
-  });
-  it("domingo: metade da equipe, turnos independentes do grupo e ninguém do fechamento de manhã", () => {
-    const rows = scheduleForDate(DEFAULT_SCHEDULE, SUNDAY).filter(r => r.group !== null);
-    expect(rows.length).toBeGreaterThanOrEqual(30);
-    expect(rows.length).toBeLessThanOrEqual(33);
-    expect(rows.filter(r => r.group === "A")).toHaveLength(9);
-    expect(rows.filter(r => r.group !== "C").every(r => r.employee.group !== "C")).toBe(true);
-    expect(rows.find(r => r.group === "A")?.shift?.start).toBe("08:00");
-    expect(rows.find(r => r.group === "C")?.shift?.start).toBe("15:15");
-  });
-  it("quem trabalha o domingo tem folga antecipada e folga do 7º dia sete dias depois", () => {
-    const rows = scheduleForDate(DEFAULT_SCHEDULE, SUNDAY).filter(r => r.group !== null);
-    for (const row of rows) {
-      const week = Array.from({ length: 5 }, (_, i) => dateOffset(startOfWeek(SUNDAY), i));
-      const early = week.find(d => plannedRestFor(row.employee, d) === "antecipada");
-      expect(early).toBeDefined();
-      expect(plannedRestFor(row.employee, dateOffset(early!, 7))).toBe("setimo");
-      expect(restReason(DEFAULT_SCHEDULE, row.employee, early!)).toContain("antecipada");
+  it("domingo com serviços gerais: quem trabalha tem folga antecipada e folga do 7º dia", () => {
+    const store = withSundayS(3);
+    const sundayCrew = workingOn("S", SUNDAY, store);
+    expect(sundayCrew).toHaveLength(3);
+    for (const e of sundayCrew) {
+      const check = sundayRestCheck(store, e, SUNDAY);
+      expect(check.ok).toBe(true);
+      expect(plannedRestFor(e, check.before!, store)).toBe("antecipada");
+      expect(check.after).toBe(dateOffset(check.before!, 7));
     }
-  });
-  it("cada pessoa trabalha 2 de 4 domingos, nunca dois seguidos", () => {
-    const sundays = [0, 7, 14, 21].map(n => dateOffset(SUNDAY, n));
-    for (const e of DEMO_EMPLOYEES) {
-      const pattern = sundays.map(d => assignmentFor(DEFAULT_SCHEDULE, e, d) !== null);
-      expect(pattern.filter(Boolean)).toHaveLength(2);
-      expect(pattern.some((v, i) => v && pattern[i + 1])).toBe(false);
-    }
-  });
-  it("28 dias sem sete dias seguidos e sem descanso abaixo de 11h", () => {
-    for (const e of DEMO_EMPLOYEES) {
-      for (let i = 0; i < 28; i += 3) {
-        expect(adjacentRestProblems(DEFAULT_SCHEDULE, e, dateOffset("2026-10-19", i))).toEqual([]);
-      }
-    }
-  });
-  it("meta dos dias úteis muda com o período de movimento", () => {
-    expect(requiredFor(DEFAULT_SCHEDULE, "2026-10-20", "B")).toBe(DEFAULT_SCHEDULE.rules.weekday.baixa.B);
-    expect(requiredFor(DEFAULT_SCHEDULE, "2026-10-29", "B")).toBe(DEFAULT_SCHEDULE.rules.weekday.alta.B);
-    expect(requiredFor(DEFAULT_SCHEDULE, SATURDAY, "B")).toBe(29);
-  });
-  it("bloqueia queda de cobertura abaixo da meta", () => {
-    const next = validateChanges(DEFAULT_SCHEDULE, [{ employeeId: a.id, date: WEEKDAY, group: null }]);
-    expect(next.ok).toBe(false);
-    expect(next.errors.some(e => e.includes("cobertura"))).toBe(true);
-  });
-  it("bloqueia descanso abaixo de 11h quando fecha e abre no dia seguinte", () => {
-    const result = validateChanges(DEFAULT_SCHEDULE, swapProposal(DEFAULT_SCHEDULE, WEEKDAY, a.id, c.id));
-    expect(result.ok).toBe(false);
-    expect(result.errors.some(e => e.toLowerCase().includes("descanso"))).toBe(true);
-  });
-  it("bloqueia quem fecha o sábado às 22h no turno das 08h do domingo", () => {
-    const closing = scheduleForDate(DEFAULT_SCHEDULE, SUNDAY).find(r => r.group === "C" && r.employee.group === "C")!;
-    const result = validateChanges(DEFAULT_SCHEDULE, [{ employeeId: closing.employee.id, date: SUNDAY, group: "A" }]);
-    expect(result.ok).toBe(false);
-    expect(result.errors.some(e => e.toLowerCase().includes("descanso"))).toBe(true);
-  });
-  it("aceita troca compatível de A e B sem alterar o original antes da aprovação", () => {
-    const changes = swapProposal(DEFAULT_SCHEDULE, WEEKDAY, a.id, b.id);
-    expect(validateChanges(DEFAULT_SCHEDULE, changes).ok).toBe(true);
-    expect(assignmentFor(DEFAULT_SCHEDULE, a, WEEKDAY)).toBe("A");
-    const approved = withChanges(DEFAULT_SCHEDULE, changes);
-    expect(assignmentFor(approved, a, WEEKDAY)).toBe("B");
-    expect(assignmentFor(approved, b, WEEKDAY)).toBe("A");
-    expect(coverageFor(approved, WEEKDAY)).toEqual(coverageFor(DEFAULT_SCHEDULE, WEEKDAY));
-  });
-  it("reconhece feriados personalizados por data sem contaminar os outros dias", () => {
-    const rules = { ...DEFAULT_SCHEDULE.rules, holidays: ["2026-10-21"], holidayByDate: { "2026-10-21": { A: 2, B: 4, C: 5 } } };
-    const store: ScheduleStore = { ...DEFAULT_SCHEDULE, rules };
-    expect(holidayTargetsFor(rules, "2026-10-21")).toEqual({ A: 2, B: 4, C: 5 });
-    expect(coverageFor(store, "2026-10-21").map(r => r.assigned)).toEqual([2, 4, 5]);
-    expect(coverageFor(store, "2026-10-22")).toEqual(coverageFor(DEFAULT_SCHEDULE, "2026-10-22"));
-  });
-  it("recupera o armazenamento com segurança e migra o domingo antigo (1/6/6)", () => {
-    const clamped = reviseStore({ ...DEFAULT_SCHEDULE, rules: { ...DEFAULT_SCHEDULE.rules, sunday: { A: 999, B: -2, C: 6 } } });
-    expect(clamped.rules.sunday).toEqual({ A: 63, B: 0, C: 6 });
-    const legacy = reviseStore({ ...DEFAULT_SCHEDULE, rules: { sunday: { A: 1, B: 6, C: 6 }, holiday: { A: 1, B: 6, C: 6 }, holidayByDate: {}, holidays: [] } });
-    expect(legacy.rules.sunday).toEqual({ A: 9, B: 10, C: 10 });
-    expect(legacy.rules.weekday).toEqual(DEFAULT_SCHEDULE.rules.weekday);
-    expect(reviseStore(null).version).toBe(1);
-    expect(reviseStore({ version: 2 }).version).toBe(1);
-  });
-  it("aceita replanejamento de várias datas com metas explícitas", () => {
-    const changes = [
-      { employeeId: a.id, date: WEEKDAY, group: null },
-      { employeeId: a.id, date: dateOffset(WEEKDAY, 1), group: null },
-    ];
-    const result = validateChanges(DEFAULT_SCHEDULE, changes, {
-      [WEEKDAY]: { A: 0, B: 0, C: 0 }, [dateOffset(WEEKDAY, 1)]: { A: 0, B: 0, C: 0 },
-    });
-    expect(result.errors.filter(e => e.includes("cobertura"))).toEqual([]);
-    expect(assignmentFor(DEFAULT_SCHEDULE, a, WEEKDAY)).toBe("A");
-  });
-  it("bloqueia falta de cobertura em qualquer data do lote", () => {
-    const day2 = dateOffset(WEEKDAY, 1);
-    const target = working("A", day2);
-    const result = validateChanges(DEFAULT_SCHEDULE, [
-      { employeeId: a.id, date: WEEKDAY, group: "A" },
-      { employeeId: target.id, date: day2, group: null },
-    ]);
-    expect(result.ok).toBe(false);
-    expect(result.errors.some(error => error.includes(day2) && error.includes("cobertura"))).toBe(true);
-  });
-  it("rejeita destino duplicado por data e datas inválidas sem lançar exceção", () => {
-    expect(validateChanges(DEFAULT_SCHEDULE, []).ok).toBe(false);
-    expect(validateChanges(DEFAULT_SCHEDULE, [{ employeeId: a.id, date: "2026-02-30", group: "A" }]).ok).toBe(false);
-    expect(validateChanges(DEFAULT_SCHEDULE, [
-      { employeeId: a.id, date: WEEKDAY, group: "A" },
-      { employeeId: a.id, date: WEEKDAY, group: "B" },
-    ]).errors).toContain("Um colaborador não pode receber dois destinos na mesma data.");
-  });
-  it("preserva ajustes do gerente, solicitações e histórico existentes", () => {
-    const store = withChanges(DEFAULT_SCHEDULE, [{ employeeId: a.id, date: "2026-10-17", group: null }]);
-    const history = [{ id: "h1", date: "2026-10-17", actor: "Gestão", detail: "Folga confirmada", createdAt: "2026-10-20T22:12:00Z" }];
-    const restored = reviseStore({ ...store, history });
-    expect(restored.overrides).toEqual(store.overrides);
-    expect(restored.history).toEqual(history);
-    expect(assignmentFor(restored, a, "2026-10-17")).toBeNull();
-    expect(restReason(restored, a, "2026-10-17")).toBe("Folga ajustada pelo gerente");
-    expect(dayOfWeek(SUNDAY)).toBe(0);
-  });
-});
-
-describe("Regra do gerente: domingo trabalhado = folga antes + folga depois", () => {
-  it("todas as 63 pessoas em dia nas 4 semanas; metade trabalha cada domingo", () => {
-    const audit = restAudit(DEFAULT_SCHEDULE, "2026-10-19", 4);
-    expect(audit.rows).toHaveLength(63);
+    for (let i = 0; i < 42; i++) for (const e of servicos)
+      expect(adjacentRestProblems(store, e, dateOffset("2026-10-19", i))).toEqual([]);
+    const audit = restAudit(store, "2026-10-19", 4);
+    expect(audit.rows).toHaveLength(9);
     expect(audit.pending).toBe(0);
-    expect(audit.ok).toBe(63);
-    for (const n of audit.workersPerSunday) { expect(n).toBeGreaterThanOrEqual(31); expect(n).toBeLessThanOrEqual(32); }
-    for (const row of audit.rows) {
-      expect(row.sundaysWorked).toBe(2);
-      expect(row.sundaysOff).toBe(2);
-      expect(row.restsBefore).toBe(2);
-      expect(row.restsAfter).toBe(2);
-    }
+    expect(audit.workersPerSunday).toEqual([3, 3, 3, 3]);
   });
-  it("bloqueia tirar a folga ANTES de quem trabalha no domingo", () => {
-    const row = scheduleForDate(DEFAULT_SCHEDULE, SUNDAY).find(r => r.group !== null)!;
-    const before = sundayRestCheck(DEFAULT_SCHEDULE, row.employee, SUNDAY).before!;
-    const result = validateChanges(DEFAULT_SCHEDULE, [{ employeeId: row.employee.id, date: before, group: row.employee.group }],
-      { [before]: { A: 0, B: 0, C: 0 } });
+  it("bloqueia folga que derruba a cobertura e descanso de 36h da 12×36", () => {
+    const s = workingOn("S", WEEKDAY)[0]!;
+    const off = validateChanges(DEFAULT_SCHEDULE, [{ employeeId: s.id, date: WEEKDAY, group: null }]);
+    expect(off.ok).toBe(false);
+    expect(off.errors.join(" ")).toContain("Serviços gerais");
+    const p = offOn("P", WEEKDAY)[0]!;
+    const extra = validateChanges(DEFAULT_SCHEDULE, [{ employeeId: p.id, date: WEEKDAY, group: "P" }]);
+    expect(extra.ok).toBe(false);
+    expect(extra.errors.join(" ")).toContain("36h");
+  });
+  it("bloqueia 7 dias seguidos de serviços gerais no 6×1", () => {
+    const s = servicos[0]!;
+    const result = validateChanges(DEFAULT_SCHEDULE, [{ employeeId: s.id, date: SUNDAY, group: "S" }]);
     expect(result.ok).toBe(false);
-    expect(result.errors.some(e => e.includes("folga ANTES"))).toBe(true);
+    expect(result.errors.join(" ")).toContain("dias consecutivos");
   });
-  it("bloqueia tirar a folga DEPOIS de quem trabalhou no domingo", () => {
-    const row = scheduleForDate(DEFAULT_SCHEDULE, SUNDAY).find(r => r.group !== null)!;
-    const after = sundayRestCheck(DEFAULT_SCHEDULE, row.employee, SUNDAY).after!;
-    const result = validateChanges(DEFAULT_SCHEDULE, [{ employeeId: row.employee.id, date: after, group: row.employee.group }],
-      { [after]: { A: 0, B: 0, C: 0 } });
+  it("não deixa uma função cobrir posto de outra", () => {
+    const s = servicos[0]!;
+    const result = validateChanges(DEFAULT_SCHEDULE, [{ employeeId: s.id, date: WEEKDAY, group: "P" }]);
     expect(result.ok).toBe(false);
-    expect(result.errors.some(e => e.includes("folga DEPOIS"))).toBe(true);
+    expect(result.errors.join(" ")).toContain("não pode cobrir posto de Agente de portaria");
   });
-  it("bloqueia dois domingos seguidos numa troca de domingo", () => {
-    const rows = scheduleForDate(DEFAULT_SCHEDULE, SUNDAY);
-    const on = rows.find(r => r.group !== null)!, off = rows.find(r => r.group === null)!;
-    const result = validateChanges(DEFAULT_SCHEDULE, swapProposal(DEFAULT_SCHEDULE, SUNDAY, on.employee.id, off.employee.id));
-    expect(result.ok).toBe(false);
-    expect(result.errors.some(e => e.includes("dois domingos seguidos"))).toBe(true);
+  it("troca entre turmas da portaria inverte os plantões sem alterar a escala antes da aprovação", () => {
+    const on = workingOn("P", WEEKDAY).find(e => e.turn === "diurno")!;
+    const offMate = offOn("P", WEEKDAY).find(e => e.turn === "diurno" && e.condoId === on.condoId)!;
+    const changes = swapProposal(DEFAULT_SCHEDULE, WEEKDAY, on.id, offMate.id);
+    expect(changes.map(c => c.group)).toEqual([null, "P"]);
+    expect(assignmentFor(DEFAULT_SCHEDULE, on, WEEKDAY)).toBe("P");
+    // Trocar só um dia quebra as 36h de quem entra no lugar.
+    expect(validateChanges(DEFAULT_SCHEDULE, changes).ok).toBe(false);
   });
-  it("trocar o dia da folga (continuando antes do domingo) é permitido", () => {
-    const row = scheduleForDate(DEFAULT_SCHEDULE, SUNDAY).find(r => r.group !== null && r.employee.group === "C")!;
-    const before = sundayRestCheck(DEFAULT_SCHEDULE, row.employee, SUNDAY).before!;
-    const other = [0, 1, 2, 3, 4].map(i => dateOffset("2026-10-19", i)).find(d => d !== before)!;
-    const changes = [
-      { employeeId: row.employee.id, date: before, group: row.employee.group },
-      { employeeId: row.employee.id, date: other, group: null },
-    ];
-    const result = validateChanges(DEFAULT_SCHEDULE, changes, { [before]: { A: 0, B: 0, C: 0 }, [other]: { A: 0, B: 0, C: 0 } });
-    expect(result.errors.filter(e => e.includes("folga"))).toEqual([]);
+  it("reconhece feriados personalizados por data", () => {
+    const holiday = "2026-11-02";
+    const store: ScheduleStore = { ...DEFAULT_SCHEDULE, rules: { ...DEFAULT_SCHEDULE.rules, holidays: [holiday],
+      holidayByDate: { [holiday]: { P: 6, S: 2 } } } };
+    expect(holidayTargetsFor(store.rules, holiday)).toEqual({ P: 6, S: 2 });
+    expect(workingOn("S", holiday, store)).toHaveLength(2);
+    expect(workingOn("P", holiday, store)).toHaveLength(6);
+    expect(workingOn("S", dateOffset(holiday, 1), store)).toHaveLength(9);
+  });
+  it("recupera o armazenamento com segurança e descarta grupos antigos", () => {
+    expect(reviseStore(null)).toBe(DEFAULT_SCHEDULE);
+    const restored = reviseStore({ ...DEFAULT_SCHEDULE, rules: { ...DEFAULT_SCHEDULE.rules, sunday: { A: 9, B: 10, C: 10 } },
+      overrides: { ["2026-10-20:MN-001"]: "A", ["2026-10-20:MN-002"]: null } });
+    expect(restored.rules.sunday).toEqual({ P: 6, S: 0 });
+    expect(restored.overrides).toEqual({ ["2026-10-20:MN-002"]: null });
+    expect(RULES.rest12x36Hours).toBe(36);
+  });
+  it("aceita ajuste compatível e preserva histórico existente", () => {
+    const s = servicos[1]!;
+    const store = withChanges(DEFAULT_SCHEDULE, [{ employeeId: s.id, date: SATURDAY, group: null }]);
+    expect(assignmentFor(store, s, SATURDAY)).toBeNull();
+    expect(restReason(store, s, SATURDAY)).toBe("Folga ajustada pelo gestor");
+    expect(dayOfWeek(SATURDAY)).toBe(6);
+    expect(validateChanges(DEFAULT_SCHEDULE, [{ employeeId: s.id, date: "2026-02-30", group: null }]).ok).toBe(false);
+    expect(validateChanges(DEFAULT_SCHEDULE, [{ employeeId: s.id, date: WEEKDAY, group: null }, { employeeId: s.id, date: WEEKDAY, group: "S" }]).errors
+      .join(" ")).toContain("dois destinos");
+  });
+  it("12×36 alterna os dias da turma", () => {
+    const e = portaria[0]!;
+    expect(works12x36(e, WEEKDAY)).not.toBe(works12x36(e, dateOffset(WEEKDAY, 1)));
   });
 });

@@ -30,7 +30,7 @@ import { bankSummary, type HourStore } from "@/domain/hour-bank";
 import { DEFAULT_SCHEDULE, type ScheduleStore } from "@/domain/schedule";
 import type { AbsenceStore } from "@/domain/absences";
 import { loadAbsences, loadHours, loadSchedule } from "@/lib/demo-storage";
-import { GROUP_IDS, RULES, UNIT } from "@/domain/config";
+import { GROUPS, GROUP_IDS, LABOR_LAW, RULES, UNIT } from "@/domain/config";
 import { filterArrivals, isValidReferenceDate, type EntryFilter } from "@/domain/operation-query";
 import { arrivalOffsetMinutes } from "@/domain/rules/arrival-ranking";
 import { countMonthlyLateArrivals } from "@/domain/rules/late-history";
@@ -144,7 +144,7 @@ export function OperationDashboard() {
     {
       label: "Escalados no dia",
       value: dashboard.kpis.scheduled,
-      note: dashboard.day.special ? "Turnos especiais do domingo" : "Já sem folgas e férias",
+      note: dashboard.day.special ? "Domingo/feriado: portaria 12×36 em serviço" : "Já sem folgas e férias",
       icon: Users,
       tone: "brand",
       filter: "all" as EntryFilter,
@@ -234,12 +234,13 @@ export function OperationDashboard() {
         <span className="op-demo-tag">UNIDADE PILOTO</span>
       </div>
 
-      <section className="op-today" aria-label="Hoje na loja">
-        <div className={"op-period op-period-" + dashboard.day.period.kind}>
-          <b>{dashboard.day.period.kind === "alta" ? "🔴" : "🟢"} {dashboard.day.period.label}</b>
+      <section className="op-today" aria-label="Hoje nos condomínios">
+        <div className={"op-period " + (dashboard.day.regime === "6x1" ? "op-period-alta" : "op-period-baixa")}>
+          <b>⚖️ Serviços gerais em {dashboard.day.regimeLabel} · portaria em 12×36</b>
           <span>
-            de {displayDate(dashboard.day.period.from)} a {displayDate(dashboard.day.period.until)} ·{" "}
-            {dashboard.day.period.advice}
+            {dashboard.day.regime === "6x1"
+              ? `6×1 até ${displayDate(LABOR_LAW.fiveTwoStart)}; depois 5×2 de 42h (${LABOR_LAW.amendment}).`
+              : `5×2 em vigor (${LABOR_LAW.amendment}).`}
           </span>
         </div>
         <div className="op-today-cards">
@@ -339,7 +340,7 @@ export function OperationDashboard() {
                   <div
                     className="op-meter"
                     role="meter"
-                    aria-label={`Entradas registradas no grupo ${entry.group}`}
+                    aria-label={`Entradas registradas — ${config.name}`}
                     aria-valuemin={0}
                     aria-valuemax={entry.scheduled || 1}
                     aria-valuenow={entry.registered}
@@ -457,7 +458,7 @@ export function OperationDashboard() {
                   setGroup(value);
                 }}
               >
-                {value === "all" ? "Todos os grupos" : `Grupo ${value}`}
+                {value === "all" ? "Todas as funções" : GROUPS[value].name}
               </button>
             ))}
           </div>
@@ -495,7 +496,7 @@ export function OperationDashboard() {
         <div className="op-filter-summary">
           <p>
             {date.split("-").reverse().join("/")} <span>·</span>{" "}
-            {group === "all" ? "Todos os grupos" : `Grupo ${group}`} <span>·</span>{" "}
+            {group === "all" ? "Todas as funções" : GROUPS[group].name} <span>·</span>{" "}
             {getFilterLabels()[status]}
             {query.trim() && ` · Busca: “${query.trim()}”`}
           </p>
@@ -521,7 +522,7 @@ export function OperationDashboard() {
             <thead>
               <tr>
                 <th scope="col">Colaborador</th>
-                <th scope="col">Grupo</th>
+                <th scope="col">Função</th>
                 <th scope="col">Previsto</th>
                 <th scope="col">Entrada</th>
                 <th scope="col">Situação do dia</th>
@@ -634,7 +635,7 @@ export function OperationDashboard() {
             <DialogHeader>
               <DialogTitle>{selected.employee.name}</DialogTitle>
               <DialogDescription>
-                {selected.employee.id} · Grupo {selected.employee.group} —{" "}
+                {selected.employee.id} ·{" "}
                 {dashboard.labels[selected.employee.group].name}
                 <br />
                 {displayDate(date)} · Registro fictício
