@@ -1,6 +1,7 @@
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { Printer } from "lucide-react";
-import { UNIT } from "@/domain/config";
+import { PrintHeader } from "@/components/print/PrintHeader";
+import { printNode } from "@/lib/print";
 import type { AbsenceStore } from "@/domain/absences";
 import { movementPeriod } from "@/domain/movement";
 import { sundaySheet, weekSheet } from "@/domain/paper-sheets";
@@ -9,14 +10,6 @@ import "./PaperSheets.css";
 
 const br = (d: string | null) => d ? d.split("-").reverse().join("/") : "—";
 const WEEKDAY = ["DOMINGO", "SEGUNDA", "TERÇA", "QUARTA", "QUINTA", "SEXTA", "SÁBADO"];
-
-function printOnly(kind: "sunday" | "week") {
-  document.body.dataset.printing = kind;
-  const done = () => { delete document.body.dataset.printing; window.removeEventListener("afterprint", done); };
-  window.addEventListener("afterprint", done);
-  window.print();
-  window.setTimeout(done, 1500);
-}
 
 /** Folhas impressas iguais às de papel: escala de domingo e folgas da semana. */
 export function PaperSheets({ store, absences, initialDate, show = "both" }: {
@@ -27,6 +20,8 @@ export function PaperSheets({ store, absences, initialDate, show = "both" }: {
   const sheet = useMemo(() => sundaySheet(store, sunday), [store, sunday]);
   const week = useMemo(() => weekSheet(store, absences, date), [store, absences, date]);
   const period = movementPeriod(sunday);
+  const sundayRef = useRef<HTMLElement | null>(null);
+  const weekRef = useRef<HTMLElement | null>(null);
 
   return <div className="ps">
     <div className="ps-controls">
@@ -35,16 +30,13 @@ export function PaperSheets({ store, absences, initialDate, show = "both" }: {
       <button type="button" onClick={() => setDate(dateOffset(date, 7))}>Próxima semana ▶</button>
     </div>
 
-    {show !== "week" && <article className="ps-sheet ps-sheet-sunday">
-      <header className="ps-head">
-        <h2>ESCALA DE DOMINGO</h2>
-        <div className="ps-line"><span>SETOR: OPERADORA DE CAIXA · {UNIT.unit.toUpperCase()}</span><b>DATA: {br(sheet.date)}</b></div>
-        <div className="ps-summary">
-          <span>Escalados: <b>{sheet.total}</b> (vagas previstas: {sheet.target})</span>
-          <span>{period.kind === "alta" ? "🔴 Alto movimento" : "🟢 Baixo movimento"}</span>
-          <button type="button" className="ps-print" onClick={() => printOnly("sunday")}><Printer size={16} /> Imprimir</button>
-        </div>
-      </header>
+    {show !== "week" && <article className="ps-sheet ps-sheet-sunday" ref={sundayRef}>
+      <PrintHeader title="ESCALA DE DOMINGO" subtitle={"Data: " + br(sheet.date) + " · Escalados: " + sheet.total + " (vagas previstas: " + sheet.target + ")"}
+        right={"Setor: Operadora de caixa · " + (period.kind === "alta" ? "Alto movimento" : "Baixo movimento")} />
+      <div className="ps-summary no-print">
+        <span>{period.kind === "alta" ? "🔴 Alto movimento" : "🟢 Baixo movimento"} · cabe em 1 folha A4</span>
+        <button type="button" className="ps-print" onClick={() => printNode(sundayRef.current, { title: "Escala de domingo " + br(sheet.date) })}><Printer size={16} /> Imprimir</button>
+      </div>
       {sheet.blocks.map(block => <section key={block.slot} className="ps-block">
         <h3>{block.title} <small>{block.rows.length} de {block.target} vagas{block.rows.length < block.target ? " · FALTAM " + (block.target - block.rows.length) : block.rows.length > block.target ? " · SOBRAM " + (block.rows.length - block.target) : " ✔"}</small></h3>
         <table><thead><tr><th>MAT</th><th>NOME</th><th>FOLGA ANTECIPADA</th><th>FOLGA 7º DIA</th><th>ASSINATURA DO FUNCIONÁRIO</th></tr></thead>
@@ -57,15 +49,12 @@ export function PaperSheets({ store, absences, initialDate, show = "both" }: {
       <p className="ps-note">Demonstração com nomes fictícios. Folga antecipada = descanso na semana do domingo trabalhado. Folga 7º dia = descanso na semana seguinte.</p>
     </article>}
 
-    {show !== "sunday" && <article className="ps-sheet ps-sheet-week">
-      <header className="ps-head">
-        <h2>ESCALA DA SEMANA · FOLGAS</h2>
-        <div className="ps-line"><span>SETOR: OPERADORA DE CAIXA · {UNIT.unit.toUpperCase()}</span><b>{br(week.days[0]!)} a {br(week.days[5]!)}</b></div>
-        <div className="ps-summary">
-          <span>Legenda: <b>X</b> trabalha · <b className="ps-folga">FOLGA</b> · <b className="ps-ferias">FÉRIAS</b></span>
-          <button type="button" className="ps-print" onClick={() => printOnly("week")}><Printer size={16} /> Imprimir</button>
-        </div>
-      </header>
+    {show !== "sunday" && <article className="ps-sheet ps-sheet-week" ref={weekRef}>
+      <PrintHeader title="ESCALA DA SEMANA · FOLGAS" subtitle={br(week.days[0]!) + " a " + br(week.days[5]!) + " · Legenda: X trabalha · FOLGA · FÉRIAS"} />
+      <div className="ps-summary no-print">
+        <span>Legenda: <b>X</b> trabalha · <b className="ps-folga">FOLGA</b> · <b className="ps-ferias">FÉRIAS</b> · cabe em 1 folha A4</span>
+        <button type="button" className="ps-print" onClick={() => printNode(weekRef.current, { title: "Folgas da semana " + br(week.days[0]!) })}><Printer size={16} /> Imprimir</button>
+      </div>
       <table className="ps-week"><thead><tr><th>MAT</th><th>NOME</th>
         {week.days.map(d => <th key={d}>{WEEKDAY[dayOfWeek(d)]}<small>{br(d).slice(0, 5)}</small></th>)}</tr></thead>
         {week.groups.map(g => <tbody key={g.group}>

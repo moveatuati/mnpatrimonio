@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { AlertTriangle, CalendarDays, Printer, ShieldAlert, Wallet } from "lucide-react";
 import { BANK_RULES, GROUPS } from "@/domain/config";
 import type { AbsenceStore } from "@/domain/absences";
@@ -7,6 +7,8 @@ import { laborRisks, type RiskLevel } from "@/domain/labor-risks";
 import { movementPeriod } from "@/domain/movement";
 import { startOfWeek, type ScheduleStore } from "@/domain/schedule";
 import { PaperSheets } from "@/components/sheets/PaperSheets";
+import { PrintHeader } from "@/components/print/PrintHeader";
+import { printNode } from "@/lib/print";
 import { RestAuditPanel } from "@/components/schedule/RestAuditPanel";
 import "./ReadyReports.css";
 
@@ -32,12 +34,9 @@ export function ReadyReports({ schedule, absences, hours, date }: {
   const high = risks.filter(r => r.level === "alto").length;
   const period = movementPeriod(date);
 
+  const paperRef = useRef<HTMLElement | null>(null);
   function printThis() {
-    document.body.dataset.printing = "ready";
-    const done = () => { delete document.body.dataset.printing; window.removeEventListener("afterprint", done); };
-    window.addEventListener("afterprint", done);
-    window.print();
-    window.setTimeout(done, 1500);
+    printNode(paperRef.current, { title: view === "riscos" ? "Riscos trabalhistas" : "Banco de horas" });
   }
 
   return <section className="rr" aria-label="Relatórios prontos">
@@ -54,15 +53,12 @@ export function ReadyReports({ schedule, absences, hours, date }: {
       </button>)}
     </div>
 
-    {(view === "riscos" || view === "banco") && <article className="rr-paper rr-print">
-      <header className="rr-head">
-        <div>
-          <p>FORMOSA · {view === "riscos" ? "RELATÓRIO PARA O RH" : "RELATÓRIO PARA O GERENTE"}</p>
-          <h2>{view === "riscos" ? "Riscos trabalhistas e de custo" : "Banco de horas: quem precisa compensar"}</h2>
-          <small>{view === "riscos" ? "Próximas 4 semanas a partir de " + br(start) : "Posição em " + br(date)} · {period.kind === "alta" ? "🔴" : "🟢"} {period.label}</small>
-        </div>
-        <button type="button" className="rr-print-btn" onClick={printThis}><Printer size={17} /> Imprimir</button>
-      </header>
+    {(view === "riscos" || view === "banco") && <article className="rr-paper rr-print" ref={paperRef}>
+      <PrintHeader
+        title={view === "riscos" ? "Riscos trabalhistas e de custo" : "Banco de horas: quem precisa compensar"}
+        subtitle={(view === "riscos" ? "Relatório para o RH · 4 semanas a partir de " + br(start) : "Relatório para o gerente · posição em " + br(date)) + " · " + period.label}
+        right={"Emitido em " + br(new Date().toISOString().slice(0, 10))} />
+      <div className="rr-actions no-print"><button type="button" className="rr-print-btn" onClick={printThis}><Printer size={16} /> Imprimir</button></div>
 
       {view === "riscos" && <div className="rr-risks">
         {risks.map(r => <section key={r.id} className={"rr-risk rr-" + r.level}>

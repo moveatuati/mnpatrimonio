@@ -1813,3 +1813,27 @@
 .formosa-operation .op-today-away{border-color:#7aa2dc}.formosa-operation .op-today-away strong{color:#1e4fa3}
 .formosa-operation .op-today-bank{border-color:#e05a4f;background:#fff6f5}.formosa-operation .op-today-bank strong{color:#c0362c}
 @media (max-width:900px){.formosa-operation .op-today-cards{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+/* ===== Cartões compactos em todas as telas (menos espaço, mesma leitura) ===== */
+html body .op-kpi{padding:11px 14px 10px!important}
+html body .op-kpi strong,html body .op-kpi-value{font-size:26px!important}
+html body .fs-stats,html body .bh-stats,html body .op-kpis{gap:8px!important;margin-bottom:12px!important}
+html body .fs-stat,html body .bh-stat{padding:9px 12px!important}
+html body .fs-stat strong,html body .bh-stat strong{font-size:22px!important;margin:4px 0 2px!important}
+html body .ft-metric{padding:10px 12px!important}
+html body .ft-metric strong{font-size:22px!important}
+html body .formosa-operation .op-today-cards{gap:8px}
+html body .formosa-operation .op-today-card{padding:9px 12px;border-radius:12px;flex-direction:row;align-items:baseline;flex-wrap:wrap;gap:4px 8px}
+html body .formosa-operation .op-today-card strong{font-size:26px}
+html body .formosa-operation .op-today-card span{font-size:14px}
+html body .formosa-operation .op-today-card small{flex-basis:100%;font-size:12px}
+html body .formosa-operation .op-period,html body .fs-period,html body .bm-period{padding:7px 12px;font-size:13px}
+html body .formosa-operation .op-period b,html body .fs-period b,html body .bm-period b{font-size:14px}
+html body .bm-light{padding:8px 12px;border-radius:10px;flex-direction:row;flex-wrap:wrap;align-items:baseline;gap:2px 8px}
+html body .bm-light strong{font-size:24px}
+html body .bm-light span{font-size:14px}
+html body .bm-light small{flex-basis:100%;font-size:12px}
+html body .bm-balance strong{font-size:26px}
+html body .ft-answer-main{padding:12px 14px}
+html body .ft-answer-main strong{font-size:21px}
+html body .ft-answer-side{padding:10px 14px;font-size:14px}

@@ -3,35 +3,36 @@
 .ps-controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
 .ps-controls button,.ps-controls input{font-size:15px;padding:10px 14px;border-radius:10px;border:1px solid #d9c3cc;background:#fff;font-weight:700;cursor:pointer}
 .ps-controls label{display:flex;align-items:center;gap:8px;font-size:15px;font-weight:700}
-.ps-sheet{background:#fff;border:1px solid #cfc6ca;border-radius:6px;padding:22px 24px;box-shadow:0 8px 22px -18px rgb(0 0 0 / 40%);font-family:Arial,Helvetica,sans-serif}
-.ps-head h2{margin:0;text-align:center;font-size:26px;letter-spacing:.02em;font-weight:700}
-.ps-line{display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px;margin:10px 0 4px;font-size:14px;border-top:1px solid #333;border-bottom:1px solid #333;padding:6px 2px}
-.ps-summary{display:flex;flex-wrap:wrap;align-items:center;gap:8px 18px;margin:8px 0 6px;font-size:14px}
-.ps-print{margin-left:auto;display:inline-flex;align-items:center;gap:6px;padding:9px 14px;border-radius:9px;border:0;background:#7a2440;color:#fff;font-weight:800;font-size:14px;cursor:pointer}
-.ps-block{margin-top:14px}
-.ps-block h3{margin:0 0 4px;padding:6px 8px;background:#f1f1f1;border:1px solid #333;text-align:center;font-size:15px}
-.ps-block h3 small{font-weight:600;color:#7a2440;margin-left:8px}
-.ps table{width:100%;border-collapse:collapse;font-size:13px}
-.ps th,.ps td{border:1px solid #444;padding:5px 6px;text-align:left}
-.ps th{background:#fafafa;font-size:12px;text-align:center}
-.ps td:nth-child(3),.ps td:nth-child(4){text-align:center}
-.ps-sign{min-width:180px}
-.ps-foot{display:flex;justify-content:space-around;gap:16px;margin-top:34px;font-size:12px;font-weight:700}
-.ps-foot span{flex:1;text-align:center;border-top:1px solid #333;padding-top:5px}
-.ps-note{margin:14px 0 0;font-size:11px;color:#555}
+.ps-sheet{background:#fff;border:1px solid #cfc6ca;border-radius:6px;padding:16px 18px;max-width:1000px;font-family:Arial,Helvetica,sans-serif}
+.ps-summary{display:flex;flex-wrap:wrap;align-items:center;gap:6px 14px;margin:0 0 8px;font-size:13px}
+.ps-print{margin-left:auto;display:inline-flex;align-items:center;gap:6px;padding:8px 13px;border-radius:9px;border:0;background:#7a2440;color:#fff;font-weight:800;font-size:14px;cursor:pointer}
+.ps-block{margin-top:8px}
+.ps-block h3{margin:0;padding:3px 6px;background:#efefef;border:1px solid #444;border-bottom:0;text-align:center;font-size:12.5px}
+.ps-block h3 small{font-weight:600;color:#7a2440;margin-left:6px}
+.ps table{width:100%;border-collapse:collapse;font-size:12px}
+.ps th,.ps td{border:1px solid #555;padding:2px 5px;text-align:left;line-height:1.25}
+.ps th{background:#fafafa;font-size:10.5px;text-align:center}
+.ps-sheet-sunday td:nth-child(1){width:62px}.ps-sheet-sunday td:nth-child(3),.ps-sheet-sunday td:nth-child(4){text-align:center;width:110px}
+.ps-sign{width:34%}
+.ps-foot{display:flex;justify-content:space-around;gap:16px;margin-top:22px;font-size:11px;font-weight:700}
+.ps-foot span{flex:1;text-align:center;border-top:1px solid #333;padding-top:4px}
+.ps-note{margin:8px 0 0;font-size:10px;color:#555}
 .ps-week th small{display:block;font-weight:400}
-.ps-week td.ps-cell{text-align:center;font-weight:700}
-.ps-group td{background:#e9e9e9;font-weight:800;text-align:center;font-size:12px}
+.ps-week td{font-size:11px;padding:1px 4px}
+.ps-week td.ps-cell{text-align:center;font-weight:700;width:68px}
+.ps-week td:first-child{width:56px}
+.ps-group td{background:#e9e9e9;font-weight:800;text-align:center;font-size:10.5px}
 .ps-folga,.ps-week td.ps-folga{color:#b0185f}
 .ps-ferias,.ps-week td.ps-ferias{color:#1e4fa3;background:#eef3fb}
 .ps-week td.ps-atestado,.ps-week td.ps-afastamento{color:#8a5a00;background:#fff7e6}
 .ps-week tfoot td{background:#f6f6f6;text-align:center;font-weight:700}
 .ps-week tfoot td:first-child{text-align:right}
-@media (max-width:700px){.ps-sheet{padding:14px 10px;overflow-x:auto}.ps table{min-width:620px}}
-@media print{
-  body[data-printing] *{visibility:hidden}
-  body[data-printing="sunday"] .ps-sheet-sunday,body[data-printing="sunday"] .ps-sheet-sunday *,
-  body[data-printing="week"] .ps-sheet-week,body[data-printing="week"] .ps-sheet-week *{visibility:visible}
-  body[data-printing="sunday"] .ps-sheet-sunday,body[data-printing="week"] .ps-sheet-week{position:absolute;left:0;top:0;width:100%;border:0;box-shadow:none}
-  .ps-print{display:none!important}
-}
+@media (max-width:700px){.ps-sheet{padding:12px 8px;overflow-x:auto}.ps table{min-width:600px}}
+/* Impressão: 1 folha A4 por escala */
+.print-compact .ps-sheet{border:0;padding:0;max-width:none}
+.print-compact .ps-sheet-sunday table{font-size:11px}
+.print-compact .ps-sheet-sunday th,.print-compact .ps-sheet-sunday td{padding:2px 5px}
+.print-compact .ps-sheet-week table{font-size:9.5px}
+.print-compact .ps-sheet-week th,.print-compact .ps-sheet-week td{padding:0 3px;line-height:1.2}
+.print-compact .ps-sheet-week th{font-size:9px}
+.print-compact .ps-group td{font-size:9px;padding:1px 3px}
