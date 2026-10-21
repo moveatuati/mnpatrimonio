@@ -4,7 +4,7 @@ import { ABSENCE_LABELS, nextWorkDate, type AbsenceStore } from "./absences";
 import { balanceOf, type HourStore } from "./hour-bank";
 import { isValidReferenceDate } from "./operation-query";
 import { analysePoint, pointKey, type PointStore } from "./point-simulator";
-import { assignmentFor, dateOffset, dayOfWeek, requiredFor, type ScheduleStore } from "./schedule";
+import { DEFAULT_SCHEDULE, assignmentFor, dateOffset, dayOfWeek, requiredFor, type ScheduleStore } from "./schedule";
 import type { GroupId, ISODate } from "./types";
 
 /** Reports read the independently saved demonstrators; they NEVER write to operational stores. */
@@ -122,13 +122,23 @@ function filteredPeople(filters: ReportFilters) {
   return DEMO_EMPLOYEES.filter(e => (filters.group === "all" || filters.group === e.group) &&
     (filters.employeeId === "all" || filters.employeeId === e.id));
 }
-const COMPARISON_PEOPLE = 78;
-export function capacityStudy() {
-  // ONLY theoretical person-shifts, not a legally validated or operational staffing plan.
+/** Jornadas por semana na escala real (domingo sim/não + folga antecipada e do 7º dia), média de 4 semanas. */
+export function realWeeklyShifts(schedule: ScheduleStore = DEFAULT_SCHEDULE, start: ISODate = "2026-10-19") {
+  let total = 0;
+  for (let i = 0; i < 28; i++) {
+    const day = dateOffset(start, i);
+    total += DEMO_EMPLOYEES.filter(e => assignmentFor(schedule, e, day) !== null).length;
+  }
+  return Math.round(total / 4);
+}
+export function capacityStudy(schedule: ScheduleStore = DEFAULT_SCHEDULE) {
+  // Aritmética de jornadas por semana; não é escala pronta nem dimensionamento aprovado.
+  const real = realWeeklyShifts(schedule);
+  const equivalent = Math.ceil(real / 5);
   return [
-    { scenario: "6×1 atual · 63 colaboradores", people: 63, daysPerWeek: 6, theoreticalShifts: 378, delta: 0 },
-    { scenario: "5×2 · 63 colaboradores", people: 63, daysPerWeek: 5, theoreticalShifts: 315, delta: -63 },
-    { scenario: `5×2 · ${COMPARISON_PEOPLE} colaboradores (hipótese)`, people: COMPARISON_PEOPLE, daysPerWeek: 5, theoreticalShifts: COMPARISON_PEOPLE*5, delta: COMPARISON_PEOPLE*5-378 },
+    { scenario: "6×1 atual · 63 colaboradores (escala real)", people: 63, daysPerWeek: Math.round(real / 63 * 10) / 10, theoreticalShifts: real, delta: 0 },
+    { scenario: "5×2 · 63 colaboradores", people: 63, daysPerWeek: 5, theoreticalShifts: 315, delta: 315 - real },
+    { scenario: `5×2 · ${equivalent} colaboradores (mesmo nº de jornadas de hoje)`, people: equivalent, daysPerWeek: 5, theoreticalShifts: equivalent * 5, delta: equivalent * 5 - real },
   ];
 }
 export function buildReport(sources: ReportSources, filters: ReportFilters) {
@@ -250,7 +260,7 @@ export function buildReport(sources: ReportSources, filters: ReportFilters) {
   return {
     filters,days:dates.length,persons:people.length,personnel,coverage,dailyPoint,
     hourMovements,absenceRows,swapRows,shifts,
-    capacity:capacityStudy(),
+    capacity:capacityStudy(sources.schedule),
     summary:{
       plannedShifts,restDays,absenceDays,expectedEntries,recordedEntries,missingEntries,
       punctuality:recordedEntries?(recordedEntries-lateCount)/recordedEntries*100:null,

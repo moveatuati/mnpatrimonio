@@ -1,10 +1,14 @@
+import { BANK_RULES } from "./config";
 import { DEMO_EMPLOYEES } from "./demo-data";
+import { nextLowMovementWeekday, movementKind } from "./movement";
 import { isValidReferenceDate } from "./operation-query";
-import type { ISODate } from "./types";
+import { DEFAULT_SCHEDULE, assignmentFor, dateOffset, dayOfWeek, shiftFor, type AssignmentChange, type ScheduleStore } from "./schedule";
+import type { Employee, ISODate } from "./types";
 
 /** Livro-razão de demonstração: quantidades inteiras de minutos; sem cálculos automáticos de folha/ponto. */
 export type HourKind = "credito_extra" | "credito_ajuste" | "debito_ausencia" |
-  "debito_ajuste" | "compensacao" | "baixa_informada" | "estorno";
+  "debito_ajuste" | "compensacao" | "baixa_informada" | "estorno" |
+  "saida_antecipada" | "entrada_tardia";
 export type EntryStatus = "pendente" | "aprovado" | "recusado";
 export type HourEntry = {
   id: string;
@@ -28,7 +32,8 @@ export type EntryDraft = {
   employeeId:string; date:ISODate; kind:Exclude<HourKind,"estorno">;
   hours:string; minutes:string; description:string; responsible:string;
 };
-export const HOUR_KEY = "formosa:augusto-montenegro:banco-horas-demo:v1";
+/** v2: demonstração com saldo simulado para os 63 operadores (acúmulo pelo ponto). */
+export const HOUR_KEY = "formosa:augusto-montenegro:banco-horas-demo:v2";
 export const REFERENCE_DAY = "2026-10-20";
 export const KINDS: Record<HourKind, string> = {
   credito_extra:"Crédito autorizado",
@@ -38,11 +43,13 @@ export const KINDS: Record<HourKind, string> = {
   compensacao:"Compensação autorizada",
   baixa_informada:"Baixa informada (sem integração com folha)",
   estorno:"Estorno de lançamento",
+  saida_antecipada:"Saída antecipada (usa o banco)",
+  entrada_tardia:"Entrada mais tarde (usa o banco)",
 };
 export const ENTRY_STATUSES: Record<EntryStatus,string> = {
   pendente:"Aguardando aprovação", aprovado:"Aprovado", recusado:"Recusado",
 };
-export const DEBIT_KINDS:HourKind[] = ["debito_ausencia","debito_ajuste","compensacao","baixa_informada"];
+export const DEBIT_KINDS:HourKind[] = ["debito_ausencia","debito_ajuste","compensacao","baixa_informada","saida_antecipada","entrada_tardia"];
 export const CREDIT_KINDS:HourKind[] = ["credito_extra","credito_ajuste"];
 export const DEFAULT_DRAFT:EntryDraft = {
   employeeId:"FM-001",date:REFERENCE_DAY,kind:"credito_extra",
@@ -63,13 +70,52 @@ const demoRows = [
   ["BH-012","FM-020","2026-10-19","debito_ajuste",-75,"Apontamento pendente de justificativa"],
   ["BH-013","FM-020","2026-10-14","debito_ajuste",-95,"Débito ilustrativo já aprovado"],
 ] as const;
+function hash(text:string){let h=2166136261;for(let i=0;i<text.length;i++){h^=text.charCodeAt(i);h=Math.imul(h,16777619);}return h>>>0;}
+/** Saldo-alvo fictício por pessoa, para a demonstração parecer uma loja real:
+ * ~1 em 8 já passou de 7h, ~1 em 4 entre 4h e 7h, a maioria abaixo de 4h e alguns negativos. */
+function simulatedTarget(employeeId:string){
+  const r=hash("bh:"+employeeId)%100;
+  if(r<13)return 420+(r*13)%110;          // 7h00 a 8h50 → dar folga
+  if(r<38)return 240+(r*17)%175;          // 4h00 a 6h55 → planejar folga
+  if(r<90)return 20+(r*23)%200;           // 0h20 a 3h40 → tranquilo
+  return -(30+(r*7)%70);                  // saldo negativo (saída antecipada usada)
+}
+/** Créditos que o ponto simulado teria gerado (minutos após o horário de saída) de 01 a 20/10. */
+export function simulatedPointEntries(until:ISODate=REFERENCE_DAY):HourEntry[]{
+  const rows:HourEntry[]=[];
+  const days=Array.from({length:Number(until.slice(8,10))},(_,i)=>until.slice(0,8)+String(i+1).padStart(2,"0"));
+  for(const employee of DEMO_EMPLOYEES){
+    if(demoRows.some(row=>row[1]===employee.id))continue;
+    const target=simulatedTarget(employee.id);
+    const working=days.filter(d=>assignmentFor(DEFAULT_SCHEDULE,employee,d)!==null);
+    if(target<0){
+      const date=working[(hash(employee.id)%Math.max(1,working.length))]??until;
+      rows.push({id:"PT-"+employee.id+"-1",employeeId:employee.id,date,kind:"saida_antecipada",minutes:target,
+        description:"Saída antecipada autorizada (consulta médica)",responsible:"Gerente de setor",status:"aprovado",
+        createdAt:date+"T18:00:00.000Z",decidedAt:date+"T18:00:00.000Z",decisionNote:"Simulação"});
+      continue;
+    }
+    let left=target,n=0;
+    while(left>0&&working.length){
+      const amount=Math.min(left,10+((hash(employee.id+n)%9)*5));
+      const date=working[(n*3+hash(employee.id)%3)%working.length]!;
+      const shift=shiftFor(date,assignmentFor(DEFAULT_SCHEDULE,employee,date)??employee.group,DEFAULT_SCHEDULE.rules);
+      rows.push({id:"PT-"+employee.id+"-"+(n+1),employeeId:employee.id,date,kind:"credito_extra",minutes:amount,
+        description:"Saída após o horário ("+shift.end+") registrada no ponto",responsible:"Ponto simulado",
+        status:"aprovado",createdAt:date+"T23:00:00.000Z",decidedAt:date+"T23:00:00.000Z",decisionNote:"Acúmulo automático"});
+      left-=amount;n++;
+    }
+  }
+  return rows;
+}
 export function demoHourStore():HourStore {
-  return { version:1,entries:demoRows.map(([id,employeeId,date,kind,minutes,description])=>({
+  const manual:HourEntry[]=demoRows.map(([id,employeeId,date,kind,minutes,description])=>({
     id,employeeId,date,kind,minutes,description,responsible:"Gestão demonstrativa",
     status:id==="BH-012"?"pendente": "aprovado",
     createdAt:"2026-10-20T09:00:00.000Z",
     ...(id==="BH-012"?{}:{decidedAt:"2026-10-20T09:00:00.000Z",decisionNote:"Aprovação fictícia inicial"}),
-  })),history:[] };
+  }));
+  return { version:1,entries:[...manual,...simulatedPointEntries()],history:[] };
 }
 const known=new Set(DEMO_EMPLOYEES.map(x=>x.id));
 const kinds=Object.keys(KINDS) as HourKind[];
@@ -233,5 +279,112 @@ export function hourTotals(store:HourStore,date:ISODate){
     pending:store.entries.filter(e=>e.status==="pendente").length,
     peoplePositive:rows.filter(r=>r.closing>0).length,
     peopleNegative:rows.filter(r=>r.closing<0).length,
+  };
+}
+
+/* ------------------------------------------------------------------
+ * Painel simples do banco de horas (regras informadas pela gerência):
+ * - minutos a mais na saída acumulam crédito;
+ * - ao chegar a 7h, conceder uma folga de compensação, de preferência
+ *   no período de BAIXO movimento (dia 19 a 27);
+ * - pedidos de saída antecipada / entrada mais tarde usam o saldo.
+ * ------------------------------------------------------------------ */
+export type BankLevel = "negativo" | "verde" | "amarelo" | "vermelho";
+export const BANK_LEVEL_TEXT: Record<BankLevel, { label: string; advice: string }> = {
+  negativo: { label: "Saldo negativo", advice: "Deve horas: combinar reposição." },
+  verde: { label: "Tranquilo", advice: "Saldo baixo, nada a fazer." },
+  amarelo: { label: "Planejar folga", advice: "Programe a folga no próximo período de baixo movimento." },
+  vermelho: { label: "Dar folga agora", advice: "Já acumulou 7h ou mais: conceda a folga para não gerar custo." },
+};
+export function bankLevel(minutes: number): BankLevel {
+  if (minutes < 0) return "negativo";
+  if (minutes >= BANK_RULES.compensateMinutes) return "vermelho";
+  if (minutes >= BANK_RULES.attentionMinutes) return "amarelo";
+  return "verde";
+}
+/** Horas em texto simples: 445 → "7h25", -30 → "-0h30". */
+export function hoursText(minutes: number): string {
+  if (!Number.isFinite(minutes)) return "—";
+  const n = Math.abs(Math.trunc(minutes));
+  return (minutes < 0 ? "-" : "") + Math.floor(n / 60) + "h" + String(n % 60).padStart(2, "0");
+}
+export interface BankRow {
+  employee: Employee;
+  minutes: number;
+  level: BankLevel;
+  pending: number;
+  lastCredit: ISODate | null;
+}
+export function bankBoard(store: HourStore, date: ISODate): BankRow[] {
+  return DEMO_EMPLOYEES.map(employee => {
+    const minutes = balanceOf(store, employee.id, date);
+    const credits = store.entries.filter(e => e.employeeId === employee.id && e.status === "aprovado" && e.minutes > 0 && e.date <= date);
+    return {
+      employee, minutes, level: bankLevel(minutes),
+      pending: store.entries.filter(e => e.employeeId === employee.id && e.status === "pendente").length,
+      lastCredit: credits.map(e => e.date).sort().at(-1) ?? null,
+    };
+  }).sort((a, b) => b.minutes - a.minutes || a.employee.name.localeCompare(b.employee.name));
+}
+export function bankSummary(store: HourStore, date: ISODate) {
+  const rows = bankBoard(store, date);
+  const count = (level: BankLevel) => rows.filter(r => r.level === level).length;
+  return {
+    vermelho: count("vermelho"), amarelo: count("amarelo"), verde: count("verde"), negativo: count("negativo"),
+    totalPositive: rows.reduce((n, r) => n + Math.max(0, r.minutes), 0),
+    folgasDevidas: rows.reduce((n, r) => n + Math.floor(Math.max(0, r.minutes) / BANK_RULES.compensateMinutes), 0),
+  };
+}
+/** Resposta direta para o gerente: a pessoa pode usar X minutos do banco? */
+export function canUseBank(balance: number, request: number) {
+  const remaining = balance - request;
+  if (request <= 0) return { ok: false, remaining: balance, message: "Informe quanto tempo a pessoa precisa." };
+  if (remaining >= 0) return { ok: true, remaining, message: "Sim. Tem saldo. Depois do pedido ficará com " + hoursText(remaining) + "." };
+  return { ok: false, remaining, message: "Não tem saldo suficiente. Faltam " + hoursText(-remaining) + ". Precisa de autorização do RH." };
+}
+/** Próxima data de baixo movimento (seg–sex) em que a pessoa estaria trabalhando. */
+export function suggestCompensationDate(schedule: ScheduleStore, employee: Employee, from: ISODate): ISODate {
+  let date = nextLowMovementWeekday(dateOffset(from, 1));
+  for (let i = 0; i < 70; i++) {
+    const weekday = dayOfWeek(date);
+    if (movementKind(date) === "baixa" && weekday >= 1 && weekday <= 5 && assignmentFor(schedule, employee, date) !== null) return date;
+    date = dateOffset(date, 1);
+  }
+  return date;
+}
+function newId(prefix: string, now: string) { return prefix + "-" + Date.parse(now).toString(36) + "-" + Math.random().toString(36).slice(2, 7); }
+/** Programa a folga de compensação: lança o débito de 7h e devolve o ajuste da escala (folga no dia). */
+export function scheduleCompensation(store: HourStore, employee: Employee, date: ISODate, actor: string, now = new Date().toISOString()) {
+  if (!isValidReferenceDate(date)) return { ok: false as const, message: "Data inválida.", store, change: null };
+  const row: HourEntry = {
+    id: newId("FC", now), employeeId: employee.id, date, kind: "compensacao", minutes: -BANK_RULES.folgaMinutes,
+    description: "Folga de compensação do banco de horas", responsible: clean(actor || "Gerente", 100),
+    status: "aprovado", createdAt: now, decidedAt: now, decisionNote: "Folga programada pelo gerente",
+  };
+  const change: AssignmentChange = { employeeId: employee.id, date, group: null };
+  return {
+    ok: true as const, message: "Folga marcada para " + date.split("-").reverse().join("/") + ".",
+    change,
+    store: { version: 1 as const, entries: [...store.entries, row],
+      history: [...store.history, event(row.id, "Folga de compensação programada para " + date + " (" + duration(row.minutes) + ")", now, row.responsible)] },
+  };
+}
+/** Pedido de saída antecipada ou entrada mais tarde. Com saldo: aprovado na hora. Sem saldo: aguarda o RH. */
+export function requestBankUse(store: HourStore, employee: Employee, date: ISODate, kind: "saida_antecipada" | "entrada_tardia",
+  minutes: number, reason: string, actor: string, now = new Date().toISOString()) {
+  if (!isValidReferenceDate(date) || !Number.isInteger(minutes) || minutes <= 0 || minutes > 600)
+    return { ok: false as const, message: "Informe data e tempo válidos.", store };
+  const check = canUseBank(balanceOf(store, employee.id, date), minutes);
+  const row: HourEntry = {
+    id: newId("US", now), employeeId: employee.id, date, kind, minutes: -minutes,
+    description: clean(reason || KINDS[kind]), responsible: clean(actor || "Gerente", 100),
+    status: check.ok ? "aprovado" : "pendente", createdAt: now,
+    ...(check.ok ? { decidedAt: now, decisionNote: "Aprovado com saldo disponível" } : {}),
+  };
+  return {
+    ok: true as const, approved: check.ok,
+    message: check.ok ? "Registrado e aprovado: havia saldo." : "Registrado como pendente: sem saldo, aguarda o RH.",
+    store: { version: 1 as const, entries: [...store.entries, row],
+      history: [...store.history, event(row.id, KINDS[kind] + " " + duration(row.minutes) + (check.ok ? " aprovada" : " pendente"), now, row.responsible)] },
   };
 }

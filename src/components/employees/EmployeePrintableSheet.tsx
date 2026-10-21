@@ -3,6 +3,10 @@ import { GROUPS, RULES, UNIT } from "@/domain/config";
 import { DEMO_EMPLOYEES } from "@/domain/demo-data";
 import { buildEmployeeDemoReport } from "@/domain/employee-report";
 import type { ArrivalStatus } from "@/domain/types";
+import { useEffect, useState } from "react";
+import { BANK_LEVEL_TEXT, balanceOf, bankLevel, demoHourStore, hoursText, type HourStore } from "@/domain/hour-bank";
+import { DEFAULT_SCHEDULE, assignmentFor, restReason, shiftFor, type ScheduleStore } from "@/domain/schedule";
+import { loadHours, loadSchedule } from "@/lib/demo-storage";
 
 function shortDate(date: string) {
   const [year, month, day] = date.split("-");
@@ -22,6 +26,8 @@ function differenceLabel(diff: number | null) {
 }
 
 export function EmployeePrintableSheet({ employeeId, date }: { employeeId: string; date: string }) {
+  const [stores, setStores] = useState<{ hours: HourStore; schedule: ScheduleStore }>(() => ({ hours: demoHourStore(), schedule: DEFAULT_SCHEDULE }));
+  useEffect(() => { setStores({ hours: loadHours(), schedule: loadSchedule() }); }, []);
   const employee = DEMO_EMPLOYEES.find(person => person.id === employeeId);
   if (!employee) return <div className="rh-print-screen p-8">
     <h1 className="font-display text-xl font-semibold">Colaborador não encontrado</h1>
@@ -67,7 +73,10 @@ export function EmployeePrintableSheet({ employeeId, date }: { employeeId: strin
           <div><dt>Jornada-base</dt><dd>{shift.start}–{shift.end}</dd></div>
           <div><dt>Intervalo-base</dt><dd>{shift.breakStart}–{shift.breakEnd}</dd></div>
           <div><dt>Data de admissão</dt><dd>Não informada</dd></div>
-          <div><dt>Banco de horas</dt><dd>Não implantado</dd></div>
+          <div><dt>Banco de horas</dt><dd>{(() => {
+            const minutes = balanceOf(stores.hours, employee.id, date);
+            return hoursText(minutes) + " · " + BANK_LEVEL_TEXT[bankLevel(minutes)].label;
+          })()}</dd></div>
         </dl>
         <section className="rh-print-totals" aria-label="Resumo mensal fictício">
           {totals.map(total => <div key={total.label} className={`rh-print-total rh-print-total-${total.tone}`}>
@@ -81,12 +90,18 @@ export function EmployeePrintableSheet({ employeeId, date }: { employeeId: strin
           </div>
           <table className="rh-print-table">
             <thead>
-              <tr><th scope="col">Data</th><th scope="col">Dia</th><th scope="col">Previsto</th>
+              <tr><th scope="col">Data</th><th scope="col">Dia</th><th scope="col">Escala</th><th scope="col">Previsto</th>
                 <th scope="col">Entrada</th><th scope="col">Diferença</th><th scope="col">Situação</th></tr>
             </thead>
             <tbody>
               {report.days.map(row => <tr key={row.date}>
-                <td>{shortDate(row.date)}</td><td>{row.weekday}</td><td>{row.planned}</td>
+                <td>{shortDate(row.date)}</td><td>{row.weekday}</td>
+                <td>{(() => {
+                  const slot = assignmentFor(stores.schedule, employee, row.date);
+                  if (!slot) return restReason(stores.schedule, employee, row.date) ?? "Folga";
+                  const s = shiftFor(row.date, slot, stores.schedule.rules);
+                  return "Trabalha " + s.start + "–" + s.end;
+                })()}</td><td>{row.planned}</td>
                 <td className="rh-print-time">{row.entry ?? "—"}</td>
                 <td>{differenceLabel(row.difference)}</td>
                 <td><span className={`rh-print-status rh-print-status-${row.status}`}>{STATUS_LABELS[row.status]}</span></td>

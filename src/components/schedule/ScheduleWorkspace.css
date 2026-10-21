@@ -147,3 +147,9 @@
 .fs-holiday-date input { width:56px; min-height:31px; border:1px solid #dbc1ca; border-radius:6px; padding:4px 6px; color:#6b2941; }
 .fs-holiday-date>button { color:#97415d; padding:5px; border-radius:5px; }
 .fs-holiday-date>button:hover { background:#fce8ef; }
+/* Faixa do período de movimento (alto/baixo) — leitura rápida */
+.fs-period{display:flex;flex-wrap:wrap;gap:6px 12px;align-items:center;padding:11px 15px;margin-bottom:12px;border-radius:12px;font-size:14px}
+.fs-period b{font-size:15px}
+.fs-period-alta{background:#fff1ee;border:1px solid #f1c3b8;color:#8a2e1f}
+.fs-period-baixa{background:#eefaf3;border:1px solid #bfe5cf;color:#185c3b}
+.fs-table .fs-pill{white-space:normal;text-align:center}

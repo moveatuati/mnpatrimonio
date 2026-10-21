@@ -1,12 +1,18 @@
 import { describe, expect, it } from "vitest";
 import {
-  DEFAULT_DRAFT, REFERENCE_DAY, balanceOf, decideEntry, demoHourStore, duration,
-  hourSnapshot, hourTotals, monthWindow, parseMinutes, proposeEntry,
-  restoreHours, reverseEntry, validateDraft,
+  DEFAULT_DRAFT, REFERENCE_DAY, balanceOf, bankBoard, bankLevel, bankSummary, canUseBank, decideEntry,
+  demoHourStore, duration, hourSnapshot, hourTotals, hoursText, monthWindow, parseMinutes, proposeEntry,
+  requestBankUse, restoreHours, reverseEntry, scheduleCompensation, suggestCompensationDate, validateDraft,
+  type HourStore,
 } from "./hour-bank";
+import { DEMO_EMPLOYEES } from "./demo-data";
+import { DEFAULT_SCHEDULE, assignmentFor, withChanges } from "./schedule";
+import { movementKind } from "./movement";
+/** Apenas os 13 lançamentos manuais (sem o acúmulo simulado pelo ponto). */
+const manual = (store: HourStore): HourStore => ({ ...store, entries: store.entries.filter(e => e.id.startsWith("BH-")) });
 describe("Livro-razão de horas — valores inteiros",()=>{
   it("soma saldos individualmente e ignora pendentes e eventos futuros",()=>{
-    const store=demoHourStore();
+    const store=manual(demoHourStore());
     expect(store.entries).toHaveLength(13);
     expect(hourTotals(store,REFERENCE_DAY)).toMatchObject({
       positive:260,negative:95,net:165,peoplePositive:5,peopleNegative:1,pending:1,
@@ -79,7 +85,51 @@ describe("Livro-razão de horas — valores inteiros",()=>{
     const restored=restoreHours({...store,entries:[...store.entries,{
       ...store.entries[0],id:"BH-X",minutes:-80,
     }]});
-    expect(restored.entries).toHaveLength(13);
-    expect(restoreHours(null).entries).toHaveLength(13);
+    expect(restored.entries).toHaveLength(store.entries.length);
+    expect(restoreHours(null).entries).toHaveLength(store.entries.length);
+  });
+});
+
+describe("Banco de horas — regras da gerência (7h = folga)",()=>{
+  const store=demoHourStore();
+  it("o ponto simulado gera saldo para todos, com casos em cada cor do semáforo",()=>{
+    const summary=bankSummary(store,REFERENCE_DAY);
+    expect(summary.vermelho).toBeGreaterThan(0);
+    expect(summary.amarelo).toBeGreaterThan(0);
+    expect(summary.verde).toBeGreaterThan(0);
+    expect(summary.negativo).toBeGreaterThan(0);
+    expect(summary.vermelho+summary.amarelo+summary.verde+summary.negativo).toBe(63);
+    const credits=store.entries.filter(e=>e.id.startsWith("PT-")&&e.minutes>0);
+    expect(credits.every(e=>assignmentFor(DEFAULT_SCHEDULE,DEMO_EMPLOYEES.find(p=>p.id===e.employeeId)!,e.date)!==null)).toBe(true);
+  });
+  it("semáforo: até 4h verde, 4h a 7h amarelo, 7h ou mais vermelho",()=>{
+    expect(bankLevel(-1)).toBe("negativo");
+    expect(bankLevel(239)).toBe("verde");
+    expect(bankLevel(240)).toBe("amarelo");
+    expect(bankLevel(420)).toBe("vermelho");
+    expect(hoursText(445)).toBe("7h25");
+    expect(hoursText(-30)).toBe("-0h30");
+  });
+  it("responde se a pessoa pode sair mais cedo usando o banco",()=>{
+    expect(canUseBank(130,120).ok).toBe(true);
+    expect(canUseBank(60,120).ok).toBe(false);
+    const top=bankBoard(store,REFERENCE_DAY)[0]!;
+    const used=requestBankUse(store,top.employee,REFERENCE_DAY,"saida_antecipada",120,"Exame médico","Gerente");
+    expect(used.ok&&used.approved).toBe(true);
+    expect(balanceOf(used.store,top.employee.id,REFERENCE_DAY)).toBe(top.minutes-120);
+    const low=bankBoard(store,REFERENCE_DAY).at(-1)!;
+    const pending=requestBankUse(store,low.employee,REFERENCE_DAY,"entrada_tardia",60,"Consulta","Gerente");
+    expect(pending.ok&&!pending.approved).toBe(true);
+    expect(balanceOf(pending.store,low.employee.id,REFERENCE_DAY)).toBe(low.minutes);
+  });
+  it("folga de compensação cai no baixo movimento, desconta 7h e vira folga na escala",()=>{
+    const top=bankBoard(store,REFERENCE_DAY)[0]!;
+    const date=suggestCompensationDate(DEFAULT_SCHEDULE,top.employee,"2026-10-28");
+    expect(movementKind(date)).toBe("baixa");
+    expect(assignmentFor(DEFAULT_SCHEDULE,top.employee,date)).not.toBeNull();
+    const result=scheduleCompensation(store,top.employee,date,"Gerente");
+    expect(result.ok).toBe(true);
+    expect(balanceOf(result.store,top.employee.id,date)).toBe(balanceOf(store,top.employee.id,date)-420);
+    expect(assignmentFor(withChanges(DEFAULT_SCHEDULE,[result.change!]),top.employee,date)).toBeNull();
   });
 });

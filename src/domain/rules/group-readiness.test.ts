@@ -30,6 +30,7 @@ describe("Cobertura documental por grupo", () => {
     expect(sum.reduce((s, g) => s + g.registered, 0)).toBe(d.kpis.entries);
     expect(sum.reduce((s, g) => s + g.pending, 0)).toBe(d.kpis.missing);
     expect(sum.reduce((s, g) => s + g.aboveAlert, 0)).toBe(d.kpis.aboveAlert);
-    expect(sum.map((g) => g.scheduled)).toEqual([4,29,30]);
+    expect(sum.map((g) => g.scheduled)).toEqual(d.coverage.map((c) => c.scheduled));
+    expect(d.kpis.scheduled + d.day.rest).toBe(63);
   });
 });

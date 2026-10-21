@@ -128,3 +128,8 @@
   .rm-extra-print .rm-table th{position:static!important}
 }
 .rm-extra-print{display:none}
+/* Alternância entre relatórios prontos (leitura rápida) e detalhados */
+.rm-mode{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 14px}
+.rm-mode button{display:flex;align-items:center;gap:8px;padding:12px 18px;border-radius:12px;border:2px solid #ead9e0;background:#fff;font-size:16px;font-weight:800;color:#6f2240;cursor:pointer}
+.rm-mode button small{font-size:13px;font-weight:600;color:#7c6670}
+.rm-mode button.rm-mode-on{border-color:#8d2e4c;background:#fff4f8}

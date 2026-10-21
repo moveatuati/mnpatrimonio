@@ -14,6 +14,7 @@ import {
   type ReportSources,
 } from "@/domain/management-reports";
 import type { GroupId } from "@/domain/types";
+import { ReadyReports } from "./ReadyReports";
 import "./ReportsWorkspace.css";
 
 type ReportId="executivo"|"cobertura"|"ponto"|"ausencias"|"horas"|"escalas"|"comparativo";
@@ -123,6 +124,7 @@ export function ReportsWorkspace(){
   const [selected,setSelected]=useState<ReportId>("executivo");
   const [msg,setMsg]=useState("");
   const [showAll,setShowAll]=useState(false);
+  const [mode,setMode]=useState<"prontos"|"detalhados">("prontos");
   useEffect(()=>{
     const refresh=()=>setSources(readLocalSources());
     refresh();setReady(true);
@@ -170,16 +172,26 @@ export function ReportsWorkspace(){
     <header className="rm-top no-print"><div>
       <p className="op-eyebrow">FORMOSA · GESTÃO DE PESSOAS · {UNIT.unit.toUpperCase()}</p>
       <h1>Central de <span>relatórios</span></h1>
-      <p>Informações objetivas para decisões de escala, presença e disponibilidade da equipe.</p>
+      <p>Relatórios prontos para o gerente e o RH: riscos de multa, banco de horas, escala de domingo e folgas da semana.</p>
     </div><div className="rm-top-actions">
+      {mode==="detalhados"&&<>
       <button type="button" className="rm-secondary" disabled={!model} onClick={download}><Download size={16}/> Exportar CSV</button>
       <button type="button" className="rm-primary" disabled={!model} onClick={print}><Printer size={16}/> Imprimir / PDF</button>
+      </>}
     </div></header>
     <div className="rm-provenance no-print"><ShieldCheck size={17}/><span><b>DEMONSTRAÇÃO · {UNIT.unit}.</b>
       Relatórios produzidos com dados fictícios e armazenamento local deste navegador. Não são espelho oficial de ponto,
       AEJ, AFD, folha, prova de ausência ou relatório trabalhista certificado. Os módulos anteriores não são modificados.</span></div>
     {msg&&<div className="rm-message no-print" role="status"><Info size={15}/><span>{msg}</span>
       <button type="button" aria-label="Fechar aviso" onClick={()=>setMsg("")}>×</button></div>}
+    <div className="rm-mode no-print" role="tablist" aria-label="Tipo de relatório">
+      <button type="button" role="tab" aria-selected={mode==="prontos"} className={mode==="prontos"?"rm-mode-on":""}
+        onClick={()=>setMode("prontos")}>📋 Relatórios prontos <small>gerente e RH</small></button>
+      <button type="button" role="tab" aria-selected={mode==="detalhados"} className={mode==="detalhados"?"rm-mode-on":""}
+        onClick={()=>setMode("detalhados")}>📊 Relatórios detalhados <small>por período</small></button>
+    </div>
+    {mode==="prontos"&&<ReadyReports schedule={sources.schedule} absences={sources.absences} hours={sources.hours} date={refDate}/>}
+    <div hidden={mode!=="detalhados"}>
     <section className="rm-panel rm-filters no-print">
       <div className="rm-panel-heading"><div><p className="op-eyebrow">PARÂMETROS DO RELATÓRIO</p><h2>Escolha o período e o recorte</h2></div>
         <span className="rm-pill">Até 93 dias por consulta</span></div>
@@ -357,5 +369,6 @@ export function ReportsWorkspace(){
         </>}
       </div>
     </div>
+  </div>
   </div>;
 }

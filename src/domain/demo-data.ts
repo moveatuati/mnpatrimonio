@@ -43,10 +43,11 @@ function hash(str: string): number {
 }
 
 /** Gera registros de ponto fictícios para a data. */
-export function demoPunches(date: ISODate, employees: Employee[] = DEMO_EMPLOYEES): PunchRecord[] {
+export function demoPunches(date: ISODate, employees: Employee[] = DEMO_EMPLOYEES,
+  startOf: (e: Employee) => string = (e) => GROUPS[e.group].shift.start): PunchRecord[] {
   return employees.map((e) => {
     const r = hash(`${date}:${e.id}`) % 100;
-    const shift = GROUPS[e.group].shift;
+    const shift = { start: startOf(e) };
     if (r < 3) return { employeeId: e.id, date };
     let offset: number;
     if (r < 12) offset = 11 + (r % 15); // acima do alerta

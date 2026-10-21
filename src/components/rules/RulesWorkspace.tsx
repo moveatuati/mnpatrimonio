@@ -4,7 +4,7 @@ import { PageHeader } from "@/components/layout/AppShell";
 import { ABSENCE_STORAGE_KEY, restoreAbsences } from "@/domain/absences";
 import { HOUR_KEY, restoreHours } from "@/domain/hour-bank";
 import { readPointStore } from "@/domain/point-simulator";
-import { GROUPS, GROUP_IDS } from "@/domain/config";
+import { BANK_RULES, GROUPS, GROUP_IDS, SPECIAL_SLOT_LABEL } from "@/domain/config";
 import { DEFAULT_SCHEDULE, reviseStore, type ScheduleStore } from "@/domain/schedule";
 import type { GroupId } from "@/domain/types";
 import { RH_POINT_KEY, RH_SETTINGS_EVENT, defaultRhSettings, describeChanges, readRhSettingsStore,
@@ -93,7 +93,7 @@ export function RulesWorkspace(){
   };
   const setTarget=(kind:Kind,g:GroupId,value:number)=>{
     if(!Number.isFinite(value))return;
-    const n=Math.max(0,Math.min(GROUPS[g].requiredStaff,Math.trunc(value)));
+    const n=Math.max(0,Math.min(kind==="sunday"?63:GROUPS[g].requiredStaff,Math.trunc(value)));
     setSchedule(prev=>({...prev,rules:{...prev.rules,[kind]:{...prev.rules[kind],[g]:n}}}));
     setFeedback("");
   };
@@ -189,18 +189,18 @@ export function RulesWorkspace(){
         <p className="rh-footnote"><Info size={16}/> Os 63 cadastros originais permanecem fixos na demonstração. Mudar horários não contrata, transfere nem troca automaticamente colaboradores.</p>
       </section>}
       {pane==="Domingos e feriados"&&<>
-        <section className="rh-panel"><div className="rh-panel-header"><div><p className="rh-eyebrow">ESCALAS ESPECIAIS</p><h3>Turnos de domingo e feriado</h3><p>Configure os três turnos especiais e o contingente mínimo de cada grupo. A escala manterá o rodízio já existente.</p></div></div>
+        <section className="rh-panel"><div className="rh-panel-header"><div><p className="rh-eyebrow">ESCALAS ESPECIAIS</p><h3>Turnos de domingo e feriado</h3><p>Domingo sim, domingo não: metade da equipe trabalha. Defina o horário e quantas pessoas cada turno precisa. Qualquer operador pode ser escalado em qualquer turno.</p></div></div>
           <div className="rh-special-grid">{draft.sundayShifts.map((shift,i)=><div key={i} className="rh-special">
-            <b>Turno especial {i+1}</b><div className="rh-fields">{(["start","end"] as const).map(key=><label key={key}><span>{key==="start"?"Entrada":"Saída"}</span>
+            <b>{SPECIAL_SLOT_LABEL[GROUP_IDS[i]!]}</b><div className="rh-fields">{(["start","end"] as const).map(key=><label key={key}><span>{key==="start"?"Entrada":"Saída"}</span>
               <input type="time" aria-label={"Domingo turno "+(i+1)+" "+key} value={shift[key]}
                 onChange={e=>sundayField(i,key,e.target.value)}/></label>)}</div></div>)}</div>
-          <p className="rh-footnote"><AlertTriangle size={16}/> Turnos especiais com mais de seis horas exigem verificação do intervalo intrajornada e da norma coletiva. O Ponto simulado ainda não registra intervalos nesses turnos; não utilizar como escala oficial.</p>
+          <p className="rh-footnote"><AlertTriangle size={16}/> No domingo a jornada é direta (6h15) com uma pausa rápida de cerca de 15 minutos (banheiro/lanche). Confirmar o tratamento dessa pausa com o jurídico e a convenção coletiva.</p>
           <div className="rh-target-grid">{(["sunday","holiday"] as const).map(kind=><div key={kind}>
-            <h4>{kind==="sunday"?"Equipe dominical por turno":"Equipe-padrão nos feriados"}</h4>
-            <div className="rh-fields">{GROUP_IDS.map(g=><label key={g}><span>Grupo {g}</span>
-              <input aria-label={(kind==="sunday"?"Domingo":"Feriado")+" grupo "+g} type="number" min={0} max={GROUPS[g].requiredStaff}
+            <h4>{kind==="sunday"?"Vagas por turno no domingo":"Equipe-padrão nos feriados"}</h4>
+            <div className="rh-fields">{GROUP_IDS.map(g=><label key={g}><span>{kind==="sunday"?SPECIAL_SLOT_LABEL[g]:"Grupo "+g}</span>
+              <input aria-label={(kind==="sunday"?"Domingo "+SPECIAL_SLOT_LABEL[g]:"Feriado grupo "+g)} type="number" min={0} max={kind==="sunday"?63:GROUPS[g].requiredStaff}
                 value={schedule.rules[kind][g]} onChange={e=>setTarget(kind,g,Number(e.target.value))}/>
-              <small>Máximo demonstrativo: {GROUPS[g].requiredStaff}</small></label>)}</div>
+              <small>{kind==="sunday"?"pessoas neste turno":"Máximo: "+GROUPS[g].requiredStaff}</small></label>)}</div>
           </div>)}</div>
         </section>
         <section className="rh-panel"><div className="rh-panel-header"><div><p className="rh-eyebrow">CALENDÁRIO OPERACIONAL</p><h3>Feriados cadastrados</h3><p>Altere contingentes de datas especiais, sem criar folgas adicionais ou mexer em registros de ponto.</p></div></div>
@@ -216,6 +216,16 @@ export function RulesWorkspace(){
         </section>
       </>}
       {pane==="Parâmetros e histórico"&&<>
+        <section className="rh-panel"><div className="rh-panel-header"><div><p className="rh-eyebrow">REGRAS DA LOJA</p><h3>Movimento do mês e banco de horas</h3><p>Regras informadas pela gerência e usadas em todas as telas.</p></div></div>
+          <div className="rh-policy-grid" style={{padding:16,display:"grid",gap:10,gridTemplateColumns:"repeat(auto-fit,minmax(220px,1fr))",fontSize:14}}>
+            <div><b>🔴 Alto movimento</b><p>Do dia 28 até o dia 18 do mês seguinte. Evitar folgas extras.</p></div>
+            <div><b>🟢 Baixo movimento</b><p>Do dia 19 ao dia 27. Melhor período para folgas do banco e férias.</p></div>
+            <div><b>⏱️ Crédito no banco</b><p>Minutos após o horário de saída (acima de {BANK_RULES.creditToleranceMinutes} min) viram crédito.</p></div>
+            <div><b>🟡 Planejar folga</b><p>A partir de {BANK_RULES.attentionMinutes/60}h acumuladas.</p></div>
+            <div><b>🔴 Dar folga</b><p>Com {BANK_RULES.compensateMinutes/60}h acumuladas: folga de compensação (desconta {BANK_RULES.folgaMinutes/60}h).</p></div>
+            <div><b>🩺 Saída antecipada / entrada tarde</b><p>Usa o saldo do banco. Sem saldo, fica pendente para o RH.</p></div>
+          </div>
+        </section>
         <section className="rh-panel"><div className="rh-panel-header"><div><p className="rh-eyebrow">POLÍTICAS DE ACOMPANHAMENTO</p><h3>Alertas e descanso</h3><p>Parâmetros utilizados nos cálculos de ocorrências, relatórios, ponto e verificação de trocas.</p></div></div>
           <div className="rh-policy-grid">
             <label><span>Alerta operacional de atraso (minutos)</span><input type="number" aria-label="Alerta operacional em minutos" min={0} max={60}

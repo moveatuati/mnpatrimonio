@@ -116,7 +116,7 @@ describe("Consulta de entradas da página inicial", () => {
     expect(
       screen.queryByRole("heading", { name: "Nenhum registro nesta consulta" }),
     ).not.toBeInTheDocument();
-    expect(screen.getByText("63 registros na lista · role para consultar todos")).toBeInTheDocument();
+    expect(screen.getByText(`${consulted.arrivals.length} registros na lista · role para consultar todos`)).toBeInTheDocument();
   });
 
   it.each(["", "1999-12-31", "2026-02-30"])(
@@ -151,7 +151,7 @@ describe("Consulta de entradas da página inicial", () => {
     expect(within(region).getAllByRole("row")).toHaveLength(64);
     expect(tableIds()).toEqual(consulted.arrivals.map(item => item.employee.id));
     expect(screen.queryByRole("button", { name: "Próxima página" })).not.toBeInTheDocument();
-    expect(screen.getByText("63 registros na lista · role para consultar todos")).toBeInTheDocument();
+    expect(screen.getByText(`${consulted.arrivals.length} registros na lista · role para consultar todos`)).toBeInTheDocument();
 
     region.scrollTop = 250;
     fireEvent.click(screen.getByRole("button", { name: "Grupo B" }));

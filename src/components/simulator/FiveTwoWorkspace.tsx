@@ -13,6 +13,7 @@ import {
   type SimulatorParameters,type ScenarioResult,
 } from "@/domain/five-two-simulator";
 import type { GroupId } from "@/domain/types";
+import { realWeeklyShifts } from "@/domain/management-reports";
 import { HelpBubble, ScenarioExplanation } from "./ScenarioExplanation";
 import "./FiveTwoWorkspace.css";
 
@@ -199,8 +200,8 @@ export function FiveTwoWorkspace(){
           </select></label>
         <div className="ft-fixed-rules"><ShieldCheck size={17}/>
           <span><b>Regras obrigatórias da Formosa</b>
-            <small>Sábado com todos escalados · Domingo sim, domingo não · Duas folgas separadas por semana</small></span>
-          <HelpBubble label="Revezamento 5×2" description="Na semana em que trabalha domingo: duas folgas úteis intercaladas. Quando folga domingo: uma folga útil adicional. Todos são escalados sábado, independentemente do grupo. Não são permitidos seis dias seguidos de trabalho nem folgas em dias consecutivos."/>
+            <small>Sábado com a equipe completa garantida · Domingo sim, domingo não · Duas folgas separadas por semana</small></span>
+          <HelpBubble label="Revezamento 5×2" description="Na semana em que trabalha domingo: duas folgas úteis intercaladas. Quando folga domingo: uma folga útil adicional. O sábado só vira folga quando a equipe completa do sábado já está garantida. Não são permitidos seis dias seguidos de trabalho nem folgas em dias consecutivos."/>
         </div>
       </div>
       {!dateIsMonday&&<div className="ft-warning" role="alert"><AlertTriangle size={16}/>
@@ -227,6 +228,18 @@ export function FiveTwoWorkspace(){
         <MiniMetric name="Crescimento percentual" value={percent(summary.newHires/BASE_PEOPLE*100)} detail="Ampliação sobre 63 colaboradores" tone="green"
           explanation={`(${summary.headcount} − 63) ÷ 63 × 100. Com 83 colaboradores, o crescimento seria 31,7%.`}/>
       </section>
+      <section className="ft-answer" aria-label="Resposta direta">
+        <div className={"ft-answer-main "+(summary.coverageRate>=99.5?"ft-answer-ok":summary.coverageRate>=95?"ft-answer-warn":"ft-answer-bad")}>
+          <span>Com <b>{summary.headcount} pessoas</b> no 5×2</span>
+          <strong>{summary.coverageRate>=99.5?"✅ Cobre a operação":summary.coverageRate>=95?"🟡 Quase cobre":"🔴 Não cobre"}</strong>
+          <small>{percent(summary.coverageRate)} das vagas preenchidas em 4 semanas · faltam {integer(summary.deficitCount)} vaga(s)-dia</small>
+        </div>
+        <div className="ft-answer-side">
+          <p><b>Mínimo pela conta de jornadas:</b> {result.minimum.total} pessoas (sem margem para férias e atestados).</p>
+          <p><b>Hoje (6×1 real):</b> {realWeeklyShifts(sources.schedule)} jornadas por semana com 63 pessoas.</p>
+          <p><b>Domingo sim, domingo não</b> coloca metade da equipe no domingo; por isso o número ideal fica acima do mínimo.</p>
+        </div>
+      </section>
       <ScenarioExplanation result={result}/>
       <nav className="ft-tabs no-print" aria-label="Seções do simulador">
         <button className={tab==="cenario"?"ft-tab-active":""} onClick={()=>setTab("cenario")} type="button"><LayoutIcon/> Viabilidade e cobertura</button>
@@ -240,7 +253,7 @@ export function FiveTwoWorkspace(){
             <span className="ft-pill">4 semanas</span></div>
             <div className="ft-diagnostics">
               <div><span>6×1 atual · cobertura de referência</span><strong>100%*</strong><small>Premissa informada pela gestão</small></div>
-              <div><span>Jornadas por semana · 6×1</span><strong>{BASE_PEOPLE*6}</strong><small>63 × 6 dias</small></div>
+              <div><span>Jornadas por semana · 6×1 (escala real)</span><strong>{realWeeklyShifts(sources.schedule)}</strong><small>63 pessoas · domingo sim/não + 2 folgas</small></div>
               <div><span>Jornadas por semana · 5×2</span><strong>{summary.weeklyCapacity}</strong><small>{summary.headcount} × 5 dias</small></div>
               <div><span>Cobertura horária · 5×2</span><strong className="ft-evaluation-pending">A validar</strong><small>Turnos integrados, intervalos e folgas</small></div>
             </div>
@@ -251,12 +264,12 @@ export function FiveTwoWorkspace(){
           <section className="ft-panel"><div className="ft-heading"><div><p className="op-eyebrow">QUALIDADE DA ESCALA</p>
             <h2>Folgas, limites e alertas</h2><p>Indicadores de proteção e viabilidade do cenário.</p></div></div>
             <div className="ft-rule-grid">
-              <div><span><CalendarDays size={16}/> Folgas programadas <HelpBubble label="Folgas semanais" description="Duas folgas não consecutivas em cada semana por colaborador, sempre fora do sábado. Quem descansa domingo folga mais uma vez em dia útil; quem trabalha domingo folga duas vezes em dias úteis."/></span><strong>{summary.headcount*8}</strong><small>2 por semana × 4 semanas</small></div>
+              <div><span><CalendarDays size={16}/> Folgas programadas <HelpBubble label="Folgas semanais" description="Duas folgas não consecutivas em cada semana por colaborador, no sábado apenas se a meta do sábado estiver coberta. Quem descansa domingo folga mais uma vez em dia útil; quem trabalha domingo folga duas vezes em dias úteis."/></span><strong>{summary.headcount*8}</strong><small>2 por semana × 4 semanas</small></div>
               <div><span><Clock3 size={16}/> Domingos livres por pessoa <HelpBubble label="Domingos alternados" description="Cada pessoa folga dois dos quatro domingos, trabalhando um e folgando o seguinte, em rodízio com outros colegas do mesmo grupo."/></span><strong>{summary.monthlyAverageSundaysOff.toFixed(1)}</strong><small>Dois domingos livres no ciclo</small></div>
               <div><span><ShieldCheck size={16}/> Conflitos de 11h <HelpBubble label="Descanso entre jornadas" description="Confere intervalo mínimo de 11 horas entre a saída de uma jornada e a entrada da seguinte. Ainda requer validação das regras aplicáveis."/></span><strong>{summary.daysWith11hConflicts}</strong><small>Entre jornadas consecutivas</small></div>
-              <div><span><AlertTriangle size={16}/> Alertas de regras <HelpBubble label="Alertas do revezamento" description="Soma conflitos de folgas próximas, seis dias trabalhados em sequência, excesso de horas, falta de sábado escalado e erro no rodízio dominical. Não oculta os casos que não têm solução."/></span><strong>{summary.restViolations+summary.badHours+summary.saturdayUnscheduled+summary.sundayAlternationErrors}</strong><small>Folgas · horas · sábados · domingos</small></div>
+              <div><span><AlertTriangle size={16}/> Alertas de regras <HelpBubble label="Alertas do revezamento" description="Soma conflitos de folgas próximas, seis dias trabalhados em sequência, excesso de horas, sábado abaixo da equipe completa e erro no rodízio dominical. Não oculta os casos que não têm solução."/></span><strong>{summary.restViolations+summary.badHours+summary.saturdayDeficit+summary.sundayAlternationErrors}</strong><small>Folgas · horas · sábados · domingos</small></div>
             </div>
-            <div className="ft-note"><Info size={16}/><span>O sábado permanece integralmente escalado, mesmo quando a data for feriado. A equipe trabalha domingos alternados; folgas úteis são distribuídas sem dois dias seguidos. Aferição por dia não substitui a conferência de cobertura por hora nem aprovação do RH.</span></div>
+            <div className="ft-note"><Info size={16}/><span>O sábado mantém, no mínimo, a equipe completa de hoje (63); com mais gente, quem sobra pode folgar no sábado. A equipe trabalha domingos alternados; folgas úteis são distribuídas sem dois dias seguidos. Aferição por dia não substitui a conferência de cobertura por hora nem aprovação do RH.</span></div>
           </section>
         </div>
         <section className="ft-panel">
@@ -356,7 +369,7 @@ export function FiveTwoWorkspace(){
           <span className="ft-work-chip ft-resting">Folga</span>
           <span className="ft-work-chip ft-holiday-work">Trabalha · feriado</span>
           <span className="ft-work-chip ft-holiday-rest">Folga · feriado</span>
-          <HelpBubble label="Legenda da escala" description="Sábado todos trabalham. Domingos são alternados. Os demais descansos são em dias úteis não consecutivos. No feriado, o trabalhador pode estar escalado ou em folga; as obrigações de compensação dependem da legislação e acordo aplicável."/>
+          <HelpBubble label="Legenda da escala" description="Sábado com a equipe completa garantida. Domingos são alternados. Os demais descansos são em dias úteis não consecutivos. No feriado, o trabalhador pode estar escalado ou em folga; as obrigações de compensação dependem da legislação e acordo aplicável."/>
         </div>
         <div className="ft-scroll-table ft-roster" role="region" aria-label="Escala individual semanal" tabIndex={0}>
           <table className="ft-table"><thead><tr><th>Colaborador</th><th>Grupo</th>
@@ -378,7 +391,7 @@ export function FiveTwoWorkspace(){
                 <td>{p.sundaysOff}</td></tr>;
             })}</tbody></table>
         </div>
-        <div className="ft-note"><CalendarDays size={16}/> Em cada uma das quatro semanas, cada colaborador possui cinco jornadas e duas folgas não consecutivas. Sábado é sempre dia escalado e domingo alterna trabalho e descanso. Feriados não geram uma terceira folga automática; consultar regras de compensação com RH. Nenhum reforço hipotético representa contratação realizada.</div>
+        <div className="ft-note"><CalendarDays size={16}/> Em cada uma das quatro semanas, cada colaborador possui cinco jornadas e duas folgas não consecutivas. O sábado mantém a equipe completa de hoje e o domingo alterna trabalho e descanso. Feriados não geram uma terceira folga automática; consultar regras de compensação com RH. Nenhum reforço hipotético representa contratação realizada.</div>
       </section>}
       {tab==="orientacoes"&&<>
         <section className="ft-panel"><div className="ft-heading"><div>

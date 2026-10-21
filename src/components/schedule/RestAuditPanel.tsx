@@ -1,0 +1,67 @@
+import { useMemo, useState } from "react";
+import { Printer } from "lucide-react";
+import { GROUPS } from "@/domain/config";
+import { dateOffset, restAudit, startOfWeek, type ScheduleStore } from "@/domain/schedule";
+import "./RestAuditPanel.css";
+
+const br = (d: string | null) => (d ? d.slice(8, 10) + "/" + d.slice(5, 7) : "—");
+
+/** Conferência das folgas de todo o pessoal: domingo trabalhado = 1 folga antes + 1 folga depois. */
+export function RestAuditPanel({ store, date }: { store: ScheduleStore; date: string }) {
+  const [start, setStart] = useState(startOfWeek(date));
+  const [onlyIssues, setOnlyIssues] = useState(false);
+  const [query, setQuery] = useState("");
+  const audit = useMemo(() => restAudit(store, start, 4), [store, start]);
+  const q = query.trim().toLocaleLowerCase("pt-BR");
+  const rows = audit.rows.filter(r => (!onlyIssues || r.problems.length > 0) &&
+    (!q || (r.employee.name + " " + r.employee.id).toLocaleLowerCase("pt-BR").includes(q)));
+
+  function printIt() {
+    document.body.dataset.printing = "audit";
+    const done = () => { delete document.body.dataset.printing; window.removeEventListener("afterprint", done); };
+    window.addEventListener("afterprint", done);
+    window.print();
+    window.setTimeout(done, 1500);
+  }
+
+  return <article className="ra ra-print">
+    <header className="ra-head">
+      <div>
+        <h2>Conferência de folgas · 4 domingos</h2>
+        <p><b>Regra:</b> trabalhou no domingo → <b>1 folga antes</b> (segunda a sábado da mesma semana) e <b>1 folga depois</b> (segunda a sábado da semana seguinte). Não trabalhou → folga no domingo.</p>
+      </div>
+      <button type="button" className="ra-btn" onClick={printIt}><Printer size={16} /> Imprimir</button>
+    </header>
+
+    <div className="ra-cards">
+      <div className="ra-card ra-ok"><strong>{audit.ok}</strong><span>✅ Pessoas com folgas em dia</span></div>
+      <div className={"ra-card " + (audit.pending ? "ra-bad" : "ra-ok")}><strong>{audit.pending}</strong><span>{audit.pending ? "⚠️ Com folga faltando" : "Nenhuma pendência"}</span></div>
+      {audit.sundays.map((s, i) => <div key={s} className="ra-card ra-sun"><strong>{audit.workersPerSunday[i]}</strong><span>Trabalham dom. {br(s)}</span></div>)}
+    </div>
+
+    <div className="ra-tools">
+      <button type="button" onClick={() => setStart(dateOffset(start, -7))}>◀ Semana anterior</button>
+      <span>A partir de {br(start)}</span>
+      <button type="button" onClick={() => setStart(dateOffset(start, 7))}>Próxima semana ▶</button>
+      <input value={query} onChange={e => setQuery(e.target.value)} placeholder="Buscar nome" aria-label="Buscar colaborador na conferência" />
+      <label><input type="checkbox" checked={onlyIssues} onChange={e => setOnlyIssues(e.target.checked)} /> Só quem tem pendência</label>
+    </div>
+
+    <div className="ra-scroll">
+      <table className="ra-table">
+        <thead><tr><th>Colaborador</th>{audit.sundays.map(s => <th key={s}>Domingo {br(s)}</th>)}<th>Situação</th></tr></thead>
+        <tbody>{rows.map(r => <tr key={r.employee.id} className={r.problems.length ? "ra-row-bad" : ""}>
+          <td><b>{r.employee.name}</b><small>{r.employee.id} · {GROUPS[r.employee.group].name}</small></td>
+          {r.checks.map(c => <td key={c.sunday} className={c.worked ? (c.ok ? "ra-work" : "ra-miss") : "ra-off"}>
+            {c.worked
+              ? <><b>Trabalha</b><small>antes: {br(c.before)} · depois: {br(c.after)}</small></>
+              : <b>Folga no domingo</b>}
+          </td>)}
+          <td>{r.problems.length ? <span className="ra-tag-bad" title={r.problems.join(" ")}>⚠️ {r.problems.length} pendência(s)</span> : <span className="ra-tag-ok">✅ Em dia</span>}</td>
+        </tr>)}</tbody>
+      </table>
+      {!rows.length && <p className="ra-empty">{onlyIssues ? "Ninguém com pendência. 👍" : "Nenhum colaborador encontrado."}</p>}
+    </div>
+    {audit.pending > 0 && <ul className="ra-list">{audit.rows.flatMap(r => r.problems).slice(0, 30).map(p => <li key={p}>{p}</li>)}</ul>}
+  </article>;
+}

@@ -20,7 +20,8 @@ describe("Férias e afastamentos — demonstração de gestão",()=>{
     const groups=coverageWithAbsences(demoAbsences(),DEFAULT_SCHEDULE,date);
     expect(groups).toHaveLength(3);
     expect(groups.every(g=>g.available===g.scheduled-g.absent)).toBe(true);
-    expect(groups.reduce((n,g)=>n+g.absent,0)).toBe(3);
+    // Uma das três ausências cai no dia de folga da pessoa: só conta quem estava escalado.
+    expect(groups.reduce((n,g)=>n+g.absent,0)).toBe(2);
     expect(groups.every(g=>g.deficit===Math.max(0,g.required-g.available))).toBe(true);
   });
   it("não reduz cobertura com pedido pendente até aprovação",()=>{
@@ -79,7 +80,7 @@ describe("Férias e afastamentos — demonstração de gestão",()=>{
     const cancelled=decideAbsence(base,"AUS-001","cancelar","Cancelamento administrativo");
     expect(cancelled.ok).toBe(true);
     expect(coverageWithAbsences(cancelled.store,DEFAULT_SCHEDULE,date)
-      .reduce((sum,g)=>sum+g.absent,0)).toBe(2);
+      .reduce((sum,g)=>sum+g.absent,0)).toBe(1);
     expect(cancelled.store.history).toHaveLength(1);
   });
   it("retorno aponta próximo turno da escala, sem confirmação de presença",()=>{
