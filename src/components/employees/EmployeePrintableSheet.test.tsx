@@ -1,6 +1,7 @@
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { EmployeePrintableSheet } from "./EmployeePrintableSheet";
+import { BRAND } from "@/lib/brand";
 import { DEMO_EMPLOYEES } from "@/domain/demo-data";
 
 afterEach(() => { cleanup(); vi.restoreAllMocks(); });
