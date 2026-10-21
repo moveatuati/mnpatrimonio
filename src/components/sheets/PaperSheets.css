@@ -9,12 +9,12 @@
 .ps-block{margin-top:8px}
 .ps-block h3{margin:0;padding:3px 6px;background:#efefef;border:1px solid #444;border-bottom:0;text-align:center;font-size:12.5px}
 .ps-block h3 small{font-weight:600;color:#7a2440;margin-left:6px}
-.ps table{width:100%;border-collapse:collapse;font-size:12px}
-.ps th,.ps td{border:1px solid #555;padding:2px 5px;text-align:left;line-height:1.25}
-.ps th{background:#fafafa;font-size:10.5px;text-align:center}
+.ps-sheet table{width:100%;border-collapse:collapse;font-size:12px}
+.ps-sheet th,.ps-sheet td{border:1px solid #555!important;padding:2px 5px;text-align:left;line-height:1.25}
+.ps-sheet th{background:#fafafa;font-size:10.5px;text-align:center}
 .ps-sheet-sunday td:nth-child(1){width:62px}.ps-sheet-sunday td:nth-child(3),.ps-sheet-sunday td:nth-child(4){text-align:center;width:110px}
 .ps-sign{width:34%}
-.ps-foot{display:flex;justify-content:space-around;gap:16px;margin-top:22px;font-size:11px;font-weight:700}
+.ps-foot{display:flex;justify-content:space-around;gap:24px;margin-top:40px;font-size:11px;font-weight:700}
 .ps-foot span{flex:1;text-align:center;border-top:1px solid #333;padding-top:4px}
 .ps-note{margin:8px 0 0;font-size:10px;color:#555}
 .ps-week th small{display:block;font-weight:400}
@@ -27,7 +27,7 @@
 .ps-week td.ps-atestado,.ps-week td.ps-afastamento{color:#8a5a00;background:#fff7e6}
 .ps-week tfoot td{background:#f6f6f6;text-align:center;font-weight:700}
 .ps-week tfoot td:first-child{text-align:right}
-@media (max-width:700px){.ps-sheet{padding:12px 8px;overflow-x:auto}.ps table{min-width:600px}}
+@media (max-width:700px){.ps-sheet{padding:12px 8px;overflow-x:auto}.ps-sheet table{min-width:600px}}
 /* Impressão: 1 folha A4 por escala */
 .print-compact .ps-sheet{border:0;padding:0;max-width:none}
 .print-compact .ps-sheet-sunday table{font-size:11px}
@@ -36,3 +36,7 @@
 .print-compact .ps-sheet-week th,.print-compact .ps-sheet-week td{padding:0 3px;line-height:1.2}
 .print-compact .ps-sheet-week th{font-size:9px}
 .print-compact .ps-group td{font-size:9px;padding:1px 3px}
+/* Domingo: assinaturas no pé da folha, com espaço para assinar */
+.print-compact .ps-sheet-sunday{min-height:268mm;display:flex;flex-direction:column}
+.print-compact .ps-sheet-sunday .ps-foot{margin-top:auto;padding-top:22mm}
+.print-compact .ps-sheet-sunday .ps-foot span{padding-top:5px}

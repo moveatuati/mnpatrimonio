@@ -2,6 +2,9 @@ import type { OperationalGroup, GroupId } from "./types";
 
 export const UNIT = {
   company: "Formosa",
+  /** Razão social e CNPJ como constam na escala de domingo da unidade. */
+  legalName: "Formosa Supermercados e Magazine Ltda.",
+  cnpj: "63.864.771/0007-32",
   unit: "Augusto Montenegro",
   city: "Belém/PA",
   system: "Formosa • Gestão de Pessoas",
