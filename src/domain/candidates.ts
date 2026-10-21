@@ -166,7 +166,7 @@ const emptyReferences = () => [{ nome: "", endereco: "", telefone: "" }, { nome:
 
 export function emptyApplication(c: Pick<Candidate, "name" | "role" | "phone">): Application {
   return {
-    fields: { nome: c.name, cargo: c.role, telefone: c.phone, cidade: "Belém", uf: "PA", nacionalidade: "Brasileira" },
+    fields: { nome: c.name, cargo: c.role, telefone: c.phone, cidade: "Ananindeua", uf: "PA", nacionalidade: "Brasileira" },
     photo: "",
     dependents: [],
     courses: [],

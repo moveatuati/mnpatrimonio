@@ -31,7 +31,7 @@ export const saveHours = (store: HourStore) => write(HOUR_KEY, store);
 export const loadAbsences = (): AbsenceStore => read(ABSENCE_STORAGE_KEY, restoreAbsences, demoAbsences);
 export const loadPoint = (): PointStore => read(RH_POINT_KEY, readPointStore, () => EMPTY_POINT_STORE);
 
-/** Data de hoje (fuso de Belém) no formato AAAA-MM-DD. */
+/** Data de hoje (fuso de Belém/Ananindeua, UTC−3) no formato AAAA-MM-DD. */
 export function todayISO(): string {
   const now = new Date(Date.now() - 3 * 3600000);
   return now.toISOString().slice(0, 10);

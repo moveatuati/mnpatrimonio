@@ -10,7 +10,7 @@ describe("Ficha A4 para impressão", () => {
     const employee = DEMO_EMPLOYEES.find(item => item.id === "FM-047")!;
     render(<EmployeePrintableSheet employeeId={employee.id} date="2026-10-20" />);
     expect(screen.getByRole("img", { name: BRAND.name })).toHaveAttribute("src", BRAND.logoUrl);
-    expect(screen.getByText("Unidade Augusto Montenegro · Belém/PA")).toBeInTheDocument();
+    expect(screen.getByText("Unidade Condomínio Ananinville · Ananindeua/PA")).toBeInTheDocument();
     expect(screen.getByRole("article", { name: `Ficha A4 de ${employee.name}` })).toBeInTheDocument();
     const rows = screen.getAllByRole("row");
     expect(rows).toHaveLength(21);

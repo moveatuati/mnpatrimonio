@@ -424,7 +424,7 @@ function ApplicationForm({ c, onChange, onSubmit, onRh }: {
       <div className="cd-p-sec"><h4>Experiências profissionais</h4>{EXPERIENCE_SLOTS.map(s => { const x = a.experiences[s.id]; return <p key={s.id}>
         <b>{s.title}:</b> {x.empresa || "—"} · {x.cargo || "—"} · {br(x.admissao)} a {br(x.demissao)} · Tel. {x.telefone || "—"} · Motivo: {x.motivo || "—"}{x.atividades ? ` · ${x.atividades}` : ""}</p>; })}</div>
       <div className="cd-p-sec"><h4>Referências</h4>{REFERENCE_GROUPS.map(g => <p key={g.id}><b>{g.title}:</b> {a.references[g.id].filter(r => r.nome).map(r => `${r.nome} (${r.telefone || "—"}${r.endereco ? `, ${r.endereco}` : ""})`).join("; ") || "—"}</p>)}</div>
-      <p className="cd-p-decl">Declaro que as informações acima são verdadeiras e por elas assumo qualquer responsabilidade. Belém PA, {br(a.declarationDate || todayISO())}.</p>
+      <p className="cd-p-decl">Declaro que as informações acima são verdadeiras e por elas assumo qualquer responsabilidade. {UNIT.city.replace("/", " ")}, {br(a.declarationDate || todayISO())}.</p>
       <div className="cd-p-sign"><span>Assinatura do candidato</span></div>
       <div className="cd-p-sec cd-p-rh"><h4>Para uso exclusivo do Departamento de RH</h4>
         <p>Parecer do Recrutamento e Seleção: ( {a.rh.verdict === "apto" ? "X" : " "} ) Apto ( {a.rh.verdict === "inapto" ? "X" : " "} ) Inapto</p>
