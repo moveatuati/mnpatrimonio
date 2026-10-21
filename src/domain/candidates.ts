@@ -357,7 +357,7 @@ export function restoreCandidates(raw: unknown): CandidateStore {
   if (!r || r.version !== 1 || !Array.isArray(r.candidates)) return demoCandidates();
   const candidates = r.candidates.filter(c => c && typeof c.id === "string").map(c => {
     const base: Candidate = {
-      id: c.id, name: str(c.name), role: str(c.role), condoId: str(c.condoId), functionId: str(c.functionId), phone: str(c.phone), createdAt: str(c.createdAt),
+      id: c.id, name: str(c.name), role: c.functionId ? str(c.role) : "", condoId: str(c.condoId), functionId: str(c.functionId), phone: str(c.phone), createdAt: str(c.createdAt),
       stage: (["entrevista", "aprovado", "banco", "reprovado"] as Stage[]).includes(c.stage) ? c.stage : "entrevista",
       decidedAt: str(c.decidedAt),
       interview: { date: str(c.interview?.date), interviewer: str(c.interview?.interviewer), answers: { ...(c.interview?.answers ?? {}) },

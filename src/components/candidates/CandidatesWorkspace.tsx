@@ -240,22 +240,28 @@ function InterviewForm({ c, me, setMe, clients, onChange, onDecide, onReopen, on
 
     <fieldset disabled={locked} className="cd-body">
       <div className="cd-grid">
-        <label className="cd-f cd-wide"><span>Nome *</span><input value={c.name} onChange={e => onChange({ ...c, name: e.target.value })} /></label>
-        <label className="cd-f"><span>Condomínio da vaga *</span><select value={c.condoId} onChange={e => onChange({ ...c, condoId: e.target.value })}>
+        <label className={"cd-f cd-wide" + (c.name.trim() ? "" : " cd-f-bad")}><span>Nome *</span><input value={c.name} onChange={e => onChange({ ...c, name: e.target.value })} /></label>
+        <label className={"cd-f" + (c.condoId ? "" : " cd-f-bad")}><span>Condomínio da vaga *</span><select value={c.condoId} onChange={e => onChange({ ...c, condoId: e.target.value })}>
           <option value="">Selecione</option>
           {clients.condos.filter(x => x.active || x.id === c.condoId).map(x => <option key={x.id} value={x.id}>{x.name}</option>)}</select></label>
-        <label className="cd-f"><span>Função / vaga *</span><select value={c.functionId} onChange={e => {
+        <label className={"cd-f" + (c.functionId ? "" : " cd-f-bad")}><span>Função / vaga *</span><select value={c.functionId} onChange={e => {
           const fn = clients.functions.find(x => x.id === e.target.value);
           onChange({ ...c, functionId: e.target.value, role: fn?.name ?? "" });
         }}>
           <option value="">Selecione</option>
           {clients.functions.filter(x => x.active || x.id === c.functionId).map(x => <option key={x.id} value={x.id}>{x.name}</option>)}
           {!c.functionId && c.role && <option value="" disabled>Atual: {c.role}</option>}</select></label>
-        <label className="cd-f"><span>WhatsApp do candidato *</span><input inputMode="tel" value={c.phone} onChange={e => onChange({ ...c, phone: formatPhone(e.target.value) })} /></label>
+        <label className={"cd-f" + (c.phone.replace(/\D/g, "").length >= 10 ? "" : " cd-f-bad")}><span>WhatsApp do candidato *</span><input inputMode="tel" value={c.phone} onChange={e => onChange({ ...c, phone: formatPhone(e.target.value) })} /></label>
         <label className="cd-f"><span>Data *</span><input type="date" value={c.interview.date} onChange={e => setI({ date: e.target.value })} /></label>
         <label className="cd-f"><span>Entrevistador *</span><input value={c.interview.interviewer} placeholder={me.name || "Seu nome"} onChange={e => setI({ interviewer: e.target.value })} /></label>
       </div>
-      {!locked && <InviteBox c={c} me={me} setMe={setMe} condo={clients.condos.find(x => x.id === c.condoId)?.name ?? ""} onSent={at => onChange({ ...c, interview: { ...c.interview, interviewer: c.interview.interviewer || me.name, linkSentAt: at } })} />}
+      {!locked && <InviteBox c={c} me={me} setMe={setMe} onFillDemo={() => {
+        const condoPick = c.condoId || clients.condos.find(x => x.active)?.id || "";
+        const fn = clients.functions.find(x => x.id === c.functionId) ?? clients.functions.find(x => x.active);
+        onChange({ ...c, name: c.name.trim() || "Candidato(a) de demonstração", phone: c.phone.replace(/\D/g, "").length >= 10 ? c.phone : me.phone,
+          condoId: condoPick, functionId: fn?.id ?? "", role: fn?.name ?? c.role,
+          interview: { ...c.interview, interviewer: c.interview.interviewer || me.name } });
+      }} condo={clients.condos.find(x => x.id === c.condoId)?.name ?? ""} onSent={at => onChange({ ...c, interview: { ...c.interview, interviewer: c.interview.interviewer || me.name, linkSentAt: at } })} />}
 
       <h3 className="cd-h3">Perguntas da entrevista <small>{answeredCount(c)}/{INTERVIEW_QUESTIONS.length}</small>
         {c.interview.source === "candidato" && <span className="cd-badge cd-b-aprovado">Respondido pelo candidato em {br(c.interview.receivedAt)}</span>}
@@ -311,12 +317,16 @@ function InterviewForm({ c, me, setMe, clients, onChange, onDecide, onReopen, on
 
 /* ─────────────────────── Link para o candidato ─────────────────────── */
 
-function InviteBox({ c, me, setMe, condo, onSent }: { c: Candidate; condo: string; me: InterviewerProfile; setMe: (p: InterviewerProfile) => void; onSent: (at: string) => void }) {
+function InviteBox({ c, me, setMe, condo, onSent, onFillDemo }: { c: Candidate; condo: string; me: InterviewerProfile; setMe: (p: InterviewerProfile) => void; onSent: (at: string) => void; onFillDemo: () => void }) {
   const [editMe, setEditMe] = useState(!me.name || me.phone.replace(/\D/g, "").length < 10);
   const [copied, setCopied] = useState(false);
   const missing = inviteMissing(c, me);
   const origin = publicOrigin();
   const url = missing.length ? "" : inviteUrl(origin, makeInvite(c, me, condo));
+  // Prévia sempre disponível: usa os dados preenchidos e completa o que faltar com exemplo.
+  const previewUrl = inviteUrl(origin, makeInvite({ ...c, name: c.name.trim() || "Candidato(a)", role: c.role.trim() || "Vaga de exemplo" },
+    { name: me.name.trim() || c.interview.interviewer || "Entrevistador(a)", phone: me.phone }, condo));
+  const candidateMissing = missing.filter(m => !m.startsWith("seu "));
   async function copy() {
     if (!url) return;
     try { await navigator.clipboard.writeText(inviteMessage(makeInvite(c, me, condo), url)); setCopied(true); onSent(nowISO()); window.setTimeout(() => setCopied(false), 2500); }
@@ -330,13 +340,19 @@ function InviteBox({ c, me, setMe, condo, onSent }: { c: Candidate; condo: strin
       <label className="cd-f"><span>Seu WhatsApp (recebe as respostas) *</span><input inputMode="tel" value={me.phone} onChange={e => setMe({ ...me, phone: formatPhone(e.target.value) })} /></label>
       <button type="button" className="cd-btn cd-btn-sm cd-me-ok" disabled={!me.name.trim() || me.phone.replace(/\D/g, "").length < 10} onClick={() => setEditMe(false)}><Check size={14} /> Salvar meus dados</button>
     </div> : <p className="cd-me-line">Entrevistador: <b>{me.name}</b> · respostas chegam no WhatsApp <b>{me.phone}</b> <button type="button" className="cd-link" onClick={() => setEditMe(true)}>alterar</button></p>}
-    {missing.length ? <p className="cd-warn cd-invite-miss"><AlertTriangle size={14} /> O link aparece aqui assim que você informar: <b>{missing.join(", ")}</b>.</p>
-      : <div className="cd-actions">
-        <a className="cd-btn cd-btn-wa" href={whatsappUrl(c.phone, inviteMessage(makeInvite(c, me, condo), url))} target="_blank" rel="noopener noreferrer" onClick={() => onSent(nowISO())}>
-          <MessageCircle size={15} /> Enviar link pelo WhatsApp</a>
-        <button type="button" className="cd-btn" onClick={copy}><Copy size={15} /> {copied ? "Mensagem copiada!" : "Copiar link"}</button>
-        <a className="cd-btn" href={url} target="_blank" rel="noopener noreferrer"><Eye size={15} /> Ver como o candidato vê</a>
-      </div>}
+    <div className="cd-actions">
+      {url
+        ? <a className="cd-btn cd-btn-wa" href={whatsappUrl(c.phone, inviteMessage(makeInvite(c, me, condo), url))} target="_blank" rel="noopener noreferrer" onClick={() => onSent(nowISO())}>
+            <MessageCircle size={15} /> Enviar link pelo WhatsApp</a>
+        : <button type="button" className="cd-btn cd-btn-wa" disabled title="Preencha os dados indicados abaixo"><MessageCircle size={15} /> Enviar link pelo WhatsApp</button>}
+      <button type="button" className="cd-btn" disabled={!url} onClick={copy}><Copy size={15} /> {copied ? "Mensagem copiada!" : "Copiar link"}</button>
+      <a className="cd-btn" href={previewUrl} target="_blank" rel="noopener noreferrer"><Eye size={15} /> Ver como o candidato vê</a>
+    </div>
+    {missing.length > 0 && <div className="cd-invite-miss-box">
+      <p className="cd-warn cd-invite-miss"><AlertTriangle size={14} /> Para enviar pelo WhatsApp, falta: <b>{missing.join(", ")}</b>.</p>
+      {candidateMissing.length > 0 && <button type="button" className="cd-btn cd-btn-sm" onClick={onFillDemo}>Preencher exemplo para demonstração</button>}
+    </div>}
+    <p className="cd-invite-tip">Para apresentar ao cliente: use <b>o seu próprio WhatsApp</b> como WhatsApp do candidato. Você recebe o convite, responde no celular e as respostas voltam para você.</p>
   </div>;
 }
 

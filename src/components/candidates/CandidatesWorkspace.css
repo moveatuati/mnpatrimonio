@@ -169,3 +169,7 @@
 .cd-incoming{display:flex;flex-wrap:wrap;align-items:center;gap:10px;padding:12px 14px;margin-bottom:13px;border:1px solid #bfe3d4;border-left:4px solid #16805a;border-radius:10px;background:#f1fbf6;color:#165e45}
 .cd-incoming>div{flex:1;min-width:200px}.cd-incoming b{display:block;font-size:13px}.cd-incoming span{font-size:11.5px;color:#3c6b58}
 .cd-h3 .cd-badge{font-weight:700}
+.cd-f-bad select{border-color:#d58c84;background:#fff8f7}
+.cd-invite-miss-box{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-top:10px}
+.cd-invite-tip{margin:10px 0 0;color:#5a6773;font-size:11.5px;line-height:1.45}
+.cd-btn-wa:disabled{background:#9fd3b2;border-color:#9fd3b2}
