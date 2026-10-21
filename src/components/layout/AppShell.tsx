@@ -46,9 +46,9 @@ export function AppShell({ children }: { children: ReactNode }) {
         Ir para o conteúdo
       </a>
       <aside className="formosa-shell-sidebar no-print hidden w-[232px] shrink-0 flex-col bg-sidebar text-sidebar-foreground md:sticky md:top-0 md:flex md:h-screen">
-        <div className="formosa-shell-brand px-6 pb-6 pt-7">
-          <div className="flex w-fit items-center rounded-xl bg-white px-4 py-3">
-            <img src={BRAND.logoUrl} alt={BRAND.name} className="h-auto w-[128px]" />
+        <div className="formosa-shell-brand px-4 pb-6 pt-6">
+          <div className="flex w-full items-center justify-center rounded-xl bg-white px-3 py-3 shadow-lg">
+            <img src={BRAND.logoUrl} alt={BRAND.name} className="h-auto w-full" />
           </div>
           <p className="mt-4 text-[10px] font-semibold uppercase tracking-[0.2em] text-sidebar-foreground/70">
             Gestão de Pessoas
