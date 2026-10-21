@@ -173,3 +173,13 @@
 .ft-evaluation-pending{font-size:16px!important;line-height:1.35}
 .ft-day strong{font-size:clamp(13px,1.2vw,17px)}
 @media(max-width:850px){.ft-scenario-options{grid-template-columns:repeat(2,minmax(0,1fr))}}
+/* Resposta direta, em linguagem simples, para quem não é da área */
+.ft-answer{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.3fr);gap:12px;margin:0 0 16px}
+.ft-answer-main{display:flex;flex-direction:column;gap:4px;padding:18px 20px;border-radius:16px;border:2px solid #ddd;background:#fff}
+.ft-answer-main span{font-size:16px}.ft-answer-main strong{font-size:28px;font-weight:850;line-height:1.15}.ft-answer-main small{font-size:14px;color:#5d4d55}
+.ft-answer-ok{border-color:#4cb782;background:#f1fbf5}.ft-answer-ok strong{color:#1c7a4c}
+.ft-answer-warn{border-color:#e8b33b;background:#fffaec}.ft-answer-warn strong{color:#a87300}
+.ft-answer-bad{border-color:#e05a4f;background:#fff4f3}.ft-answer-bad strong{color:#c0362c}
+.ft-answer-side{padding:14px 18px;border-radius:16px;border:1px solid #ead9e0;background:#fff;font-size:15px;line-height:1.5}
+.ft-answer-side p{margin:0 0 6px}
+@media (max-width:900px){.ft-answer{grid-template-columns:1fr}}

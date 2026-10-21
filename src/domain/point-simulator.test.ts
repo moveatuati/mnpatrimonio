@@ -7,7 +7,7 @@ import {
 } from "./point-simulator";
 
 const employee = DEMO_EMPLOYEES[0]!;
-const day = "2026-10-20";
+const day = "2026-10-24"; // sábado: equipe completa
 function registerFour() {
   let store = EMPTY_POINT_STORE;
   for (const [mark,time] of [

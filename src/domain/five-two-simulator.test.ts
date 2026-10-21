@@ -42,20 +42,21 @@ describe("EC 141/2026 · simulador 5×2",()=>{
    expect(PROPOSED_SHIFTS[42].C.end).toBe("22:00");
  });
  it("encontra limite teórico por grupo, sem prometer cobertura",()=>{
+   // Necessidade real: dias úteis pela meta do período, sábado completo, domingo 9+10+10.
    expect(theoreticalMinimum(DEFAULT_SCHEDULE,FUTURE_START)).toEqual({
-     groups:{A:6,B:42,C:43},total:91,
+     groups:{A:5,B:32,C:33},total:70,
    });
  });
  it("expõe a memória exata e recalcula o piso com domingo ou feriado configurado",()=>{
    const rows=minimumBreakdown(DEFAULT_SCHEDULE,FUTURE_START);
    expect(rows.map(r=>[r.weekdayNeed,r.weekdayCapacity,r.weekdayFloor,r.minimum]))
-     .toEqual([[80,14,6,6],[580,14,42,42],[600,14,43,43]]);
-   const higherSunday={...DEFAULT_SCHEDULE,rules:{...DEFAULT_SCHEDULE.rules,sunday:{A:4,B:22,C:22}}};
-   expect(theoreticalMinimum(higherSunday,FUTURE_START)).toEqual({groups:{A:8,B:44,C:44},total:96});
+     .toEqual([[60,20,5,5],[455,20,32,32],[475,20,33,33]]);
+   const higherSunday={...DEFAULT_SCHEDULE,rules:{...DEFAULT_SCHEDULE.rules,sunday:{A:12,B:13,C:13}}};
+   expect(theoreticalMinimum(higherSunday,FUTURE_START)).toEqual({groups:{A:5,B:36,C:36},total:77});
    const holiday={...DEFAULT_SCHEDULE,rules:{...DEFAULT_SCHEDULE.rules,
      holidays:[FUTURE_START],holidayByDate:{[FUTURE_START]:{A:1,B:6,C:6}}}};
-   expect(minimumBreakdown(holiday,FUTURE_START).map(r=>r.weekdayNeed)).toEqual([77,557,576]);
-   expect(theoreticalMinimum(holiday,FUTURE_START).total).toBe(88);
+   expect(minimumBreakdown(holiday,FUTURE_START).map(r=>r.weekdayNeed)).toEqual([58,439,458]);
+   expect(theoreticalMinimum(holiday,FUTURE_START).total).toBe(68);
  });
  it("parte da projeção A6/B38/C39",()=>{
    expect(DEFAULT_PARAMETERS.people).toBe(83);
@@ -78,12 +79,14 @@ describe("EC 141/2026 · simulador 5×2",()=>{
    expect(r.coverage.every(c=>c.available===c.planned-c.absent)).toBe(true);
    expect(r.coverage.every(c=>c.deficit===Math.max(0,c.required-c.available))).toBe(true);
  });
- it("sábado jamais é folga, domingo alterna, e cada semana tem duas folgas",()=>{
+ it("sábado sempre com a meta coberta, domingo alterna, e cada semana tem duas folgas",()=>{
    for(const size of [63,78,83,91,140]){
      const result=simulate5x2(DEFAULT_SCHEDULE,demoAbsences(),{
-       ...DEFAULT_PARAMETERS,people:size,
+       ...DEFAULT_PARAMETERS,people:size,allocation:undefined,
      });
-     expect(result.metrics.saturdayUnscheduled).toBe(0);
+     // Sábado só vira folga quando a meta do sábado (equipe atual completa) já está garantida.
+     expect(result.coverage.filter(c=>c.weekday===5).every(c=>c.planned>=c.required)).toBe(true);
+     if(size===63)expect(result.metrics.saturdayUnscheduled).toBe(0);
      expect(result.metrics.sundayAlternationErrors).toBe(0);
      for(const person of result.personSummary){
        expect(person.weeks).toHaveLength(4);
@@ -92,8 +95,7 @@ describe("EC 141/2026 · simulador 5×2",()=>{
          const row=person.weeks[week]!;
          const saturday=dateOffset(FUTURE_START,week*7+5);
          const sunday=dateOffset(FUTURE_START,week*7+6);
-         expect(row.workingDates).toContain(saturday);
-         expect(row.restDates).not.toContain(saturday);
+         if(size===63)expect(row.workingDates).toContain(saturday);
          expect(row.restDates).toHaveLength(2);
          expect(row.workingDates).toHaveLength(5);
          expect(row.sundayFree).toBe(row.restDates.includes(sunday));
@@ -132,7 +134,7 @@ describe("EC 141/2026 · simulador 5×2",()=>{
  });
  it("mantém deficiência por grupo e compara cenários sem misturar pessoas",()=>{
    for(const n of [63,78,79]){
-     const r=simulate5x2(DEFAULT_SCHEDULE,demoAbsences(),{...DEFAULT_PARAMETERS,people:n});
+     const r=simulate5x2(DEFAULT_SCHEDULE,demoAbsences(),{...DEFAULT_PARAMETERS,people:n,allocation:undefined});
      expect(r.metrics.headcount).toBe(n);
      expect(r.metrics.deficitCount).toBe(r.coverage.reduce((v,c)=>v+c.deficit,0));
      expect(r.metrics.totalRequired).toBe(r.coverage.reduce((v,c)=>v+c.required,0));
@@ -145,7 +147,7 @@ describe("EC 141/2026 · simulador 5×2",()=>{
    const ab=demoAbsences(),b=JSON.stringify(ab);
    const r=simulate5x2(DEFAULT_SCHEDULE,ab,DEFAULT_PARAMETERS);
    expect(r.byWeek.every(w=>w.restDates.length===2)).toBe(true);
-   expect(r.metrics.saturdayUnscheduled).toBe(0);
+   expect(r.coverage.filter(c=>c.weekday===5).every(c=>c.planned>=c.required)).toBe(true);
    expect(r.metrics.sundayAlternationErrors).toBe(0);
    expect(JSON.stringify(DEFAULT_SCHEDULE)).toBe(a);
    expect(JSON.stringify(ab)).toBe(b);

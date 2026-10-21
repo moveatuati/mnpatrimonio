@@ -15,9 +15,10 @@ import {
   type HourStore,
 } from "@/domain/hour-bank";
 import type { GroupId } from "@/domain/types";
+import { BankManagerPanel } from "./BankManagerPanel";
 import "./HourBankWorkspace.css";
 
-type Tab = "overview" | "new" | "approval" | "statement" | "history";
+type Tab = "manager" | "overview" | "new" | "approval" | "statement" | "history";
 const asDate=(date:string)=>{
   const [y,m,d]=date.split("-");return [d,m,y].join("/");
 };
@@ -76,7 +77,7 @@ export function HourBankWorkspace(){
   const [store,setStore]=useState<HourStore>(()=>demoHourStore());
   const [ready,setReady]=useState(false);
   const [date,setDate]=useState(REFERENCE_DAY);
-  const [tab,setTab]=useState<Tab>("overview");
+  const [tab,setTab]=useState<Tab>("manager");
   const [search,setSearch]=useState("");
   const [group,setGroup]=useState<"all"|GroupId>("all");
   const [onlyBalance,setOnlyBalance]=useState<"all"|"positive"|"negative"|"zero">("all");
@@ -172,7 +173,7 @@ export function HourBankWorkspace(){
     <header className="bh-head">
       <div><p className="op-eyebrow">FORMOSA · GESTÃO DE PESSOAS · {UNIT.unit.toUpperCase()}</p>
         <h1>Banco <span>de horas</span></h1>
-        <p>Créditos, débitos e compensações autorizadas, com extrato e saldo histórico por colaborador.</p></div>
+        <p>Minutos a mais na saída viram crédito. Com 7h acumuladas, o colaborador ganha uma folga.</p></div>
       <label className="bh-date"><CalendarDays size={17}/><span>Posição até</span>
         <input aria-label="Data de referência" type="date" value={date}
           onChange={e=>{if(isValidReferenceDate(e.target.value))setDate(e.target.value);}}/></label>
@@ -196,7 +197,7 @@ export function HourBankWorkspace(){
     </section>
     <nav className="bh-tabs" aria-label="Áreas do banco de horas">
       {([
-        ["overview","Saldos e equipe",Users],["new","Novo lançamento",Plus],
+        ["manager","Consulta rápida do gerente",Search],["overview","Saldos e equipe",Users],["new","Novo lançamento",Plus],
         ["approval","Autorizações",Check],["statement","Extrato individual",FileClock],
         ["history","Movimentações e histórico",History],
       ] as const).map(([id,label,Icon])=><button type="button" key={id}
@@ -204,6 +205,7 @@ export function HourBankWorkspace(){
         onClick={()=>id==="new"?newEntry():setTab(id)}>
         <Icon size={16}/>{label}{id==="approval"&&pending.length>0&&<b>{pending.length}</b>}</button>)}
     </nav>
+    {tab==="manager"&&<BankManagerPanel store={store} onStore={setStore} date={date}/>}
     {tab==="overview"&&<>
       <section className="bh-panel bh-period">
         <div className="bh-panel-head"><div><p className="op-eyebrow">MOVIMENTAÇÃO DA COMPETÊNCIA</p><h2>Fechamento até {asDate(date)}</h2>

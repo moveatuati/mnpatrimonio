@@ -23,8 +23,14 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Link } from "@tanstack/react-router";
 import { buildDashboard } from "@/domain/dashboard";
-import { GROUPS, GROUP_IDS, RULES, UNIT } from "@/domain/config";
+import { DEMO_EMPLOYEES } from "@/domain/demo-data";
+import { bankSummary, type HourStore } from "@/domain/hour-bank";
+import { DEFAULT_SCHEDULE, type ScheduleStore } from "@/domain/schedule";
+import type { AbsenceStore } from "@/domain/absences";
+import { loadAbsences, loadHours, loadSchedule } from "@/lib/demo-storage";
+import { GROUP_IDS, RULES, UNIT } from "@/domain/config";
 import { filterArrivals, isValidReferenceDate, type EntryFilter } from "@/domain/operation-query";
 import { arrivalOffsetMinutes } from "@/domain/rules/arrival-ranking";
 import { countMonthlyLateArrivals } from "@/domain/rules/late-history";
@@ -84,7 +90,15 @@ export function OperationDashboard() {
   const consultation = useRef<HTMLHeadingElement>(null);
   const tableScroll = useRef<HTMLDivElement>(null);
   const detailTrigger = useRef<HTMLButtonElement | null>(null);
-  const dashboard = useMemo(() => buildDashboard(date), [date]);
+  const [stores, setStores] = useState<{ schedule: ScheduleStore; absences: AbsenceStore; hours: HourStore } | null>(null);
+  useEffect(() => {
+    setStores({ schedule: loadSchedule(), absences: loadAbsences(), hours: loadHours() });
+  }, []);
+  const dashboard = useMemo(
+    () => buildDashboard(date, DEMO_EMPLOYEES, stores?.schedule ?? DEFAULT_SCHEDULE, stores?.absences ?? null),
+    [date, stores],
+  );
+  const bank = useMemo(() => (stores ? bankSummary(stores.hours, date) : null), [stores, date]);
   const groups = useMemo(() => summarizeGroupEntries(dashboard.arrivals), [dashboard]);
   const history = useMemo(
     () =>
@@ -130,7 +144,7 @@ export function OperationDashboard() {
     {
       label: "Escalados no dia",
       value: dashboard.kpis.scheduled,
-      note: "Quadro-base demonstrativo",
+      note: dashboard.day.special ? "Turnos especiais do domingo" : "Já sem folgas e férias",
       icon: Users,
       tone: "brand",
       filter: "all" as EntryFilter,
@@ -220,6 +234,35 @@ export function OperationDashboard() {
         <span className="op-demo-tag">UNIDADE PILOTO</span>
       </div>
 
+      <section className="op-today" aria-label="Hoje na loja">
+        <div className={"op-period op-period-" + dashboard.day.period.kind}>
+          <b>{dashboard.day.period.kind === "alta" ? "🔴" : "🟢"} {dashboard.day.period.label}</b>
+          <span>
+            de {displayDate(dashboard.day.period.from)} a {displayDate(dashboard.day.period.until)} ·{" "}
+            {dashboard.day.period.advice}
+          </span>
+        </div>
+        <div className="op-today-cards">
+          <div className="op-today-card op-today-work">
+            <strong>{dashboard.kpis.scheduled}</strong>
+            <span>Trabalham hoje</span>
+          </div>
+          <div className="op-today-card op-today-rest">
+            <strong>{dashboard.day.rest}</strong>
+            <span>De folga</span>
+          </div>
+          <div className="op-today-card op-today-away">
+            <strong>{dashboard.day.absent}</strong>
+            <span>Férias / atestado</span>
+          </div>
+          <Link to="/banco-de-horas" className="op-today-card op-today-bank">
+            <strong>{bank ? bank.vermelho : "—"}</strong>
+            <span>Precisam de folga (banco ≥ 7h)</span>
+            <small>Abrir banco de horas →</small>
+          </Link>
+        </div>
+      </section>
+
       <section className="op-overview" aria-labelledby="overview-heading">
         <div className="op-section-heading">
           <div>
@@ -266,7 +309,7 @@ export function OperationDashboard() {
           </div>
           <div className="op-group-grid">
             {groups.map((entry) => {
-              const config = GROUPS[entry.group];
+              const config = dashboard.labels[entry.group];
               const coverage = dashboard.coverage.find((item) => item.group === entry.group);
               const percent = entry.scheduled
                 ? Math.round((entry.registered / entry.scheduled) * 100)
@@ -279,7 +322,7 @@ export function OperationDashboard() {
                     <div>
                       <h3>{config.name}</h3>
                       <p>
-                        {config.shift.start} — {config.shift.end}
+                        {config.start} — {config.end}
                       </p>
                     </div>
                   </div>
@@ -512,7 +555,7 @@ export function OperationDashboard() {
                   <td>
                     <span className="op-table-group">{arrival.employee.group}</span>
                     <span className="op-table-group-name">
-                      {GROUPS[arrival.employee.group].name}
+                      {dashboard.labels[arrival.employee.group].name}
                     </span>
                   </td>
                   <td className="op-time">{arrival.planned}</td>
@@ -592,7 +635,7 @@ export function OperationDashboard() {
               <DialogTitle>{selected.employee.name}</DialogTitle>
               <DialogDescription>
                 {selected.employee.id} · Grupo {selected.employee.group} —{" "}
-                {GROUPS[selected.employee.group].name}
+                {dashboard.labels[selected.employee.group].name}
                 <br />
                 {displayDate(date)} · Registro fictício
               </DialogDescription>

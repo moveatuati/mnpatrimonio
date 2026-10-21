@@ -31,14 +31,15 @@ describe("Simulador 5×2 · equipe integrada e projeção 83",()=>{
    expect(screen.getByText("38 pessoas")).toBeInTheDocument();
    expect(screen.getByText("39 pessoas")).toBeInTheDocument();
  });
- it("escala individual mostra 83 pessoas com sábado escalado",()=>{
+ it("escala individual mostra 83 pessoas com sábado coberto",()=>{
    render(<FiveTwoWorkspace/>);
    fireEvent.click(screen.getByRole("button",{name:/Escala por pessoa/}));
    const table=screen.getByRole("region",{name:"Escala individual semanal"});
    const rows=within(table).getAllByRole("row");
    expect(rows).toHaveLength(84);
-   for(const row of rows.slice(1))
-     expect(within(row).getAllByRole("cell")[7]).toHaveTextContent("Trabalha");
+   // Com 83 pessoas o sábado continua com a equipe completa (63+); quem sobra pode folgar no sábado.
+   const saturdayWorkers=rows.slice(1).filter(row=>within(row).getAllByRole("cell")[7]?.textContent?.includes("Trabalha"));
+   expect(saturdayWorkers.length).toBeGreaterThanOrEqual(63);
    fireEvent.change(screen.getByRole("textbox",{name:"Buscar colaborador do simulador"}),
      {target:{value:"FM-001"}});
    expect(within(table).getAllByRole("row")).toHaveLength(2);

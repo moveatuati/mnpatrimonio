@@ -1,15 +1,18 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   AlertTriangle, ArrowLeftRight, CalendarDays, Check, ChevronLeft, ChevronRight,
-  History, Info, RotateCcw, Search, Settings2,
+  History, Info, Printer, RotateCcw, Search, Settings2,
   ShieldCheck, Users, X,
 } from "lucide-react";
-import { GROUPS, GROUP_IDS, RULES, UNIT } from "@/domain/config";
+import { GROUPS, GROUP_IDS, RULES, SPECIAL_SLOT_LABEL, UNIT } from "@/domain/config";
+import { movementPeriod } from "@/domain/movement";
+import { PaperSheets } from "@/components/sheets/PaperSheets";
+import { loadAbsences } from "@/lib/demo-storage";
 import { DEMO_EMPLOYEES } from "@/domain/demo-data";
 import { isValidReferenceDate } from "@/domain/operation-query";
 import {
   DEFAULT_SCHEDULE, assignmentFor, coverageFor, dateOffset, dayOfWeek,
-  hasPendingConflict, requestStillCurrent, reviseStore, scheduleForDate, startOfWeek,
+  hasPendingConflict, requestStillCurrent, restReason, reviseStore, scheduleForDate, slotLabel, startOfWeek,
   swapProposal, validateChanges, withChanges,
   type Assignment, type ScheduleStore,
 } from "@/domain/schedule";
@@ -34,7 +37,10 @@ function stamp(date: string, detail: string) {
     date, actor: STAMP_ACTOR, detail, createdAt: new Date().toISOString() };
 }
 function monthDay(date: string) { return DAYS[dayOfWeek(date)] + " " + date.slice(8, 10); }
-function groupName(group: Assignment) { return group ? "Grupo " + group + " — " + GROUPS[group].name : "Folga"; }
+function groupName(group: Assignment, date?: string) {
+  if (!group) return "Folga";
+  return date && dayOfWeek(date) === 0 ? SPECIAL_SLOT_LABEL[group] : "Grupo " + group + " — " + GROUPS[group].name;
+}
 function SelectEmployee({ value, onChange, label }: {
   value: string; onChange: (id: string) => void; label: string;
 }) {
@@ -58,7 +64,7 @@ export function ScheduleWorkspace() {
   const [date, setDate] = useState(REFERENCE_DATE);
   const [group, setGroup] = useState<"all" | GroupId>("all");
   const [search, setSearch] = useState("");
-  const [tab, setTab] = useState<"roster" | "swap" | "rules" | "history">("roster");
+  const [tab, setTab] = useState<"roster" | "sheets" | "swap" | "rules" | "history">("roster");
   const [editEmployee, setEditEmployee] = useState("");
   const [editDest, setEditDest] = useState<"off" | GroupId>("off");
   const [editReason, setEditReason] = useState("");
@@ -88,6 +94,8 @@ export function ScheduleWorkspace() {
   useEffect(() => { if (tableRef.current) tableRef.current.scrollTop = 0; },
     [date, group, search, showOnlyScheduled]);
 
+  const period = movementPeriod(date);
+  const absences = useMemo(() => (ready ? loadAbsences() : null), [ready]);
   const week = startOfWeek(date);
   const days = Array.from({ length: 7 }, (_, i) => dateOffset(week, i));
   const roster = useMemo(() => scheduleForDate(store, date), [store, date]);
@@ -127,8 +135,8 @@ export function ScheduleWorkspace() {
       if (!check.ok) return prev;
       const next = withChanges(prev, [{ employeeId: chosen.id, date, group: editGroup }]);
       return { ...next, history: [...prev.history, stamp(date,
-        "Ajuste manual: " + chosen.name + " · " + groupName(current) + " → " +
-        groupName(editGroup) + " · Motivo: " + editReason.trim())].slice(-350) };
+        "Ajuste manual: " + chosen.name + " · " + groupName(current, date) + " → " +
+        groupName(editGroup, date) + " · Motivo: " + editReason.trim())].slice(-350) };
     });
     setMessage("Ajuste demonstrativo registrado. A escala e o histórico foram atualizados neste navegador.");
     setEditReason("");
@@ -195,15 +203,27 @@ export function ScheduleWorkspace() {
   }
   function setTarget(kind: "sunday" | "holiday", g: GroupId, value: number) {
     if (!Number.isFinite(value)) return;
-    const n = Math.max(0, Math.min(GROUPS[g].requiredStaff, Math.trunc(value)));
+    const n = Math.max(0, Math.min(kind === "sunday" ? DEMO_EMPLOYEES.length : GROUPS[g].requiredStaff, Math.trunc(value)));
     setStore(prev => {
       if (prev.rules[kind][g] === n) return prev;
       return {
         ...prev,
         rules: { ...prev.rules, [kind]: { ...prev.rules[kind], [g]: n } },
         history: [...prev.history, stamp(date, "Parâmetro de " +
-          (kind === "sunday" ? "domingo" : "feriado-padrão") +
-          " · Grupo " + g + ": " + prev.rules[kind][g] + " → " + n)].slice(-350),
+          (kind === "sunday" ? "domingo · " + SPECIAL_SLOT_LABEL[g] : "feriado-padrão · Grupo " + g) + ": " + prev.rules[kind][g] + " → " + n)].slice(-350),
+      };
+    });
+  }
+  function setWeekdayTarget(kind: "alta" | "baixa", g: GroupId, value: number) {
+    if (!Number.isFinite(value)) return;
+    const n = Math.max(0, Math.min(GROUPS[g].requiredStaff, Math.trunc(value)));
+    setStore(prev => {
+      if (prev.rules.weekday[kind][g] === n) return prev;
+      return {
+        ...prev,
+        rules: { ...prev.rules, weekday: { ...prev.rules.weekday, [kind]: { ...prev.rules.weekday[kind], [g]: n } } },
+        history: [...prev.history, stamp(date, "Meta de dia útil (" + (kind === "alta" ? "alto" : "baixo") +
+          " movimento) · " + GROUPS[g].name + ": " + prev.rules.weekday[kind][g] + " → " + n)].slice(-350),
       };
     });
   }
@@ -253,7 +273,7 @@ export function ScheduleWorkspace() {
       <div>
         <p className="op-eyebrow">Formosa · Gestão de Pessoas · {UNIT.unit}</p>
         <h1>Escala <span>&</span> trocas</h1>
-        <p>Organize os turnos, acompanhe a cobertura e autorize trocas com verificações automáticas.</p>
+        <p>Domingo sim, domingo não. Quem trabalha no domingo folga um dia antes (folga antecipada) e um dia na semana seguinte (folga do 7º dia).</p>
       </div>
       <div className="fs-ref"><CalendarDays size={17} /><label>Data de referência
         <input aria-label="Data da escala" type="date" value={date}
@@ -263,6 +283,8 @@ export function ScheduleWorkspace() {
     <div className="fs-demo"><ShieldCheck size={17} />
       <span><strong>Ambiente demonstrativo · {UNIT.unit}.</strong> Colaboradores fictícios. Configurações, decisões e histórico ficam somente neste navegador; não há ponto, aprovação oficial, sincronização entre gerentes ou conexão com banco.</span>
     </div>
+    <div className={"fs-period fs-period-" + period.kind}><b>{period.kind === "alta" ? "🔴" : "🟢"} {period.label}</b>
+      <span>de {prettyDate(period.from)} a {prettyDate(period.until)} · {period.advice}</span></div>
     {message && <div role="status" className="fs-toast"><Info size={16}/><span>{message}</span>
       <button type="button" aria-label="Dispensar aviso" onClick={() => setMessage("")}><X size={15}/></button></div>}
 
@@ -276,6 +298,7 @@ export function ScheduleWorkspace() {
     <nav className="fs-tabs" aria-label="Áreas de escalas e trocas">
       {([
         ["roster", "Escala semanal", CalendarDays],
+        ["sheets", "Folhas para imprimir", Printer],
         ["swap", "Trocas & autorização", ArrowLeftRight],
         ["rules", "Parâmetros e feriados", Settings2],
         ["history", "Histórico", History],
@@ -291,7 +314,7 @@ export function ScheduleWorkspace() {
       <section className="fs-panel">
         <div className="fs-panel-heading">
           <div><p className="op-eyebrow">PLANEJAMENTO E COBERTURA</p><h2>Semana de {prettyDate(week)}</h2>
-            <p>Selecione um dia para conferir quantidade prevista, grupos e folgas.</p></div>
+            <p>Clique em um dia para ver quem trabalha e quem está de folga.</p></div>
           <div className="fs-inline-actions">
             <button type="button" onClick={() => updateDate(dateOffset(date, -7))} aria-label="Semana anterior"><ChevronLeft size={17}/></button>
             <button type="button" onClick={() => updateDate(REFERENCE_DATE)}>Semana inicial</button>
@@ -314,15 +337,15 @@ export function ScheduleWorkspace() {
         </div>
         <div className="fs-coverage">
           {coverage.map(c => <div key={c.group} className="fs-coverage-item">
-            <div><b>{c.group} · {GROUPS[c.group].name}</b><strong>{c.assigned}/{c.required}</strong></div>
+            <div><b>{sunday ? SPECIAL_SLOT_LABEL[c.group] : c.group + " · " + GROUPS[c.group].name}</b><strong>{c.assigned}/{c.required}</strong></div>
             <div className="fs-meter"><span style={{width: c.required ? Math.min(100,c.assigned/c.required*100)+"%" : "100%"}} /></div>
             <small className={c.assigned < c.required ? "fs-warn-text" : "fs-good-text"}>
-              {c.assigned < c.required ? "Necessita " + (c.required - c.assigned) + " colaborador(es)" : "Cobertura prevista suficiente"}
+              {c.assigned < c.required ? "Faltam " + (c.required - c.assigned) + " pessoa(s)" : c.assigned > c.required ? "Sobram " + (c.assigned - c.required) + " pessoa(s)" : "Quantidade certa"}
             </small>
           </div>)}
         </div>
-        <p className="fs-note"><Info size={14}/> Escalados e metas são planejados, não presenças confirmadas.
-          A partir de 20/10/2026, sábados são preservados; folgas úteis aguardam confirmação da gerência. Rascunho não homologado.</p>
+        <p className="fs-note"><Info size={14}/> Sábado: equipe completa. Segunda a sexta: cada pessoa tem uma folga, sugerida pelo sistema e
+          ajustável pelo gerente. Meta do dia útil muda conforme o período ({period.label.toLowerCase()}).</p>
       </section>
       <section className="fs-panel">
         <div className="fs-panel-heading">
@@ -341,14 +364,14 @@ export function ScheduleWorkspace() {
         </div>
         <div className="fs-table-scroll" ref={tableRef} role="region" aria-label="Tabela de escala com rolagem vertical" tabIndex={0}>
           <table className="fs-table"><thead><tr>
-            <th>Colaborador</th><th>Grupo de origem</th><th>Turno do dia</th><th>Horário</th><th>Situação</th><th>Ação</th>
+            <th>Colaborador</th><th>Horário da semana</th><th>Turno do dia</th><th>Horário</th><th>Situação</th><th>Ação</th>
           </tr></thead><tbody>
             {filtered.map(row => <tr key={row.employee.id}>
               <td><b>{row.employee.name}</b><small>{row.employee.id}</small></td>
-              <td>Grupo {row.employee.group}</td>
-              <td>{row.group ? "Grupo " + row.group + " · " + GROUPS[row.group].name : "—"}</td>
+              <td>{GROUPS[row.employee.group].name}</td>
+              <td>{row.group ? slotLabel(date, row.group, store.rules) : "—"}</td>
               <td className="fs-time">{row.shift ? row.shift.start + "–" + row.shift.end : "—"}</td>
-              <td><span className={"fs-pill " + (row.group ? "fs-pill-good" : "fs-pill-neutral")}>{row.group ? "Escalado" : "Folga"}</span></td>
+              <td><span className={"fs-pill " + (row.group ? "fs-pill-good" : "fs-pill-neutral")}>{row.group ? "Trabalha" : restReason(store, row.employee, date) ?? "Folga"}</span></td>
               <td><button className="fs-row-action" type="button" onClick={() => {
                 setEditEmployee(row.employee.id);setEditDest(row.group ?? "off");setEditReason("");
                 editRef.current?.scrollIntoView({behavior:"smooth",block:"center"});
@@ -369,7 +392,7 @@ export function ScheduleWorkspace() {
           <label className="fs-field"><span>Nova situação em {prettyDate(date)}</span>
             <select value={editDest} onChange={e=>setEditDest(e.target.value as "off"|GroupId)}>
               <option value="off">Folga / dispensado da escala</option>
-              {GROUP_IDS.map(id => <option value={id} key={id}>Grupo {id} · {GROUPS[id].name}</option>)}
+              {GROUP_IDS.map(id => <option value={id} key={id}>{sunday ? SPECIAL_SLOT_LABEL[id] : "Grupo " + id + " · " + GROUPS[id].name}</option>)}
             </select>
           </label>
           <label className="fs-field fs-wide"><span>Motivo do ajuste (obrigatório)</span>
@@ -390,6 +413,10 @@ export function ScheduleWorkspace() {
       </section>
     </>}
 
+    {tab === "sheets" && <section className="fs-panel" style={{padding:16}}>
+      <PaperSheets store={store} absences={absences} initialDate={date} />
+    </section>}
+
     {tab === "swap" && <>
       <section className="fs-panel fs-action-panel">
         <div className="fs-panel-heading"><div><p className="op-eyebrow">SOLICITAÇÃO E VALIDAÇÃO</p><h2>Registrar uma troca</h2>
@@ -404,7 +431,7 @@ export function ScheduleWorkspace() {
         </div>
         {swapChanges.length>0 && <div className="fs-swap-preview">
           {swapChanges.map(ch => <div key={ch.employeeId}>
-            <b>{employeeLabel(ch.employeeId)}</b><span>Passará para: {groupName(ch.group)}</span>
+            <b>{employeeLabel(ch.employeeId)}</b><span>Passará para: {groupName(ch.group, date)}</span>
           </div>)}
         </div>}
         {fromId && toId && (duplicatePending
@@ -456,18 +483,31 @@ export function ScheduleWorkspace() {
     {tab === "rules" && <>
       <section className="fs-panel">
         <div className="fs-panel-heading"><div><p className="op-eyebrow">REGRAS OPERACIONAIS PARAMETRIZÁVEIS</p>
-          <h2>Domingos e feriados</h2><p>Defina o efetivo demonstrativo por grupo. O rodízio é distribuído automaticamente.</p></div></div>
+          <h2>Domingos, dias úteis e feriados</h2><p>Quantas pessoas são necessárias em cada turno. O revezamento é montado automaticamente.</p></div></div>
         <div className="fs-config-grid">
           {(["sunday","holiday"] as const).map(kind => <div className="fs-config-card" key={kind}>
-            <h3>{kind==="sunday"?"Revezamento aos domingos":"Efetivo especial dos feriados"}</h3>
-            <p>{kind==="sunday"?"Turnos de 08:00, 09:00 e 15:15. Folgas úteis exigem confirmação; não há descanso automático no sábado para novas datas.":
+            <h3>{kind==="sunday"?"Vagas por turno no domingo":"Efetivo especial dos feriados"}</h3>
+            <p>{kind==="sunday"?"Domingo sim, domingo não: metade da equipe trabalha. Qualquer operador pode ficar em qualquer turno; quem fecha o sábado às 22h vai para o turno das 15h15.":
               "Padrão inicial para novos feriados; cada data cadastrada permite alterar os três grupos."}</p>
             <div className="fs-targets">{GROUP_IDS.map(g => <label key={g}>
-              <span>Grupo {g}</span>
-              <input aria-label={(kind==="sunday"?"Domingo":"Feriado")+" grupo "+g} type="number" min={0}
-                max={GROUPS[g].requiredStaff} value={store.rules[kind][g]}
+              <span>{kind==="sunday" ? SPECIAL_SLOT_LABEL[g] : "Grupo " + g}</span>
+              <input aria-label={(kind==="sunday"?"Domingo "+SPECIAL_SLOT_LABEL[g]:"Feriado grupo "+g)} type="number" min={0}
+                max={kind==="sunday" ? DEMO_EMPLOYEES.length : GROUPS[g].requiredStaff} value={store.rules[kind][g]}
                 onChange={e=>setTarget(kind,g,Number(e.target.value))}/>
-              <small>máx. {GROUPS[g].requiredStaff}</small>
+              <small>{kind==="sunday" ? "pessoas" : "máx. " + GROUPS[g].requiredStaff}</small>
+            </label>)}</div>
+          </div>)}
+        </div>
+        <div className="fs-config-grid">
+          {(["alta","baixa"] as const).map(kind => <div className="fs-config-card" key={kind}>
+            <h3>{kind==="alta" ? "🔴 Dias úteis no ALTO movimento (dia 28 ao 18)" : "🟢 Dias úteis no BAIXO movimento (dia 19 ao 27)"}</h3>
+            <p>Mínimo de operadores de segunda a sexta. Abaixo disso o sistema avisa “faltam pessoas”.</p>
+            <div className="fs-targets">{GROUP_IDS.map(g => <label key={g}>
+              <span>{GROUPS[g].name}</span>
+              <input aria-label={"Meta "+kind+" "+GROUPS[g].name} type="number" min={0} max={GROUPS[g].requiredStaff}
+                value={store.rules.weekday[kind][g]}
+                onChange={e=>setWeekdayTarget(kind,g,Number(e.target.value))}/>
+              <small>de {GROUPS[g].requiredStaff}</small>
             </label>)}</div>
           </div>)}
         </div>

@@ -17,11 +17,12 @@ export interface CoverageSlot {
 }
 
 /** Quantidade de colaboradores em atividade ao longo do dia (passos de 20 min). */
-export function coverageOverDay(scheduled: Employee[], step = 20, from = "06:40", to = "22:20"): CoverageSlot[] {
+export function coverageOverDay(scheduled: Employee[], step = 20, from = "06:40", to = "22:20",
+  shiftOf: (e: Employee) => ShiftPattern = (e) => GROUPS[e.group].shift): CoverageSlot[] {
   const slots: CoverageSlot[] = [];
   for (let m = toMinutes(from); m <= toMinutes(to); m += step) {
     const byGroup = { A: 0, B: 0, C: 0 } as Record<GroupId, number>;
-    for (const e of scheduled) if (isWorkingAt(GROUPS[e.group].shift, m)) byGroup[e.group]++;
+    for (const e of scheduled) if (isWorkingAt(shiftOf(e), m)) byGroup[e.group]++;
     slots.push({ time: fromMinutes(m), total: byGroup.A + byGroup.B + byGroup.C, byGroup });
   }
   return slots;

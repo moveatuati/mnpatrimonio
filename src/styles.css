@@ -1796,3 +1796,20 @@
     box-shadow: none !important;
   }
 }
+
+/* Visão da operação — faixa de movimento e cartões grandes do dia (leitura fácil) */
+.formosa-operation .op-today{display:flex;flex-direction:column;gap:10px;margin:0 0 18px}
+.formosa-operation .op-period{display:flex;flex-wrap:wrap;gap:6px 12px;align-items:center;padding:12px 16px;border-radius:12px;font-size:15px}
+.formosa-operation .op-period b{font-size:16px}
+.formosa-operation .op-period-alta{background:#fff1ee;border:1px solid #f1c3b8;color:#8a2e1f}
+.formosa-operation .op-period-baixa{background:#eefaf3;border:1px solid #bfe5cf;color:#185c3b}
+.formosa-operation .op-today-cards{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.formosa-operation .op-today-card{display:flex;flex-direction:column;gap:2px;padding:16px 18px;border-radius:16px;background:#fff;border:2px solid #eadde3;text-decoration:none;color:inherit;box-shadow:0 6px 16px -14px rgb(0 0 0 / 40%)}
+.formosa-operation .op-today-card strong{font-size:40px;line-height:1;font-weight:850}
+.formosa-operation .op-today-card span{font-size:16px;font-weight:800}
+.formosa-operation .op-today-card small{font-size:13px;color:#7a2440;font-weight:700}
+.formosa-operation .op-today-work{border-color:#4cb782}.formosa-operation .op-today-work strong{color:#1c7a4c}
+.formosa-operation .op-today-rest{border-color:#b9a3ad}.formosa-operation .op-today-rest strong{color:#5c4a53}
+.formosa-operation .op-today-away{border-color:#7aa2dc}.formosa-operation .op-today-away strong{color:#1e4fa3}
+.formosa-operation .op-today-bank{border-color:#e05a4f;background:#fff6f5}.formosa-operation .op-today-bank strong{color:#c0362c}
+@media (max-width:900px){.formosa-operation .op-today-cards{grid-template-columns:repeat(2,minmax(0,1fr))}}

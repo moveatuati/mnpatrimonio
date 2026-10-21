@@ -123,19 +123,37 @@ export function makeScenarioPeople(count:number,allocation?:Record<GroupId,numbe
  * Em quatro semanas cada pessoa trabalha 20 dias: quatro sábados, dois domingos
  * e 14 dias úteis. É apenas piso aritmético, não escala viável comprovada.
  */
+/** Necessidade do simulador. No domingo, as vagas totais (ex.: 9+10+10) são repartidas
+ * proporcionalmente ao tamanho de cada grupo, porque o turno de domingo não depende do grupo. */
+export function simRequired(schedule:ScheduleStore,date:ISODate,group:GroupId,
+  sizes:Record<GroupId,number>=GROUP_SIZES_BASE){
+  if(dayOfWeek(date)!==0||schedule.rules.holidays.includes(date))return requiredFor(schedule,date,group);
+  const total=GROUP_IDS.reduce((n,g)=>n+schedule.rules.sunday[g],0);
+  const people=GROUP_IDS.reduce((n,g)=>n+sizes[g],0)||1;
+  const shares=GROUP_IDS.map(g=>({g,exact:total*sizes[g]/people}));
+  const base=Object.fromEntries(shares.map(x=>[x.g,Math.floor(x.exact)])) as Record<GroupId,number>;
+  let missing=total-GROUP_IDS.reduce((n,g)=>n+base[g],0);
+  for(const x of [...shares].sort((a,b)=>(b.exact-Math.floor(b.exact))-(a.exact-Math.floor(a.exact))||a.g.localeCompare(b.g))){
+    if(missing--<=0)break;base[x.g]++;
+  }
+  return base[group];
+}
+const GROUP_SIZES_BASE:Record<GroupId,number>={A:4,B:29,C:30};
 export function minimumBreakdown(schedule:ScheduleStore,start:ISODate){
   const days=Array.from({length:28},(_,i)=>dateOffset(start,i));
   return GROUP_IDS.map(group=>{
     const weekdayNeed=days.filter(d=>dayOfWeek(d)!==0&&dayOfWeek(d)!==6)
-      .reduce((total,date)=>total+requiredFor(schedule,date,group),0);
-    const saturdayMin=Math.max(...days.filter(d=>dayOfWeek(d)===6).map(d=>requiredFor(schedule,d,group)));
-    const sundayMin=Math.max(...days.filter(d=>dayOfWeek(d)===0).map(d=>requiredFor(schedule,d,group)));
+      .reduce((total,date)=>total+simRequired(schedule,date,group),0);
+    const saturdayMin=Math.max(...days.filter(d=>dayOfWeek(d)===6).map(d=>simRequired(schedule,d,group)));
+    const sundayNeed=days.filter(d=>dayOfWeek(d)===0).reduce((n,d)=>n+simRequired(schedule,d,group),0);
+    const saturdayNeed=days.filter(d=>dayOfWeek(d)===6).reduce((n,d)=>n+simRequired(schedule,d,group),0);
     const current=DEMO_EMPLOYEES.filter(e=>e.group===group).length;
-    // O menor dos dois grupos alternados precisa cobrir a demanda dominical.
-    const weekdayFloor=Math.ceil(weekdayNeed/14);
-    return {group,current,weekdayNeed,weekdayCapacity:14,weekdayFloor,
+    // 5×2: cada pessoa faz 20 jornadas em 4 semanas. Piso = jornadas necessárias ÷ 20.
+    const weekdayFloor=Math.ceil((weekdayNeed+saturdayNeed+sundayNeed)/20);
+    const sundayMin=Math.max(...days.filter(d=>dayOfWeek(d)===0).map(d=>simRequired(schedule,d,group)));
+    return {group,current,weekdayNeed,weekdayCapacity:20,weekdayFloor,
       saturdayMin,sundayFloor:sundayMin*2,
-      minimum:Math.max(current,weekdayFloor,saturdayMin,sundayMin*2)};
+      minimum:Math.max(weekdayFloor,saturdayMin,sundayMin*2)};
   });
 }
 export function theoreticalMinimum(schedule:ScheduleStore,start:ISODate){
@@ -145,12 +163,13 @@ export function theoreticalMinimum(schedule:ScheduleStore,start:ISODate){
 }
 /** Domingo alterna rigidamente (sem dois domingos trabalhados seguidos).
  * No domingo de folga: uma folga útil. No domingo trabalhado: duas folgas úteis
- * não consecutivas. O sábado nunca é opção de descanso.
+ * não consecutivas. O sábado só vira folga quando a meta do sábado já estiver coberta.
  */
 function weekdayOptions(workingSunday:boolean){
-  if(!workingSunday)return Array.from({length:5},(_,weekday)=>[weekday,6]);
+  // Sábado pode ser folga quando a cobertura do sábado já estiver garantida (escolha por pontuação).
+  if(!workingSunday)return Array.from({length:6},(_,weekday)=>[weekday,6]);
   const choices:number[][]=[];
-  for(let first=0;first<5;first++)for(let second=first+2;second<5;second++)
+  for(let first=0;first<6;first++)for(let second=first+2;second<6;second++)
     choices.push([first,second]);
   return choices;
 }
@@ -220,9 +239,10 @@ export function simulate5x2(schedule:ScheduleStore,absences:AbsenceStore,setting
     const availableByGroup=new Map<GroupId,number[]>(GROUP_IDS.map(g=>[g,Array(7).fill(0) as number[]]));
     for(const group of GROUP_IDS){
       // Stable phase within each group: alternate half of people on every Sunday.
-      // Saturday is always a working day, including on holiday dates.
+      // Sábado pode ser folga apenas quando a meta do sábado já estiver coberta.
       const groupPeople=people.filter(p=>p.group===group).sort((a,b)=>a.id.localeCompare(b.id));
-      const requirement=days.map(day=>requiredFor(schedule,day,group));
+      const sizes=Object.fromEntries(GROUP_IDS.map(g=>[g,people.filter(p=>p.group===g).length])) as Record<GroupId,number>;
+      const requirement=days.map(day=>simRequired(schedule,day,group,sizes));
       for(let index=0;index<groupPeople.length;index++){
         const person=groupPeople[index]!;
         // Fixar a fase em uma semana-âncora, evitando inverter o rodízio
@@ -240,7 +260,8 @@ export function simulate5x2(schedule:ScheduleStore,absences:AbsenceStore,setting
             if(off.includes(dayIndex))return score;
             // Sunday and Saturday are mandatory placements; encourage fair weekday coverage.
             const urgent=covered[dayIndex]!<requirement[dayIndex]!;
-            return score+(urgent?100:-9);
+            // Sábado é o dia de equipe completa: só vira folga quando a meta do sábado já foi atingida.
+            return score+(urgent?(dayIndex===5?160:100):-9);
           },0);
           // Prefer rest on holidays rather than on their following days, but never
           // create contiguous days off. A holiday is not a free extra weekly day off.
@@ -287,14 +308,15 @@ export function simulate5x2(schedule:ScheduleStore,absences:AbsenceStore,setting
       const absent=planned.filter(p=>!p.hired&&absences.entries.some(a=>a.employeeId===p.id&&
         a.status==="aprovado"&&a.start<=date&&a.end>=date)).length;
       const available=planned.length-absent;
-      const required=requiredFor(schedule,date,group);
+      const required=simRequired(schedule,date,group,
+        Object.fromEntries(GROUP_IDS.map(g=>[g,people.filter(p=>p.group===g).length])) as Record<GroupId,number>);
       const deficit=Math.max(0,required-available);
       // Preserve the legacy comparison until Stage 4 explicitly adopts the homologated reference.
       const base=DEMO_EMPLOYEES.filter(p=>p.group===group&&assignmentFor(schedule,p,date,"9999-12-31")!==null);
       const baseAbsent=base.filter(p=>absences.entries.some(a=>a.employeeId===p.id&&a.status==="aprovado"&&
         a.start<=date&&a.end>=date)).length;
       const baseline=base.length-baseAbsent;
-      const baselineDeficit=Math.max(0,required-baseline);
+      const baselineDeficit=Math.max(0,simRequired(schedule,date,group)-baseline);
       const row:DayCoverage={date,weekday:localWeekday(date),group,required,planned:planned.length,
         absent,available,deficit,baseline,baselineDeficit,sunday:dayOfWeek(date)===0,
         holiday:schedule.rules.holidays.includes(date)};
@@ -308,6 +330,8 @@ export function simulate5x2(schedule:ScheduleStore,absences:AbsenceStore,setting
   const badHours=byWeek.filter(w=>w.overWeeklyLimit).length;
   const restViolations=byWeek.filter(w=>w.consecutiveViolation).length;
   const saturdayUnscheduled=byWeek.filter(w=>!w.workingDates.includes(dateOffset(settings.start,w.week*7+5))).length;
+  // Sábado abaixo da meta (equipe atual completa). Folga no sábado com meta coberta não é alerta.
+  const saturdayDeficit=coverage.filter(c=>c.weekday===5).reduce((n,c)=>n+c.deficit,0);
   const sundayAlternationErrors=people.reduce((total,p)=>{
     const weeksFor=byWeek.filter(w=>w.employee.id===p.id);
     return total+weeksFor.slice(1).filter((week,index)=>week.sundayFree===weeksFor[index]!.sundayFree).length;
@@ -333,6 +357,6 @@ export function simulate5x2(schedule:ScheduleStore,absences:AbsenceStore,setting
       coverageRate:totalRequired?Math.max(0,Math.min(100,(totalRequired-deficitCount)/totalRequired*100)):0,
       daysWith11hConflicts:elevenHourViolations.length,restViolations:restViolations+constraintViolations,
       badHours,sundaysFree:weekends,monthlyAverageSundaysOff:people.length?weekends/people.length:0,
-      saturdayUnscheduled,sundayAlternationErrors,holidayRestAlerts,
+      saturdayUnscheduled,saturdayDeficit,sundayAlternationErrors,holidayRestAlerts,
     }};
 }

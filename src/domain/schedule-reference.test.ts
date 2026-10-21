@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { DEMO_EMPLOYEES } from "./demo-data";
-import { DEFAULT_SCHEDULE, dateOffset, scheduleForDate, type AssignmentChange } from "./schedule";
+import { DEFAULT_SCHEDULE, coverageFor, dateOffset, scheduleForDate, type AssignmentChange } from "./schedule";
 import { prepareOperationalReference, reviewOperationalProposal } from "./schedule-reference";
 
 describe("Referência operacional sujeita à homologação", () => {
@@ -11,7 +11,8 @@ describe("Referência operacional sujeita à homologação", () => {
     expect(reference.roster[5]?.filter(row=>row.group!==null)).toHaveLength(63);
     expect(reference.status).toBe("aguardando-homologacao");
     expect(reference.pending).toHaveLength(4);
-    expect(reference.conflicts.some(error=>error.includes("sete dias"))).toBe(true);
+    // Revezamento real: folga antecipada + folga do 7º dia evitam sete dias seguidos.
+    expect(reference.conflicts.some(error=>error.includes("sete dias"))).toBe(false);
     expect(reference.source).not.toBe(DEFAULT_SCHEDULE);
   });
   it("versiona sem substituir a referência ou os registros de origem", () => {
@@ -33,8 +34,9 @@ describe("Referência operacional sujeita à homologação", () => {
   });
   it("rejeita rascunho completo sem folgas, mesmo com metas fornecidas", () => {
     const reference = prepareOperationalReference(DEFAULT_SCHEDULE,"2026-10-19");
+    // Rascunho artificial: todos trabalham todos os dias (sem nenhuma folga).
     const changes:AssignmentChange[] = Array.from({length:40},(_,i)=>dateOffset(reference.start,i-6))
-      .flatMap(date=>scheduleForDate(DEFAULT_SCHEDULE,date).map(row=>({date,employeeId:row.employee.id,group:row.group})));
+      .flatMap(date=>scheduleForDate(DEFAULT_SCHEDULE,date).map(row=>({date,employeeId:row.employee.id,group:row.employee.group})));
     const targets = Object.fromEntries(reference.dates.map(date=>[date,{A:0,B:0,C:0}]));
     const result = reviewOperationalProposal(reference,changes,targets);
     expect(result.technicallyValid).toBe(false);
@@ -45,8 +47,9 @@ describe("Referência operacional sujeita à homologação", () => {
   });
   it("bloqueia jornada semanal acima do limite informado sem presumir regra legal", () => {
     const reference = prepareOperationalReference(DEFAULT_SCHEDULE,"2026-10-19");
+    // Rascunho artificial: todos trabalham todos os dias (sem nenhuma folga).
     const changes:AssignmentChange[] = Array.from({length:40},(_,i)=>dateOffset(reference.start,i-6))
-      .flatMap(date=>scheduleForDate(DEFAULT_SCHEDULE,date).map(row=>({date,employeeId:row.employee.id,group:row.group})));
+      .flatMap(date=>scheduleForDate(DEFAULT_SCHEDULE,date).map(row=>({date,employeeId:row.employee.id,group:row.employee.group})));
     const result = reviewOperationalProposal(reference,changes,
       Object.fromEntries(reference.dates.map(date=>[date,{A:0,B:0,C:0}])),2640);
     expect(result.errors.some(error=>error.includes("jornada semanal excedida"))).toBe(true);
@@ -54,17 +57,16 @@ describe("Referência operacional sujeita à homologação", () => {
   });
   it("aceita tecnicamente fixture integral válida sem homologar nem aplicar", () => {
     const reference = prepareOperationalReference(DEFAULT_SCHEDULE,"2026-10-26");
-    // Fixture artificial de teste, nunca usada como distribuição gerencial ou semente.
+    // Proposta igual ao revezamento automático (domingo sim/não + folgas antecipada e 7º dia).
     const dates = Array.from({length:40},(_,i)=>dateOffset(reference.start,i-6));
-    const changes:AssignmentChange[] = dates.flatMap(date=>DEMO_EMPLOYEES.map(employee=>({
-      date,employeeId:employee.id,group:new Date(date+"T12:00:00Z").getUTCDay()===0 ? null : employee.group,
-    })));
+    const changes:AssignmentChange[] = dates.flatMap(date=>scheduleForDate(DEFAULT_SCHEDULE,date)
+      .map(row=>({date,employeeId:row.employee.id,group:row.group})));
     const targets = Object.fromEntries(dates.map(date=>[date,
-      new Date(date+"T12:00:00Z").getUTCDay()===0 ? {A:0,B:0,C:0} : {A:4,B:29,C:30}]));
-    const result = reviewOperationalProposal(reference,changes,targets,2640);
+      Object.fromEntries(coverageFor(DEFAULT_SCHEDULE,date).map(c=>[c.group,c.assigned]))]));
+    const result = reviewOperationalProposal(reference,changes,targets as never,2640);
     expect(result.errors).toEqual([]);
     expect(result.technicallyValid).toBe(true);
-    expect(result.weeklyMinutes[0]?.weeks).toEqual([2640,2640,2640,2640]);
+    expect(result.weeklyMinutes.every(row=>row.weeks.every(minutes=>minutes<=2640))).toBe(true);
     expect(result.status).toBe("aguardando-homologacao");
     expect(reference.source.overrides).toEqual({});
   });

@@ -8,6 +8,9 @@ import { filterArrivals, isValidReferenceDate, type EntryFilter } from "@/domain
 import { countMonthlyLateArrivals } from "@/domain/rules/late-history";
 import { classifyArrival } from "@/domain/rules/punctuality";
 import type { ArrivalStatus, Employee, GroupId } from "@/domain/types";
+import { BANK_LEVEL_TEXT, balanceOf, bankLevel, hoursText, type HourStore } from "@/domain/hour-bank";
+import { DEFAULT_SCHEDULE, assignmentFor, restReason, shiftFor, type ScheduleStore } from "@/domain/schedule";
+import { loadHours, loadSchedule } from "@/lib/demo-storage";
 
 const REFERENCE_DATE = "2026-10-20";
 const FILTERS: { value: EntryFilter; label: string }[] = [
@@ -51,7 +54,18 @@ export function CollaboratorsDirectory() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const detailTrigger = useRef<HTMLButtonElement | null>(null);
   const tableScroll = useRef<HTMLDivElement | null>(null);
-  const dashboard = useMemo(() => buildDashboard(date), [date]);
+  const [stores, setStores] = useState<{ schedule: ScheduleStore; hours: HourStore } | null>(null);
+  useEffect(() => { setStores({ schedule: loadSchedule(), hours: loadHours() }); }, []);
+  const schedule = stores?.schedule ?? DEFAULT_SCHEDULE;
+  const dashboard = useMemo(() => {
+    const day = buildDashboard(date, DEMO_EMPLOYEES, schedule);
+    // Lista completa (63): quem está de folga aparece com o motivo, sem contar como atraso.
+    const arrivals = DEMO_EMPLOYEES.map(employee => {
+      const found = day.arrivals.find(a => a.employee.id === employee.id);
+      return found ? { ...found, employee } : { employee, planned: "", entry: undefined as string | undefined, status: "sem_registro" as ArrivalStatus, offToday: true };
+    });
+    return { ...day, arrivals };
+  }, [date, schedule]);
   const monthly = useMemo(() => countMonthlyLateArrivals(date, DEMO_EMPLOYEES), [date]);
   const rowsFiltered = useMemo(() =>
     filterArrivals(dashboard.arrivals, { group, status, query }).sort(
@@ -150,7 +164,7 @@ export function CollaboratorsDirectory() {
         <table className="rh-directory-table w-full min-w-[870px] text-left text-xs">
           <caption className="sr-only">Colaboradores fictícios da Formosa em {showDate(date)}</caption>
           <thead className="bg-muted/60 text-[11px] uppercase tracking-wide text-muted-foreground">
-            <tr>{["Colaborador", "Grupo", "Jornada-base", "Cadastro", "Entrada simulada", "Atrasos/mês*"].map(label =>
+            <tr>{["Colaborador", "Grupo", "Jornada-base", "Hoje", "Entrada simulada", "Banco de horas", "Atrasos/mês*"].map(label =>
               <th scope="col" className="px-4 py-3 font-semibold" key={label}>{label}</th>)}
               <th scope="col" className="px-4 py-3 no-print"><span className="sr-only">Consultar ficha</span></th>
             </tr>
@@ -162,8 +176,19 @@ export function CollaboratorsDirectory() {
                 <td className="px-4 py-3"><strong className="block text-foreground">{employee.name}</strong><small className="text-muted-foreground">{employee.id}</small></td>
                 <td className="px-4 py-3"><strong className="text-primary">Grupo {employee.group}</strong><small className="block text-muted-foreground">{GROUPS[employee.group].name}</small></td>
                 <td className="px-4 py-3"><strong className="tabular-nums">{shift.start}–{shift.end}</strong><small className="block text-muted-foreground">Intervalo {shift.breakStart}–{shift.breakEnd}</small></td>
-                <td className="px-4 py-3"><span className="rounded-full bg-emerald-50 px-2 py-1 text-[11px] font-bold text-emerald-800">Ativo · demo</span></td>
-                <td className="px-4 py-3"><strong className="block tabular-nums">{entry ?? "—"}</strong><EntryStatus value={entryStatus} /></td>
+                <td className="px-4 py-3">{(() => {
+                  const slot = assignmentFor(schedule, employee, date);
+                  if (!slot) return <span className="rounded-full bg-slate-100 px-2 py-1 text-[12px] font-bold text-slate-700">{restReason(schedule, employee, date) ?? "Folga"}</span>;
+                  const s = shiftFor(date, slot, schedule.rules);
+                  return <span className="rounded-full bg-emerald-50 px-2 py-1 text-[12px] font-bold text-emerald-800">Trabalha {s.start}–{s.end}</span>;
+                })()}</td>
+                <td className="px-4 py-3">{assignmentFor(schedule, employee, date) ? <><strong className="block tabular-nums">{entry ?? "—"}</strong><EntryStatus value={entryStatus} /></> : <span className="text-muted-foreground">—</span>}</td>
+                <td className="px-4 py-3">{stores ? (() => {
+                  const min = balanceOf(stores.hours, employee.id, date);
+                  const level = bankLevel(min);
+                  const tone = level === "vermelho" ? "bg-red-50 text-red-800" : level === "amarelo" ? "bg-amber-50 text-amber-800" : level === "verde" ? "bg-emerald-50 text-emerald-800" : "bg-slate-100 text-slate-700";
+                  return <span className={`rounded-md px-2 py-1 font-bold tabular-nums ${tone}`} title={BANK_LEVEL_TEXT[level].advice}>{hoursText(min)}</span>;
+                })() : "—"}</td>
                 <td className="px-4 py-3"><span className={`rounded-md px-2 py-1 font-bold tabular-nums ${monthly[employee.id] ? "bg-amber-50 text-amber-800" : "bg-muted text-muted-foreground"}`}>{monthly[employee.id] ?? 0}</span></td>
                 <td className="px-4 py-3 no-print">
                   <button type="button" aria-label={`Ver ficha de ${employee.name}`}
