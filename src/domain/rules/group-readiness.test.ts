@@ -12,15 +12,14 @@ const row = (id: string, name: string, group: GroupId, entry: string | undefined
 describe("Cobertura documental por grupo", () => {
   it("separa escalados e entrada registrada sem converter marcação ausente em falta", () => {
     const summary = summarizeGroupEntries([
-      row("A1", "Ana", "A", "06:59", "no_horario"),
-      row("B1", "Bruno", "B", "08:04", "atraso_alerta"),
-      row("B2", "Carla", "B", undefined, "sem_registro"),
-      row("C1", "Daniel", "C", "12:53", "atraso_acima"),
+      row("P1", "Ana", "P", "06:59", "no_horario"),
+      row("S1", "Bruno", "S", "07:04", "atraso_alerta"),
+      row("S2", "Carla", "S", undefined, "sem_registro"),
+      row("P2", "Daniel", "P", "19:13", "atraso_acima"),
     ]);
     expect(summary).toEqual([
-      { group: "A", scheduled: 1, registered: 1, pending: 0, aboveAlert: 0, pendingNames: [] },
-      { group: "B", scheduled: 2, registered: 1, pending: 1, aboveAlert: 0, pendingNames: ["Carla"] },
-      { group: "C", scheduled: 1, registered: 1, pending: 0, aboveAlert: 1, pendingNames: [] },
+      { group: "P", scheduled: 2, registered: 2, pending: 0, aboveAlert: 1, pendingNames: [] },
+      { group: "S", scheduled: 2, registered: 1, pending: 1, aboveAlert: 0, pendingNames: ["Carla"] },
     ]);
   });
   it("os totais por grupo são coerentes com os KPIs reais do dashboard demo", () => {
@@ -31,6 +30,6 @@ describe("Cobertura documental por grupo", () => {
     expect(sum.reduce((s, g) => s + g.pending, 0)).toBe(d.kpis.missing);
     expect(sum.reduce((s, g) => s + g.aboveAlert, 0)).toBe(d.kpis.aboveAlert);
     expect(sum.map((g) => g.scheduled)).toEqual(d.coverage.map((c) => c.scheduled));
-    expect(d.kpis.scheduled + d.day.rest).toBe(63);
+    expect(d.kpis.scheduled + d.day.rest + d.day.absent).toBe(21);
   });
 });

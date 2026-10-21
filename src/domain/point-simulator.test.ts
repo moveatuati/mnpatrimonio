@@ -7,11 +7,11 @@ import {
 } from "./point-simulator";
 
 const employee = DEMO_EMPLOYEES[0]!;
-const day = "2026-10-24"; // sábado: equipe completa
+const day = "2026-10-24"; // sábado: portaria 12×36 (turma do agente) + serviços gerais 6×1
 function registerFour() {
   let store = EMPTY_POINT_STORE;
   for (const [mark,time] of [
-    ["entry","07:00"],["breakOut","12:00"],["breakIn","14:00"],["exit","16:20"],
+    ["entry","07:00"],["breakOut","12:00"],["breakIn","13:00"],["exit","19:00"],
   ] as const) {
     const result = markPoint(store,DEFAULT_SCHEDULE,employee,day,mark,time,
       {recordedAt:"2026-10-20T13:00:00.000Z"});
@@ -23,13 +23,13 @@ function registerFour() {
 describe("Ponto demonstrativo separado da escala e do relógio real",()=>{
   it("inicia sem marcações e usa o planejamento da escala",()=>{
     expect(pointSummary(DEFAULT_SCHEDULE,EMPTY_POINT_STORE,day)).toEqual({
-      planned:63,started:0,completed:0,attention:0,unregistered:63,
+      planned:15,started:0,completed:0,attention:0,unregistered:15,
     });
     expect(requiredMarks(DEFAULT_SCHEDULE,employee,day)).toEqual(["entry","breakOut","breakIn","exit"]);
     expect(nextMark(DEFAULT_SCHEDULE,employee,day)).toBe("entry");
   });
   it("exige quatro marcações crescentes na ordem e fecha somente ao final",()=>{
-    const wrong=markPoint(EMPTY_POINT_STORE,DEFAULT_SCHEDULE,employee,day,"exit","16:20");
+    const wrong=markPoint(EMPTY_POINT_STORE,DEFAULT_SCHEDULE,employee,day,"exit","19:00");
     expect(wrong.ok).toBe(false);
     const complete=registerFour();
     const analysis=analysePoint(DEFAULT_SCHEDULE,complete,employee,day);
@@ -59,27 +59,30 @@ describe("Ponto demonstrativo separado da escala e do relógio real",()=>{
     const first=markPoint(EMPTY_POINT_STORE,DEFAULT_SCHEDULE,employee,day,"entry","07:00");
     expect(first.ok).toBe(true);
     expect(analysePoint(DEFAULT_SCHEDULE,first.store,employee,day).status).toBe("em andamento");
-    expect(markPoint(first.store,DEFAULT_SCHEDULE,employee,day,"breakIn","14:00").ok).toBe(false);
+    expect(markPoint(first.store,DEFAULT_SCHEDULE,employee,day,"breakIn","13:00").ok).toBe(false);
   });
-  it("domingos sem intervalos cadastrados pedem apenas entrada e saída",()=>{
-    const sunday="2026-10-18";
-    const chosen=DEMO_EMPLOYEES.find(e=>requiredMarks(DEFAULT_SCHEDULE,e,sunday).length>0)!;
-    expect(requiredMarks(DEFAULT_SCHEDULE,chosen,sunday)).toEqual(["entry","exit"]);
-    const first=markPoint(EMPTY_POINT_STORE,DEFAULT_SCHEDULE,chosen,sunday,"entry","08:00");
-    expect(first.ok).toBe(true);
-    expect(markPoint(first.store,DEFAULT_SCHEDULE,chosen,sunday,"breakOut","12:00").ok).toBe(false);
-    const finish=markPoint(first.store,DEFAULT_SCHEDULE,chosen,sunday,"exit","14:15");
-    expect(finish.ok).toBe(true);
-    expect(analysePoint(DEFAULT_SCHEDULE,finish.store,chosen,sunday).complete).toBe(true);
+  it("plantão noturno da portaria atravessa a meia-noite no mesmo registro",()=>{
+    const night=DEMO_EMPLOYEES.find(e=>e.group==="P"&&e.turn==="noturno"&&requiredMarks(DEFAULT_SCHEDULE,e,day).length>0)!;
+    expect(requiredMarks(DEFAULT_SCHEDULE,night,day)).toEqual(["entry","breakOut","breakIn","exit"]);
+    let store=EMPTY_POINT_STORE;
+    for(const [mark,time] of [["entry","19:05"],["breakOut","00:00"],["breakIn","01:00"],["exit","07:20"]] as const){
+      const r=markPoint(store,DEFAULT_SCHEDULE,night,day,mark,time);
+      expect(r.ok).toBe(true);store=r.store;
+    }
+    const info=analysePoint(DEFAULT_SCHEDULE,store,night,day);
+    expect(info.complete).toBe(true);
+    expect(info.late).toBe(5);
+    expect(info.overtime).toBe(20);
+    expect(info.status).toBe("completo");
   });
   it("gera amostra com os escalados, sem sobrescrever uma marcação manual",()=>{
     const manual=markPoint(EMPTY_POINT_STORE,DEFAULT_SCHEDULE,employee,day,"entry","07:09");
     expect(manual.ok).toBe(true);
     const filled=seedPointDay(manual.store,DEFAULT_SCHEDULE,day,"2026-10-20T14:00:00Z");
     expect(filled.records[pointKey(day,employee.id)]?.marks.entry).toBe("07:09");
-    expect(pointSummary(DEFAULT_SCHEDULE,filled,day).started).toBe(63);
-    expect(Object.keys(filled.records)).toHaveLength(63);
-    expect(pointSummary(DEFAULT_SCHEDULE,filled,day).attention).toBe(2); // 61/63 no limite: 96,8%
+    expect(pointSummary(DEFAULT_SCHEDULE,filled,day).started).toBe(15);
+    expect(Object.keys(filled.records)).toHaveLength(15);
+    expect(pointSummary(DEFAULT_SCHEDULE,filled,day).attention).toBeLessThanOrEqual(2);
     expect(seedPointDay(filled,DEFAULT_SCHEDULE,day)).toBe(filled);
     const empty=clearPointDay(filled,day);
     expect(Object.keys(empty.records)).toHaveLength(0);

@@ -4,7 +4,7 @@ import { BANK_RULES, GROUPS } from "@/domain/config";
 import type { AbsenceStore } from "@/domain/absences";
 import { BANK_LEVEL_TEXT, bankBoard, bankSummary, hoursText, suggestCompensationDate, type HourStore } from "@/domain/hour-bank";
 import { laborRisks, type RiskLevel } from "@/domain/labor-risks";
-import { movementPeriod } from "@/domain/movement";
+import { REGIME_LABEL, serviceRegime } from "@/domain/config";
 import { startOfWeek, type ScheduleStore } from "@/domain/schedule";
 import { PaperSheets } from "@/components/sheets/PaperSheets";
 import { PrintHeader } from "@/components/print/PrintHeader";
@@ -20,7 +20,7 @@ const LEVEL: Record<RiskLevel, { icon: string; text: string }> = {
   baixo: { icon: "🟢", text: "Tudo certo" },
 };
 
-/** Relatórios prontos, de leitura rápida, para o gerente e o RH (evitar multas e custos). */
+/** Relatórios prontos, de leitura rápida, para o supervisor e o RH (evitar multas e custos). */
 export function ReadyReports({ schedule, absences, hours, date }: {
   schedule: ScheduleStore; absences: AbsenceStore | null; hours: HourStore; date: string;
 }) {
@@ -32,7 +32,7 @@ export function ReadyReports({ schedule, absences, hours, date }: {
   const due = board.filter(r => r.level === "vermelho" || r.level === "amarelo");
   const negatives = board.filter(r => r.level === "negativo");
   const high = risks.filter(r => r.level === "alto").length;
-  const period = movementPeriod(date);
+  const periodLabel = "Portaria 12×36 · Serviços gerais " + REGIME_LABEL[serviceRegime(date)];
 
   const paperRef = useRef<HTMLElement | null>(null);
   function printThis() {
@@ -56,7 +56,7 @@ export function ReadyReports({ schedule, absences, hours, date }: {
     {(view === "riscos" || view === "banco") && <article className="rr-paper rr-print" ref={paperRef}>
       <PrintHeader
         title={view === "riscos" ? "Riscos trabalhistas e de custo" : "Banco de horas: quem precisa compensar"}
-        subtitle={(view === "riscos" ? "Relatório para o RH · 4 semanas a partir de " + br(start) : "Relatório para o gerente · posição em " + br(date)) + " · " + period.label}
+        subtitle={(view === "riscos" ? "Relatório para o RH · 4 semanas a partir de " + br(start) : "Relatório para o supervisor · posição em " + br(date)) + " · " + periodLabel}
         right={"Emitido em " + br(new Date().toISOString().slice(0, 10))} />
       <div className="rr-actions no-print"><button type="button" className="rr-print-btn" onClick={printThis}><Printer size={16} /> Imprimir</button></div>
 
@@ -95,8 +95,8 @@ export function ReadyReports({ schedule, absences, hours, date }: {
             <td>⚪ Deve horas</td><td><b>{r.employee.name}</b><small>{r.employee.id}</small></td>
             <td>{GROUPS[r.employee.group].name}</td><td className="rr-num">{hoursText(r.minutes)}</td><td>Combinar reposição</td><td className="rr-sign" />
           </tr>)}</tbody></table>
-        <p className="rr-note">Regra: ao chegar a {hoursText(BANK_RULES.compensateMinutes)}, conceder uma folga (desconta {hoursText(BANK_RULES.folgaMinutes)}).
-          As datas sugeridas caem do dia 19 ao 27 (baixo movimento) e em dias em que a pessoa estaria trabalhando.</p>
+        <p className="rr-note">Regra: ao chegar a {hoursText(BANK_RULES.compensateMinutes)}, conceder uma folga de compensação (desconta 1 jornada: 7h20 nos serviços gerais 6×1, 11h na portaria 12×36).
+          A data sugerida é o próximo dia em que a pessoa estaria trabalhando. Prazo para compensar: {BANK_RULES.compensationMonths} meses (acordo individual escrito).</p>
       </div>}
     </article>}
 

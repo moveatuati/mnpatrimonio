@@ -1,5 +1,4 @@
-import { DEFAULT_SUNDAY_SLOTS, DEFAULT_WEEKDAY_TARGETS, GROUPS, GROUP_IDS, RULES, SPECIAL_SLOT_LABEL, SUNDAY_SHIFTS } from "./config";
-import { movementKind, type MovementKind } from "./movement";
+import { DEFAULT_DAILY_TARGETS, DEFAULT_SUNDAY_SLOTS, GROUPS, GROUP_IDS, GROUP_REGIME, RULES, REGIME_LABEL, employeeShift, serviceRegime } from "./config";
 import { DEMO_EMPLOYEES } from "./demo-data";
 import { checkRestBetween } from "./rules/rest";
 import type { Employee, GroupId, ISODate } from "./types";
@@ -8,12 +7,13 @@ import type { Employee, GroupId, ISODate } from "./types";
 export type Assignment = GroupId | null;
 export type AssignmentChange = { employeeId: string; date: ISODate; group: Assignment };
 export type ScheduleRules = {
+  /** Agentes por dia (portaria: diurno + noturno) e serviços gerais em dia útil. */
+  daily: Record<GroupId, number>;
+  /** Escalados no domingo (portaria segue a 12×36; serviços gerais: 0 = DSR para todos). */
   sunday: Record<GroupId, number>;
   holiday: Record<GroupId, number>;
   holidayByDate: Record<ISODate, Record<GroupId, number>>;
   holidays: ISODate[];
-  /** Meta mínima de segunda a sexta, por período de movimento (alta/baixa). */
-  weekday: Record<MovementKind, Record<GroupId, number>>;
 };
 export type SwapRequest = {
   id: string;
@@ -44,15 +44,14 @@ export type ScheduleStore = {
 };
 export const DEFAULT_SCHEDULE: ScheduleStore = {
   version: 1,
-  rules: { sunday: { ...DEFAULT_SUNDAY_SLOTS }, holiday: { A: 1, B: 6, C: 6 }, holidayByDate: {}, holidays: [],
-    weekday: { alta: { ...DEFAULT_WEEKDAY_TARGETS.alta }, baixa: { ...DEFAULT_WEEKDAY_TARGETS.baixa } } },
+  rules: { daily: { ...DEFAULT_DAILY_TARGETS }, sunday: { ...DEFAULT_SUNDAY_SLOTS }, holiday: { P: DEFAULT_DAILY_TARGETS.P, S: 0 },
+    holidayByDate: {}, holidays: [] },
   overrides: {},
   requests: [],
   history: [],
 };
-/** Correção prospectiva: datas anteriores conservam a interpretação histórica do demo. */
+/** Mantido por compatibilidade com telas antigas (sem efeito nas regras atuais). */
 export const SATURDAY_POLICY_START = "2026-10-20";
-
 export function dateOffset(date: ISODate, n: number): ISODate {
   const time = Date.parse(date + "T12:00:00Z");
   return new Date(time + n * 86400000).toISOString().slice(0, 10);
@@ -68,14 +67,10 @@ export function sundayOf(date: ISODate) { return dateOffset(startOfWeek(date), 6
 export function holidayTargetsFor(rules: ScheduleRules, date: ISODate) {
   return rules.holidayByDate[date] ?? rules.holiday;
 }
-export function shiftFor(date: ISODate, group: GroupId, rules: ScheduleRules) {
-  if (dayOfWeek(date) === 0 || rules.holidays.includes(date)) {
-    const shift = SUNDAY_SHIFTS[GROUP_IDS.indexOf(group)];
-    if (!shift) throw new Error("Turno especial não cadastrado para " + group);
-    return { start: shift.start, end: shift.end, label: shift.name };
-  }
-  const shift = GROUPS[group].shift;
-  return { start: shift.start, end: shift.end, label: GROUPS[group].name };
+/** Horário na data. Com o colaborador, usa o turno dele (portaria diurna/noturna). */
+export function shiftFor(date: ISODate, group: GroupId, _rules?: ScheduleRules, employee?: Employee) {
+  const shift = employee && employee.group === group ? employeeShift(employee, date) : employeeShift({ group }, date);
+  return { start: shift.start, end: shift.end, label: shift.label };
 }
 export function overrideKey(date: ISODate, employeeId: string) { return date + ":" + employeeId; }
 function rotatingSelection(employees: Employee[], date: ISODate, count: number) {
@@ -88,14 +83,13 @@ function rotatingSelection(employees: Employee[], date: ISODate, count: number) 
     .filter((id): id is string => typeof id === "string"));
 }
 /* ------------------------------------------------------------------
- * Revezamento real da Formosa (escala 6×1 com domingo sim, domingo não):
- * - metade dos operadores ativos de cada grupo trabalha em cada domingo;
- * - quem trabalha o domingo recebe a FOLGA ANTECIPADA (segunda a sexta da mesma
- *   semana) e a FOLGA DO 7º DIA exatamente sete dias depois, como na folha de 25/10;
- * - o sábado é dia de equipe completa;
- * - o turno de domingo independe do grupo habitual. Quem fecha o sábado às 22h
- *   (grupo C) fica no turno das 15h15; os demais preenchem as manhãs.
- * O gerente pode mudar qualquer dia; estas são apenas sugestões automáticas.
+ * Escalas dos condomínios:
+ * - PORTARIA 12×36 (art. 59-A da CLT): cada turma trabalha 12h e descansa 36h, em dias
+ *   alternados (turma 0 nos dias pares, turma 1 nos ímpares). DSR e feriados já compensados.
+ * - SERVIÇOS GERAIS: 6×1 de segunda a sábado com DSR no domingo (Lei 605/1949) até a
+ *   transição da EC 141/2026; depois 5×2 de segunda a sexta. Se o condomínio pedir equipe
+ *   no domingo, quem trabalha recebe a folga ANTECIPADA (mesma semana) e a folga do 7º DIA.
+ * O gestor pode mudar qualquer dia; estas são sugestões automáticas.
  * ------------------------------------------------------------------ */
 export type PlannedRest = "antecipada" | "setimo";
 const WEEKDAY_NAMES = ["segunda", "terça", "quarta", "quinta", "sexta"];
@@ -105,10 +99,14 @@ function activeOfGroup(group: GroupId) { return DEMO_EMPLOYEES.filter(e => e.gro
 function rankOf(employee: Employee) { return activeOfGroup(employee.group).findIndex(e => e.id === employee.id); }
 /** Segunda=0 … domingo=6. */
 export function weekdayIndex(date: ISODate) { return (dayOfWeek(date) + 6) % 7; }
-/** Domingo sim, domingo não: alterna metade de cada grupo a cada semana. */
-export function worksSundayByRotation(employee: Employee, sunday: ISODate) {
-  const r = rankOf(employee);
-  return r >= 0 && (r + weekIndex(sunday)) % 2 === 0;
+/** 12×36: a turma trabalha em dias alternados. */
+export function works12x36(employee: Employee, date: ISODate) {
+  return (epochDay(date) + (employee.team ?? 0)) % 2 === 0;
+}
+/** Serviços gerais escalados no domingo (revezamento conforme a quantidade pedida). */
+export function worksSundayByRotation(employee: Employee, sunday: ISODate, store: ScheduleStore = DEFAULT_SCHEDULE) {
+  if (employee.group === "P") return works12x36(employee, sunday);
+  return rotatingSelection(activeOfGroup("S"), sunday, store.rules.sunday.S).has(employee.id);
 }
 /** Dia útil sugerido (0=segunda … 4=sexta) para as duas folgas ligadas ao domingo trabalhado. */
 export function restWeekdayFor(employee: Employee, sunday: ISODate) {
@@ -116,72 +114,45 @@ export function restWeekdayFor(employee: Employee, sunday: ISODate) {
   const k = Math.floor(weekIndex(sunday) / 2);
   return (Math.floor(r / 2) + k + 3 * (r % 2)) % 5;
 }
-export function plannedRestFor(employee: Employee, date: ISODate): PlannedRest | null {
+export function plannedRestFor(employee: Employee, date: ISODate, store: ScheduleStore = DEFAULT_SCHEDULE): PlannedRest | null {
   const w = weekdayIndex(date);
-  if (w > 4 || employee.status !== "ativo") return null;
+  if (employee.group !== "S" || w > 4 || employee.status !== "ativo") return null;
   const sunday = sundayOf(date);
-  if (worksSundayByRotation(employee, sunday) && restWeekdayFor(employee, sunday) === w) return "antecipada";
+  if (worksSundayByRotation(employee, sunday, store) && restWeekdayFor(employee, sunday) === w) return "antecipada";
   const previous = dateOffset(sunday, -7);
-  if (worksSundayByRotation(employee, previous) && restWeekdayFor(employee, previous) === w) return "setimo";
+  if (worksSundayByRotation(employee, previous, store) && restWeekdayFor(employee, previous) === w) return "setimo";
   return null;
 }
 export function restWeekdayName(index: number) { return WEEKDAY_NAMES[index] ?? ""; }
-const sundayPlans = new Map<string, Map<string, GroupId>>();
-/** Distribui os escalados do domingo nos três turnos, respeitando o descanso de 11h. */
-export function sundayPlan(store: ScheduleStore, sunday: ISODate): Map<string, GroupId> {
-  const targets = store.rules.sunday;
-  const key = sunday + JSON.stringify(targets);
-  const cached = sundayPlans.get(key);
-  if (cached) return cached;
-  const pool = DEMO_EMPLOYEES.filter(e => e.status === "ativo" && worksSundayByRotation(e, sunday));
-  const plan = new Map<string, GroupId>();
-  const count: Record<GroupId, number> = { A: 0, B: 0, C: 0 };
-  const put = (e: Employee, slot: GroupId) => { plan.set(e.id, slot); count[slot]++; };
-  // Quem fecha o sábado às 22h não pode abrir o domingo de manhã.
-  for (const e of pool.filter(e => e.group === "C")) put(e, "C");
-  const morning = pool.filter(e => e.group !== "C");
-  // Abertura/intermediário só vão para a noite se folgarem na segunda (7º dia).
-  for (const e of morning) {
-    if (count.C < targets.C && restWeekdayFor(e, sunday) === 0) put(e, "C");
-  }
-  for (const e of morning.filter(e => !plan.has(e.id))) {
-    const slot: GroupId = count.A < targets.A ? "A" : count.B < targets.B ? "B" :
-      (count.A / Math.max(1, targets.A) <= count.B / Math.max(1, targets.B) ? "A" : "B");
-    put(e, slot);
-  }
-  if (sundayPlans.size > 400) sundayPlans.clear();
-  sundayPlans.set(key, plan);
-  return plan;
-}
-/** Sugestão automática (base) antes dos ajustes do gerente. */
+/** Sugestão automática (base) antes dos ajustes do gestor. */
 export function baseAssignment(store: ScheduleStore, employee: Employee, date: ISODate, _policyStart = SATURDAY_POLICY_START): Assignment {
   if (employee.status !== "ativo") return null;
-  const group = employee.group;
+  if (employee.group === "P") return works12x36(employee, date) ? "P" : null;
   const weekday = dayOfWeek(date);
-  if (weekday === 0) return sundayPlan(store, date).get(employee.id) ?? null;
+  if (weekday === 0) return worksSundayByRotation(employee, date, store) ? "S" : null;
   if (store.rules.holidays.includes(date)) {
-    const members = activeOfGroup(group);
-    return rotatingSelection(members, date, holidayTargetsFor(store.rules, date)[group]).has(employee.id) ? group : null;
+    return rotatingSelection(activeOfGroup("S"), date, holidayTargetsFor(store.rules, date).S).has(employee.id) ? "S" : null;
   }
-  if (weekday === 6) return group;
-  return plannedRestFor(employee, date) ? null : group;
+  if (weekday === 6) return serviceRegime(date) === "6x1" ? "S" : null;
+  return plannedRestFor(employee, date, store) ? null : "S";
 }
 /** Motivo da folga em linguagem simples (ou null se trabalha). */
 export function restReason(store: ScheduleStore, employee: Employee, date: ISODate): string | null {
   if (assignmentFor(store, employee, date) !== null) return null;
   if (employee.status !== "ativo") return "Indisponível";
-  if (Object.prototype.hasOwnProperty.call(store.overrides, overrideKey(date, employee.id))) return "Folga ajustada pelo gerente";
-  if (dayOfWeek(date) === 0) return "Folga de domingo (revezamento)";
+  if (Object.prototype.hasOwnProperty.call(store.overrides, overrideKey(date, employee.id))) return "Folga ajustada pelo gestor";
+  if (employee.group === "P") return "Folga da 12×36 (36h de descanso)";
+  if (dayOfWeek(date) === 0) return "Descanso semanal (domingo)";
   if (store.rules.holidays.includes(date)) return "Folga no feriado";
-  const planned = plannedRestFor(employee, date);
+  if (dayOfWeek(date) === 6) return "Folga do sábado (5×2)";
+  const planned = plannedRestFor(employee, date, store);
   if (planned === "antecipada") return "Folga antecipada (trabalha no domingo)";
   if (planned === "setimo") return "Folga do 7º dia (trabalhou no domingo)";
   return "Folga";
 }
-/** Nome do grupo ou do turno, conforme o dia (domingo/feriado usa turno especial). */
-export function slotLabel(date: ISODate, slot: GroupId, rules?: ScheduleRules) {
-  const special = dayOfWeek(date) === 0 || Boolean(rules?.holidays.includes(date));
-  return special ? SPECIAL_SLOT_LABEL[slot] : "Grupo " + slot + " · " + GROUPS[slot].name;
+/** Nome do grupo com o regime vigente na data. */
+export function slotLabel(date: ISODate, slot: GroupId, _rules?: ScheduleRules) {
+  return GROUPS[slot].name + " · " + (slot === "S" ? REGIME_LABEL[serviceRegime(date)] : GROUP_REGIME.P);
 }
 export function assignmentFor(store: ScheduleStore, employee: Employee, date: ISODate, policyStart = SATURDAY_POLICY_START): Assignment {
   const key = overrideKey(date, employee.id);
@@ -196,15 +167,15 @@ export function withChanges(store: ScheduleStore, changes: AssignmentChange[]): 
 export function scheduleForDate(store: ScheduleStore, date: ISODate) {
   return DEMO_EMPLOYEES.map(employee => {
     const group = assignmentFor(store, employee, date);
-    return { employee, group, shift: group ? shiftFor(date, group, store.rules) : null };
+    return { employee, group, shift: group ? shiftFor(date, group, store.rules, employee) : null };
   });
 }
 export function requiredFor(store: ScheduleStore, date: ISODate, group: GroupId) {
-  if (dayOfWeek(date) === 0) return store.rules.sunday[group];
-  if (store.rules.holidays.includes(date)) return holidayTargetsFor(store.rules, date)[group];
-  // Sábado: equipe completa. Segunda a sexta: meta do período (alto ou baixo movimento).
-  if (dayOfWeek(date) === 6) return GROUPS[group].requiredStaff;
-  return (store.rules.weekday ?? DEFAULT_SCHEDULE.rules.weekday)[movementKind(date)][group];
+  const rules = store.rules;
+  if (rules.holidays.includes(date)) return holidayTargetsFor(rules, date)[group];
+  if (dayOfWeek(date) === 0) return rules.sunday[group];
+  if (group === "S" && dayOfWeek(date) === 6 && serviceRegime(date) !== "6x1") return 0;
+  return rules.daily[group];
 }
 export function coverageFor(store: ScheduleStore, date: ISODate) {
   const roster = scheduleForDate(store, date);
@@ -213,37 +184,46 @@ export function coverageFor(store: ScheduleStore, date: ISODate) {
     assigned: roster.filter(row => row.group === group).length,
   }));
 }
+/** Fim da jornada em data/hora absolutas (turno noturno termina no dia seguinte). */
+function shiftEnd(date: ISODate, start: string, end: string) {
+  return { date: end <= start ? dateOffset(date, 1) : date, time: end };
+}
 export function adjacentRestProblems(store: ScheduleStore, employee: Employee, date: ISODate): string[] {
   const rows = Array.from({ length: 17 }, (_, i) => {
     const d = dateOffset(date, i - 8);
     const g = assignmentFor(store, employee, d);
-    return g === null ? null : { date: d, ...shiftFor(d, g, store.rules) };
+    return g === null ? null : { date: d, ...shiftFor(d, g, store.rules, employee) };
   }).filter((row): row is NonNullable<typeof row> => Boolean(row));
   const errors: string[] = [];
+  const minRest = employee.group === "P" ? RULES.rest12x36Hours : RULES.minRestHours;
   for (let i = 1; i < rows.length; i++) {
     const prev = rows[i - 1], curr = rows[i];
     if (!prev || !curr) continue;
-    const rest = checkRestBetween(prev.date, prev.end, curr.date, curr.start, RULES.minRestHours);
+    const end = shiftEnd(prev.date, prev.start, prev.end);
+    const rest = checkRestBetween(end.date, end.time, curr.date, curr.start, minRest);
     if (!rest.ok && (prev.date === date || curr.date === date))
-      errors.push(employee.name + ": " + rest.message);
+      errors.push(employee.name + ": " + rest.message + (employee.group === "P" ? " (12×36 exige 36h de descanso)." : ""));
   }
-  // No modelo de demonstração 6×1, bloquear qualquer janela de sete dias consecutivos.
-  for (let first = -6; first <= 0; first++) {
-    const days = Array.from({ length: 7 }, (_, n) =>
-      assignmentFor(store, employee, dateOffset(date, first + n)) !== null);
-    if (days.every(Boolean)) {
-      errors.push(employee.name + " em " + date + ": sete dias consecutivos previstos; programar descanso compensatório confirmado pela gerência.");
-      break;
+  if (employee.group === "S") {
+    // 6×1: DSR a cada 7 dias (art. 67 da CLT). 5×2: no máximo 5 jornadas seguidas.
+    const max = serviceRegime(date) === "6x1" ? RULES.maxConsecutiveDays6x1 : RULES.maxConsecutiveDays5x2;
+    for (let first = -max; first <= 0; first++) {
+      const days = Array.from({ length: max + 1 }, (_, n) =>
+        assignmentFor(store, employee, dateOffset(date, first + n)) !== null);
+      if (days.every(Boolean)) {
+        errors.push(employee.name + " em " + date + ": " + (max + 1) + " dias consecutivos previstos (máximo " + max +
+          "); programe a folga antes de confirmar.");
+        break;
+      }
     }
   }
   return errors;
 }
 /* ------------------------------------------------------------------
- * Regra confirmada pelo gerente (21/10/2026):
- * quem TRABALHA no domingo tem, obrigatoriamente, DUAS folgas:
+ * Serviços gerais escalados no domingo têm DUAS folgas:
  *   - uma ANTES (segunda a sábado da mesma semana) e
  *   - uma DEPOIS (segunda a sábado da semana seguinte).
- * Quem NÃO trabalha no domingo folga o próprio domingo.
+ * Quem NÃO trabalha no domingo folga o próprio domingo (DSR). Portaria 12×36: não se aplica.
  * ------------------------------------------------------------------ */
 const brDate = (d: ISODate) => d.slice(8, 10) + "/" + d.slice(5, 7);
 export interface SundayRestCheck {
@@ -262,7 +242,7 @@ function firstRestBetween(store: ScheduleStore, employee: Employee, from: ISODat
   return null;
 }
 export function sundayRestCheck(store: ScheduleStore, employee: Employee, sunday: ISODate): SundayRestCheck {
-  const worked = employee.status === "ativo" && assignmentFor(store, employee, sunday) !== null;
+  const worked = employee.group === "S" && employee.status === "ativo" && assignmentFor(store, employee, sunday) !== null;
   if (!worked) return { sunday, worked, before: null, after: null, ok: true, problems: [] };
   const monday = startOfWeek(sunday);
   const before = firstRestBetween(store, employee, monday, 6);
@@ -287,11 +267,10 @@ export interface RestAuditRow {
 /** Conferência de folgas de TODO o pessoal em uma janela de semanas (padrão: 4). */
 export function restAudit(store: ScheduleStore, start: ISODate, weeks = 4) {
   const sundays = Array.from({ length: weeks }, (_, i) => dateOffset(sundayOf(start), i * 7));
-  const rows: RestAuditRow[] = DEMO_EMPLOYEES.filter(e => e.status === "ativo").map(employee => {
+  const rows: RestAuditRow[] = DEMO_EMPLOYEES.filter(e => e.status === "ativo" && e.group === "S").map(employee => {
     const checks = sundays.map(s => sundayRestCheck(store, employee, s));
     const consecutiveSundays = checks.some((c, i) => c.worked && Boolean(checks[i + 1]?.worked));
     const problems = checks.flatMap(c => c.problems);
-    if (consecutiveSundays) problems.push(employee.name + " trabalha dois domingos seguidos (regra: domingo sim, domingo não).");
     return {
       employee, checks, consecutiveSundays, problems,
       sundaysWorked: checks.filter(c => c.worked).length,
@@ -310,15 +289,6 @@ export function restAudit(store: ScheduleStore, start: ISODate, weeks = 4) {
 function sundayRuleProblems(store: ScheduleStore, employee: Employee, date: ISODate): string[] {
   const sundays = dayOfWeek(date) === 0 ? [date] : [sundayOf(date), dateOffset(sundayOf(date), -7)];
   const problems = sundays.flatMap(s => sundayRestCheck(store, employee, s).problems);
-  for (const s of sundays) {
-    if (assignmentFor(store, employee, s) === null) continue;
-    for (const other of [dateOffset(s, -7), dateOffset(s, 7)]) {
-      if (assignmentFor(store, employee, other) !== null) {
-        const [a, b] = [s, other].sort();
-        problems.push(employee.name + " ficaria com dois domingos seguidos (" + brDate(a!) + " e " + brDate(b!) + "). Regra: domingo sim, domingo não.");
-      }
-    }
-  }
   return [...new Set(problems)];
 }
 export type Validation = { ok: boolean; errors: string[]; coverageBefore: ReturnType<typeof coverageFor>; coverageAfter: ReturnType<typeof coverageFor> };
@@ -340,12 +310,13 @@ export function validateChanges(store: ScheduleStore, changes: AssignmentChange[
     const employee = DEMO_EMPLOYEES.find(item => item.id === change.employeeId);
     if (!employee || employee.status !== "ativo") errors.push("Colaborador inexistente ou indisponível.");
     if (change.group !== null && !GROUP_IDS.includes(change.group)) errors.push("Grupo inválido.");
+    else if (employee && change.group !== null && change.group !== employee.group)
+      errors.push(employee.name + " é de " + GROUPS[employee.group].name + " e não pode cobrir posto de " + GROUPS[change.group].name + ".");
   }
   if (errors.length) return { ok: false, errors, coverageBefore: before, coverageAfter: before };
   const next = withChanges(store, changes);
   const after = coverageFor(next, date);
-  const affectedDates = [...new Set(changes.flatMap(change => dayOfWeek(change.date) === 0 &&
-    dateOffset(change.date,-1) < SATURDAY_POLICY_START ? [change.date,dateOffset(change.date,-1)] : [change.date]))];
+  const affectedDates = [...new Set(changes.map(change => change.date))];
   for (const checkDate of affectedDates) {
     const oldCoverage = checkDate === date ? before : coverageFor(store, checkDate);
     const newCoverage = checkDate === date ? after : coverageFor(next, checkDate);
@@ -354,12 +325,12 @@ export function validateChanges(store: ScheduleStore, changes: AssignmentChange[
       if (!b || !a) continue;
       const required = targets[checkDate]?.[a.group];
       if (required !== undefined && (!Number.isInteger(required) || required < 0)) {
-        errors.push("Meta de cobertura inválida em " + checkDate + ", Grupo " + a.group + ".");
+        errors.push("Meta de cobertura inválida em " + checkDate + ", " + GROUPS[a.group].name + ".");
         continue;
       }
       const minimum = required ?? Math.min(b.assigned, a.required);
       if (a.assigned < minimum) {
-        errors.push("Em " + checkDate + ", Grupo " + a.group +
+        errors.push("Em " + checkDate + ", " + GROUPS[a.group].name +
           ": troca reduziria cobertura de " + b.assigned + " para " +
           a.assigned + " (necessidade " + minimum + ").");
       }
@@ -371,7 +342,7 @@ export function validateChanges(store: ScheduleStore, changes: AssignmentChange[
       const existing = adjacentRestProblems(store,employee,change.date);
       errors.push(...adjacentRestProblems(next, employee, change.date).filter(error =>
         !error.includes("sete dias") || !existing.includes(error)));
-      // Domingo trabalhado exige uma folga antes e uma depois (só bloqueia problema novo).
+      // Serviços gerais no domingo exigem uma folga antes e uma depois (só bloqueia problema novo).
       const sundayBefore = sundayRuleProblems(store, employee, change.date);
       errors.push(...sundayRuleProblems(next, employee, change.date).filter(p => !sundayBefore.includes(p)));
     }
@@ -405,38 +376,31 @@ export function reviseStore(raw: unknown): ScheduleStore {
       !v.overrides || typeof v.overrides !== "object" ||
       !Array.isArray(v.requests) || !Array.isArray(v.history)) return DEFAULT_SCHEDULE;
   const total = DEMO_EMPLOYEES.length;
-  const targets = (input: unknown, fallback: Record<GroupId, number>, perGroup = false) => {
+  const targets = (input: unknown, fallback: Record<GroupId, number>) => {
     const x = input && typeof input === "object" ? input as Record<string, unknown> : {};
     return Object.fromEntries(GROUP_IDS.map(id => {
       const value = typeof x[id] === "number" && Number.isFinite(x[id]) ? x[id] as number : fallback[id];
-      return [id, Math.max(0, Math.min(perGroup ? GROUPS[id].requiredStaff : total, Math.floor(value)))];
+      return [id, Math.max(0, Math.min(total, Math.floor(value)))];
     })) as Record<GroupId, number>;
   };
-  // Migração: o padrão antigo (1/6/6 por grupo) não representa a escala real de domingo.
-  const legacySunday = v.rules.sunday && typeof v.rules.sunday === "object" &&
-    JSON.stringify(v.rules.sunday) === JSON.stringify({ A: 1, B: 6, C: 6 });
-  const weekdayRaw = (v.rules as Partial<ScheduleRules>).weekday;
   const validOverrides: Record<string, Assignment> = {};
   for (const [key, value] of Object.entries(v.overrides)) {
-    if (/^\d{4}-\d{2}-\d{2}:FM-\d{3}$/.test(key) &&
+    if (/^\d{4}-\d{2}-\d{2}:MN-\d{3}$/.test(key) &&
         (value === null || GROUP_IDS.includes(value as GroupId))) validOverrides[key] = value as Assignment;
   }
   return {
     version: 1,
     rules: {
-      sunday: legacySunday ? { ...DEFAULT_SUNDAY_SLOTS } : targets(v.rules.sunday, DEFAULT_SCHEDULE.rules.sunday),
-      holiday: targets(v.rules.holiday, DEFAULT_SCHEDULE.rules.holiday, true),
+      daily: targets((v.rules as Partial<ScheduleRules>).daily, DEFAULT_SCHEDULE.rules.daily),
+      sunday: targets(v.rules.sunday, DEFAULT_SCHEDULE.rules.sunday),
+      holiday: targets(v.rules.holiday, DEFAULT_SCHEDULE.rules.holiday),
       holidayByDate: Object.fromEntries(Object.entries(
         v.rules.holidayByDate && typeof v.rules.holidayByDate === "object" ? v.rules.holidayByDate : {},
       ).filter(([date]) => /^\d{4}-\d{2}-\d{2}$/.test(date)).slice(0, 70)
-        .map(([date, values]) => [date, targets(values, DEFAULT_SCHEDULE.rules.holiday, true)])),
+        .map(([date, values]) => [date, targets(values, DEFAULT_SCHEDULE.rules.holiday)])),
       holidays: Array.isArray(v.rules.holidays)
         ? [...new Set(v.rules.holidays.filter(d => typeof d === "string" && /^\d{4}-\d{2}-\d{2}$/.test(d)))].slice(0, 70)
         : [],
-      weekday: {
-        alta: targets(weekdayRaw?.alta, DEFAULT_WEEKDAY_TARGETS.alta, true),
-        baixa: targets(weekdayRaw?.baixa, DEFAULT_WEEKDAY_TARGETS.baixa, true),
-      },
     },
     overrides: validOverrides,
     requests: v.requests.filter(r => r && typeof r.id === "string" &&

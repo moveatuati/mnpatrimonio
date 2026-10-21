@@ -2,11 +2,10 @@
  * Riscos trabalhistas e de custo, em linguagem simples, para o RH e o gerente.
  * Não é parecer jurídico: aponta situações que a escala/banco mostram e o que fazer.
  */
-import { BANK_RULES, RULES } from "./config";
+import { BANK_RULES, LABOR_LAW, RULES } from "./config";
 import { DEMO_EMPLOYEES } from "./demo-data";
 import type { AbsenceStore } from "./absences";
 import { bankBoard, hoursText, type HourStore } from "./hour-bank";
-import { movementKind } from "./movement";
 import { adjacentRestProblems, assignmentFor, dateOffset, dayOfWeek, restAudit, type ScheduleStore } from "./schedule";
 import type { ISODate } from "./types";
 
@@ -28,29 +27,29 @@ export function laborRisks(schedule: ScheduleStore, hours: HourStore, absences: 
   const end = dates[dates.length - 1]!;
   const risks: LaborRisk[] = [];
 
-  // 1) Descanso menor que 11h e 7 dias seguidos (escala)
+  // 1) Descanso menor que o mínimo (11h; 36h na 12×36) e dias seguidos acima do limite
   const rest: LaborRisk["people"] = [];
   const seven: LaborRisk["people"] = [];
   for (const e of DEMO_EMPLOYEES) {
     for (const d of dates.filter((_, i) => i % 2 === 0)) {
       for (const msg of adjacentRestProblems(schedule, e, d)) {
-        const target = msg.includes("sete dias") ? seven : rest;
+        const target = msg.includes("dias consecutivos") ? seven : rest;
         if (!target.some(p => p.id === e.id)) target.push({ id: e.id, name: e.name, detail: msg.replace(e.name + ": ", "").replace(e.name + " ", "") });
       }
     }
   }
   risks.push({
     id: "descanso", level: rest.length ? "alto" : "baixo",
-    title: "Descanso menor que " + RULES.minRestHours + "h entre um dia e outro",
-    why: "A CLT exige 11h de descanso entre jornadas. Desrespeitar gera hora extra devida e risco de multa.",
+    title: "Descanso menor que o mínimo entre jornadas",
+    why: "A CLT exige " + RULES.minRestHours + "h entre jornadas (art. 66) e a 12×36 exige 36h após o plantão (art. 59-A). Desrespeitar gera hora extra devida e risco de multa.",
     action: rest.length ? "Ajustar o turno ou dar folga no dia seguinte." : "Nenhum caso na escala do período.",
     people: rest,
   });
   risks.push({
     id: "sete-dias", level: seven.length ? "alto" : "baixo",
-    title: "Sete dias seguidos de trabalho",
-    why: "Todo trabalhador precisa de um descanso semanal. Sem ele, o dia é pago em dobro.",
-    action: seven.length ? "Marcar a folga antecipada ou a folga do 7º dia." : "Nenhum caso: as folgas do revezamento estão em dia.",
+    title: "Dias seguidos acima do limite (serviços gerais)",
+    why: "No 6×1 o descanso semanal vem a cada 7 dias (art. 67 da CLT); na 5×2 são no máximo 5 jornadas. Sem a folga, o dia é pago em dobro.",
+    action: seven.length ? "Marcar a folga antecipada ou a folga do 7º dia." : "Nenhum caso: as folgas estão em dia.",
     people: seven,
   });
 
@@ -59,30 +58,26 @@ export function laborRisks(schedule: ScheduleStore, hours: HourStore, absences: 
   const missing = audit.rows.filter(r => r.checks.some(c => c.worked && !c.ok));
   risks.push({
     id: "folgas-domingo", level: missing.length ? "alto" : "baixo",
-    title: "Domingo trabalhado sem as duas folgas (antes e depois)",
-    why: "Quem trabalha no domingo tem direito a uma folga antes e outra depois. Sem elas, o descanso semanal fica em falta e o dia pode ser pago em dobro.",
+    title: "Serviços gerais no domingo sem as duas folgas (antes e depois)",
+    why: "Quem trabalha no domingo precisa da folga compensatória. Sem ela, o descanso semanal fica em falta e o domingo é pago em dobro (Lei 605/1949).",
     action: missing.length ? "Marcar a folga que falta na aba Escala & trocas → Conferência de folgas." : "Todos os domingos trabalhados têm as duas folgas.",
     people: missing.map(r => ({ id: r.employee.id, name: r.employee.name,
       detail: r.checks.filter(c => c.worked && !c.ok).map(c => "domingo " + br(c.sunday) + (c.before ? "" : " sem folga antes") + (c.after ? "" : " sem folga depois")).join("; ") })),
   });
 
-  // 2) Domingos seguidos
+  // 2) Serviços gerais sem nenhum domingo de folga no período
   const sundays = dates.filter(d => dayOfWeek(d) === 0);
-  const doubleSunday: LaborRisk["people"] = [];
-  for (const e of DEMO_EMPLOYEES) {
-    for (const s of sundays) {
-      if (assignmentFor(schedule, e, s) !== null && assignmentFor(schedule, e, dateOffset(s, -7)) !== null) {
-        doubleSunday.push({ id: e.id, name: e.name, detail: "Trabalha " + br(dateOffset(s, -7)) + " e " + br(s) });
-        break;
-      }
-    }
+  const noSundayOff: LaborRisk["people"] = [];
+  for (const e of DEMO_EMPLOYEES.filter(x => x.group === "S" && x.status === "ativo")) {
+    if (sundays.length && sundays.every(s => assignmentFor(schedule, e, s) !== null))
+      noSundayOff.push({ id: e.id, name: e.name, detail: "Trabalha todos os " + sundays.length + " domingos do período" });
   }
   risks.push({
-    id: "domingos", level: doubleSunday.length ? "medio" : "baixo",
-    title: "Dois domingos seguidos trabalhados",
-    why: "A regra da loja é domingo sim, domingo não. O comércio também precisa garantir folga em domingos periodicamente.",
-    action: doubleSunday.length ? "Trocar um dos domingos com um colega que estava de folga." : "Revezamento de domingos respeitado.",
-    people: doubleSunday,
+    id: "domingos", level: noSundayOff.length ? "medio" : "baixo",
+    title: "Serviços gerais sem domingo de folga",
+    why: "O descanso semanal deve coincidir com o domingo periodicamente na escala de revezamento (Lei 605/1949).",
+    action: noSundayOff.length ? "Revezar o domingo com um colega de folga." : "Todos têm domingo de folga no período.",
+    people: noSundayOff,
   });
 
   // 3) Banco de horas acumulado (custo) e negativo
@@ -92,7 +87,7 @@ export function laborRisks(schedule: ScheduleStore, hours: HourStore, absences: 
     id: "banco-alto", level: red.length ? "alto" : "baixo",
     title: "Banco de horas com " + hoursText(BANK_RULES.compensateMinutes) + " ou mais",
     why: "Horas acumuladas sem folga podem virar hora extra paga (custo maior) ou passar do prazo de compensação.",
-    action: red.length ? "Programar a folga de compensação, de preferência do dia 19 ao 27." : "Ninguém acima do limite.",
+    action: red.length ? "Programar a folga de compensação dentro do prazo do acordo (até " + BANK_RULES.compensationMonths + " meses)." : "Ninguém acima do limite.",
     people: red.map(r => ({ id: r.employee.id, name: r.employee.name, detail: "Saldo " + hoursText(r.minutes) })),
   });
   const negative = board.filter(r => r.level === "negativo");
@@ -100,19 +95,30 @@ export function laborRisks(schedule: ScheduleStore, hours: HourStore, absences: 
     id: "banco-negativo", level: negative.length ? "medio" : "baixo",
     title: "Banco de horas negativo",
     why: "A pessoa deve horas à empresa. Precisa de acordo para repor, senão vira desconto.",
-    action: negative.length ? "Combinar a reposição (ficar alguns minutos a mais em dias de alto movimento)." : "Nenhum saldo negativo.",
+    action: negative.length ? "Combinar a reposição por escrito (ficar alguns minutos a mais em dias combinados)." : "Nenhum saldo negativo.",
     people: negative.map(r => ({ id: r.employee.id, name: r.employee.name, detail: "Saldo " + hoursText(r.minutes) })),
   });
 
-  // 4) Folgas de compensação marcadas em período de alto movimento
-  const highFolgas = hours.entries.filter(e => e.kind === "compensacao" && e.status === "aprovado" &&
-    e.date >= start && e.date <= end && movementKind(e.date) === "alta");
+  // 4) Transição legal da EC 141/2026 (serviços gerais 6×1 → 5×2)
+  const services = DEMO_EMPLOYEES.filter(x => x.group === "S" && x.status === "ativo");
+  const reachesTransition = end >= dateOffset(LABOR_LAW.fiveTwoStart, -45);
   risks.push({
-    id: "folga-alta", level: "baixo",
-    title: "Folgas do banco marcadas no alto movimento",
-    why: "Não é infração, mas deixa o caixa com menos gente nos dias de maior fluxo.",
-    action: highFolgas.length ? "Se possível, mover para o período do dia 19 ao 27." : "Nenhuma folga no período de alto movimento.",
-    people: highFolgas.map(e => ({ id: e.employeeId, name: DEMO_EMPLOYEES.find(p => p.id === e.employeeId)?.name ?? e.employeeId, detail: "Folga em " + br(e.date) })),
+    id: "ec141", level: reachesTransition ? "medio" : "baixo",
+    title: "Transição para a 5×2 — " + LABOR_LAW.amendment,
+    why: "A partir de " + br(LABOR_LAW.fiveTwoStart) + " a jornada máxima é de 42h em 5×2 (40h a partir de " + br(LABOR_LAW.fortyHoursStart) +
+      "). A 6×1 só continua com convenção ou acordo coletivo.",
+    action: reachesTransition ? "Preparar aditivo de contrato e a nova escala 5×2 dos serviços gerais; conferir a convenção coletiva." :
+      "Acompanhar a data de transição; a escala já muda automaticamente na data.",
+    people: reachesTransition ? services.map(e => ({ id: e.id, name: e.name, detail: "Serviços gerais · revisar contrato para 5×2" })) : [],
+  });
+  // 4b) Portaria 12×36: acordo escrito e adicional noturno
+  const night = DEMO_EMPLOYEES.filter(x => x.group === "P" && x.turn === "noturno" && x.status === "ativo");
+  risks.push({
+    id: "12x36", level: "baixo",
+    title: "Portaria 12×36: acordo escrito e adicional noturno",
+    why: "A 12×36 exige acordo individual escrito ou convenção coletiva (art. 59-A da CLT). Das 22h às 5h há adicional noturno de 20% e a hora noturna tem 52min30s (art. 73).",
+    action: "Manter o acordo assinado no prontuário e conferir o adicional noturno na folha da turma noturna.",
+    people: night.map(e => ({ id: e.id, name: e.name, detail: "Turma noturna · adicional noturno" })),
   });
 
   // 5) Escalado com férias/atestado aprovado
@@ -121,17 +127,17 @@ export function laborRisks(schedule: ScheduleStore, hours: HourStore, absences: 
     for (const d of dates) {
       if (d < a.start || d > a.end) continue;
       const e = DEMO_EMPLOYEES.find(p => p.id === a.employeeId);
-      if (e && assignmentFor(schedule, e, d) !== null && dayOfWeek(d) === 0) {
-        conflicts.push({ id: e.id, name: e.name, detail: "Escalado no domingo " + br(d) + " durante " + (a.type === "ferias" ? "férias" : "afastamento") });
+      if (e && assignmentFor(schedule, e, d) !== null) {
+        conflicts.push({ id: e.id, name: e.name, detail: "Escalado em " + br(d) + " durante " + (a.type === "ferias" ? "férias" : "afastamento") });
         break;
       }
     }
   }
   risks.push({
     id: "ferias-escala", level: conflicts.length ? "medio" : "baixo",
-    title: "Pessoa de férias ou atestado escalada no domingo",
-    why: "O domingo fica com menos gente do que o planejado.",
-    action: conflicts.length ? "Colocar outra pessoa no lugar na escala de domingo." : "Nenhum conflito.",
+    title: "Pessoa de férias ou afastada ainda na escala",
+    why: "O posto fica descoberto: na portaria 12×36 é preciso um folguista ou troca de turma.",
+    action: conflicts.length ? "Colocar outra pessoa no lugar (troca ou cobertura) na Escala & trocas." : "Nenhum conflito.",
     people: conflicts,
   });
 

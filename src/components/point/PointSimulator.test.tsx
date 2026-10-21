@@ -15,7 +15,7 @@ describe("Ponto simulado - quatro marcações manuais",()=>{
     expect(within(table).getAllByRole("row")).toHaveLength(64);
     expect(screen.queryByRole("button",{name:"Próxima página"})).not.toBeInTheDocument();
     fireEvent.change(screen.getByRole("textbox",{name:"Buscar nome ou matrícula"}),
-      {target:{value:"FM-001"}});
+      {target:{value:"MN-001"}});
     expect(within(table).getAllByRole("row")).toHaveLength(2);
   });
   it("grava sequência de entrada e intervalo e registra justificativa em correção",()=>{
@@ -34,7 +34,7 @@ describe("Ponto simulado - quatro marcações manuais",()=>{
     render(<PointSimulator/>);
     fireEvent.click(screen.getByRole("button",{name:"Gerar amostra do dia"}));
     expect(screen.getByText(/Amostra fictícia gerada/)).toBeInTheDocument();
-    expect(screen.getByText("63 colaboradores na lista · rolagem vertical sem paginação")).toBeInTheDocument();
+    expect(screen.getByText("21 colaboradores na lista · rolagem vertical sem paginação")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button",{name:"Limpar data"}));
     expect(screen.getByText(/Registros da data removidos/)).toBeInTheDocument();
   });

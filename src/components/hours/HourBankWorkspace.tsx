@@ -28,7 +28,7 @@ function csvSafe(value:unknown){
   return '"'+(/^[\s]*[=+\-@\t\r]/.test(raw)?"'"+raw:raw)+'"';
 }
 function exportLedger(entries:HourEntry[],asOf:string){
-  const header=["ID","Colaborador","Matrícula","Grupo","Competência","Natureza","Movimento HH:MM",
+  const header=["ID","Colaborador","Matrícula","Função","Competência","Natureza","Movimento HH:MM",
     "Minutos assinados","Situação","Justificativa","Responsável","Registro em","Decisão em","Parecer","Estorno de"];
   const rows=entries.map(entry=>{
     const e=employeeOf(entry.employeeId);
@@ -81,7 +81,7 @@ export function HourBankWorkspace(){
   const [search,setSearch]=useState("");
   const [group,setGroup]=useState<"all"|GroupId>("all");
   const [onlyBalance,setOnlyBalance]=useState<"all"|"positive"|"negative"|"zero">("all");
-  const [employeeId,setEmployeeId]=useState("FM-001");
+  const [employeeId,setEmployeeId]=useState("MN-001");
   const [draft,setDraft]=useState<EntryDraft>(DEFAULT_DRAFT);
   const [reasonById,setReasonById]=useState<Record<string,string>>({});
   const [reviewer,setReviewer]=useState("Gestor demonstrativo");
@@ -173,13 +173,13 @@ export function HourBankWorkspace(){
     <header className="bh-head">
       <div><p className="op-eyebrow">MN PATRIMÔNIOS · GESTÃO DE PESSOAS · {UNIT.unit.toUpperCase()}</p>
         <h1>Banco <span>de horas</span></h1>
-        <p>Minutos a mais na saída viram crédito. Com 7h acumuladas, o colaborador ganha uma folga.</p></div>
+        <p>O ponto eletrônico registra os minutos após a saída e eles viram crédito. Com 1 jornada acumulada (7h20 nos serviços gerais, 11h na portaria 12×36), o colaborador ganha uma folga de compensação.</p></div>
       <label className="bh-date"><CalendarDays size={17}/><span>Posição até</span>
         <input aria-label="Data de referência" type="date" value={date}
           onChange={e=>{if(isValidReferenceDate(e.target.value))setDate(e.target.value);}}/></label>
     </header>
     <div className="bh-demo"><ShieldCheck size={18}/><span><b>DEMONSTRAÇÃO · {UNIT.unit}.</b>
-      Os 63 funcionários e saldos são fictícios. Apenas lançamentos aprovados entram nas contas.
+      Os {DEMO_EMPLOYEES.length} colaboradores e saldos são fictícios. Apenas lançamentos aprovados entram nas contas.
       Sem registro oficial de ponto, folha, banco de dados ou autorização empresarial real.</span></div>
     {feedback&&<div className="bh-feedback" role="status"><Info size={16}/><span>{feedback}</span>
       <button type="button" aria-label="Dispensar aviso" onClick={()=>setFeedback("")}><X size={15}/></button></div>}
@@ -191,13 +191,13 @@ export function HourBankWorkspace(){
         <strong className="bh-negative">{duration(-totals.negative)}</strong>
         <small>{totals.peopleNegative} colaborador(es) com débito</small></div>
       <div className="bh-stat"><span><Wallet size={17}/> Saldo líquido geral</span>
-        <strong>{duration(totals.net)}</strong><small>Somatório dos 63 saldos individuais</small></div>
+        <strong>{duration(totals.net)}</strong><small>Somatório dos saldos individuais</small></div>
       <div className="bh-stat"><span><Clock3 size={17}/> Pendentes de aprovação</span>
         <strong>{totals.pending}</strong><small>Não contabilizados no saldo</small></div>
     </section>
     <nav className="bh-tabs" aria-label="Áreas do banco de horas">
       {([
-        ["manager","Consulta rápida do gerente",Search],["overview","Saldos e equipe",Users],["new","Novo lançamento",Plus],
+        ["manager","Consulta rápida do supervisor",Search],["overview","Saldos e equipe",Users],["new","Novo lançamento",Plus],
         ["approval","Autorizações",Check],["statement","Extrato individual",FileClock],
         ["history","Movimentações e histórico",History],
       ] as const).map(([id,label,Icon])=><button type="button" key={id}
@@ -224,7 +224,7 @@ export function HourBankWorkspace(){
       </section>
       <section className="bh-panel">
         <div className="bh-panel-head"><div><p className="op-eyebrow">CONTROLE INDIVIDUAL</p>
-          <h2>Quadro dos 63 colaboradores</h2><p>Pesquisa, filtros por grupo e saldo, rolando na própria tabela.</p></div>
+          <h2>Quadro dos colaboradores</h2><p>Pesquisa, filtros por função e saldo, rolando na própria tabela.</p></div>
           <span className="bh-count">{filtered.length} pessoa(s)</span></div>
         <div className="bh-filters">
           <label className="bh-search"><Search size={16}/><input value={search}
@@ -232,7 +232,7 @@ export function HourBankWorkspace(){
             onChange={e=>setSearch(e.target.value)}/></label>
           <select aria-label="Filtrar grupo" value={group} onChange={e=>setGroup(e.target.value as "all"|GroupId)}>
             <option value="all">Todos os grupos</option>
-            {GROUP_IDS.map(g=><option key={g} value={g}>Grupo {g} · {GROUPS[g].name}</option>)}
+            {GROUP_IDS.map(g=><option key={g} value={g}>{GROUPS[g].name}</option>)}
           </select>
           <select aria-label="Filtrar saldo" value={onlyBalance}
             onChange={e=>setOnlyBalance(e.target.value as typeof onlyBalance)}>
@@ -241,11 +241,11 @@ export function HourBankWorkspace(){
           </select>
         </div>
         <div className="bh-table-scroll" ref={tableRef} role="region" aria-label="Tabela de saldos com rolagem vertical" tabIndex={0}>
-          <table className="bh-table"><thead><tr><th>Colaborador</th><th>Grupo</th><th>Saldo anterior</th>
+          <table className="bh-table"><thead><tr><th>Colaborador</th><th>Função</th><th>Saldo anterior</th>
             <th>Créditos do mês</th><th>Débitos do mês</th><th>Saldo até a data</th><th>Pendências</th><th>Ações</th>
           </tr></thead><tbody>{filtered.map(r=><tr key={r.employee.id}>
             <td><b>{r.employee.name}</b><small>{r.employee.id}</small></td>
-            <td>Grupo {r.employee.group}</td>
+            <td>{GROUPS[r.employee.group].name}</td>
             <td><HourAmount value={r.opening}/></td>
             <td className="bh-positive">{duration(r.credits)}</td>
             <td className="bh-negative">{duration(-r.debits)}</td>
@@ -256,7 +256,7 @@ export function HourBankWorkspace(){
           </tr>)}</tbody></table>
           {!filtered.length&&<p className="bh-empty">Nenhum colaborador corresponde aos filtros.</p>}
         </div>
-        <div className="bh-panel-footer">{filtered.length} de 63 colaboradores · títulos fixos · sem paginação</div>
+        <div className="bh-panel-footer">{filtered.length} de {DEMO_EMPLOYEES.length} colaboradores · títulos fixos · sem paginação</div>
       </section>
     </>}
     {tab==="new"&&<section className="bh-panel bh-form-panel">
@@ -268,7 +268,7 @@ export function HourBankWorkspace(){
         <label className="bh-field"><span>Colaborador</span>
           <select aria-label="Colaborador" value={draft.employeeId}
             onChange={e=>updateDraft("employeeId",e.target.value)}>
-            {DEMO_EMPLOYEES.map(e=><option key={e.id} value={e.id}>{e.name} · {e.id} · {e.group}</option>)}
+            {DEMO_EMPLOYEES.map(e=><option key={e.id} value={e.id}>{e.name} · {e.id} · {GROUPS[e.group].name}</option>)}
           </select></label>
         <label className="bh-field"><span>Natureza da movimentação</span>
           <select aria-label="Tipo de movimentação" value={draft.kind}
@@ -282,7 +282,7 @@ export function HourBankWorkspace(){
         <label className="bh-field"><span>Responsável pelo registro</span>
           <input aria-label="Responsável pelo registro" value={draft.responsible} maxLength={100}
             onChange={e=>updateDraft("responsible",e.target.value)}
-            placeholder="Nome do operador demonstrativo"/></label>
+            placeholder="Nome do colaborador demonstrativo"/></label>
         <div className="bh-duration-editor"><span>Duração exata</span><div className="bh-time-fields">
           <label className="bh-field"><span>Horas</span><input aria-label="Horas" type="number" min={0} max={999}
             step={1} value={draft.hours} onChange={e=>updateDraft("hours",e.target.value)}/></label>
@@ -344,9 +344,9 @@ export function HourBankWorkspace(){
       <div className="bh-statement-filters"><label className="bh-field"><span>Colaborador</span>
         <select value={employeeId} aria-label="Selecionar extrato do colaborador"
           onChange={e=>{setEmployeeId(e.target.value);setReverseTarget(null);}}>
-          {DEMO_EMPLOYEES.map(e=><option key={e.id} value={e.id}>{e.name} · {e.id} · Grupo {e.group}</option>)}
+          {DEMO_EMPLOYEES.map(e=><option key={e.id} value={e.id}>{e.name} · {e.id} · {GROUPS[e.group].name}</option>)}
         </select></label>
-        <div className="bh-person"><b>{current.name}</b><small>{current.id} · Grupo {current.group} · {UNIT.unit}</small></div></div>
+        <div className="bh-person"><b>{current.name}</b><small>{current.id} · {GROUPS[current.group].name} · {UNIT.unit}</small></div></div>
       <div className="bh-mini-balances">
         <div><span>Saldo anterior</span><strong>{duration(currentSnap.opening)}</strong></div>
         <div><span>Créditos do mês</span><strong className="bh-positive">{duration(currentSnap.credits)}</strong></div>

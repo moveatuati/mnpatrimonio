@@ -14,5 +14,5 @@ export const NAV = [
   { to: "/relatorios", label: "Relatórios", icon: FileText },
   { to: "/simulador", label: "Simulador 5×2", icon: FlaskConical },
   { to: "/regras", label: "Regras & histórico", icon: ScrollText },
-  { to: "/app-gerente", label: "App do gerente (prévia)", icon: Smartphone },
+  { to: "/app-gerente", label: "App do supervisor (prévia)", icon: Smartphone },
 ] as const;

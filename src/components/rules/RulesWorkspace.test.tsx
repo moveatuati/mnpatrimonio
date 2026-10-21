@@ -13,12 +13,12 @@ describe("Regras & histórico — central gerencial",()=>{
     render(<RulesWorkspace/>);
     expect(screen.getByRole("heading",{name:"Regras & histórico"})).toBeInTheDocument();
     expect(screen.getByText("Central de regras da operação")).toBeInTheDocument();
-    fireEvent.change(screen.getByLabelText("Grupo A start"),{target:{value:"07:10"}});
+    fireEvent.change(screen.getByLabelText("Portaria 12×36 · diurno start"),{target:{value:"07:10"}});
     fireEvent.change(screen.getByLabelText("Justificativa das novas regras"),
       {target:{value:"Planejamento aprovado para o piloto"}});
     fireEvent.click(screen.getByRole("button",{name:/Salvar regras e registrar histórico/}));
     expect(window.localStorage.getItem(RH_SETTINGS_KEY)).not.toBeNull();
-    expect(GROUPS.A.shift.start).toBe("07:10");
+    expect(GROUPS.P.shift.start).toBe("07:10");
     fireEvent.click(screen.getByRole("button",{name:"Parâmetros e histórico"}));
     expect(screen.getByText(/07:00 → 07:10/)).toBeInTheDocument();
   });

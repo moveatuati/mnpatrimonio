@@ -27,10 +27,9 @@ describe("Alerta de atraso (10 min)", () => {
 });
 
 describe("Quadro demonstrativo", () => {
-  it("possui 63 colaboradores: A=4, B=29, C=30", () => {
-    expect(DEMO_EMPLOYEES).toHaveLength(63);
-    expect(DEMO_EMPLOYEES.filter((e) => e.group === "A")).toHaveLength(4);
-    expect(DEMO_EMPLOYEES.filter((e) => e.group === "B")).toHaveLength(29);
-    expect(DEMO_EMPLOYEES.filter((e) => e.group === "C")).toHaveLength(30);
+  it("possui 21 colaboradores: 12 de portaria (12×36) e 9 de serviços gerais", () => {
+    expect(DEMO_EMPLOYEES).toHaveLength(21);
+    expect(DEMO_EMPLOYEES.filter((e) => e.group === "P")).toHaveLength(12);
+    expect(DEMO_EMPLOYEES.filter((e) => e.group === "S")).toHaveLength(9);
   });
 });

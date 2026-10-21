@@ -1,11 +1,10 @@
 import { DEMO_EMPLOYEES } from "./demo-data";
-import { GROUPS, GROUP_IDS, RULES, SUNDAY_SHIFTS } from "./config";
+import { GROUPS, PORTARIA_SHIFTS, RULES, SERVICE_SHIFTS, employeeShift, shiftMinutes } from "./config";
 import {
   adjacentRestProblems, coverageFor, dateOffset, dayOfWeek, isScheduleDate,
   overrideKey, scheduleForDate, validateChanges,
   type AssignmentChange, type DailyCoverageTargets, type ScheduleStore,
 } from "./schedule";
-import { toMinutes } from "./time";
 
 /** Artefato em memória: nenhuma gravação, migração ou aprovação oficial. */
 export interface OperationalReference {
@@ -18,7 +17,7 @@ export interface OperationalReference {
   dates: string[];
   source: ScheduleStore;
   shifts: typeof GROUPS;
-  sundayShifts: typeof SUNDAY_SHIFTS;
+  turnShifts: { portaria: typeof PORTARIA_SHIFTS; servicos: typeof SERVICE_SHIFTS };
   minRestHours: number;
   roster: ReturnType<typeof scheduleForDate>[];
   pending: string[];
@@ -38,12 +37,12 @@ export function prepareOperationalReference(
     schemaVersion: 1, revision: (previous?.revision ?? 0) + 1,
     previousRevision: previous?.revision ?? null, status: "aguardando-homologacao",
     start, end: dateOffset(start, 27), dates, source,
-    shifts: clone(GROUPS), sundayShifts: clone(SUNDAY_SHIFTS), minRestHours: RULES.minRestHours,
+    shifts: clone(GROUPS), turnShifts: clone({ portaria: PORTARIA_SHIFTS, servicos: SERVICE_SHIFTS }), minRestHours: RULES.minRestHours,
     roster: dates.map(date => clone(scheduleForDate(source, date))),
-    pending: ["Escala nominal e folgas úteis confirmadas pela gerência para os 28 dias.",
+    pending: ["Escala nominal e folgas confirmadas pelo gestor para os 28 dias.",
       "Metas operacionais por data, inclusive dias úteis com folgas.",
       "Escala confirmada dos seis dias anteriores e posteriores (limites do ciclo).",
-      "Disponibilidade, jornadas especiais, intervalos dominicais e validação jurídica."],
+      "Acordo escrito/convenção da 12×36, disponibilidade e validação jurídica."],
     conflicts: [...new Set(dates.flatMap(date => DEMO_EMPLOYEES.flatMap(employee =>
       adjacentRestProblems(source, employee, date))))],
   };
@@ -68,7 +67,7 @@ export function reviewOperationalProposal(
   if (changes.some(change => !requiredDates.includes(change.date))) errors.push("Alteração fora do período e contexto de 40 dias.");
   // Validação usa a configuração atual; uma revisão exige que os horários congelados permaneçam iguais.
   if (JSON.stringify(reference.shifts) !== JSON.stringify(GROUPS) ||
-      JSON.stringify(reference.sundayShifts) !== JSON.stringify(SUNDAY_SHIFTS) || reference.minRestHours !== RULES.minRestHours)
+      JSON.stringify(reference.turnShifts) !== JSON.stringify({ portaria: PORTARIA_SHIFTS, servicos: SERVICE_SHIFTS }) || reference.minRestHours !== RULES.minRestHours)
     errors.push("Parâmetros de jornada alterados: preparar nova revisão da referência.");
   const validation = validateChanges(reference.source, changes, targets);
   errors.push(...validation.errors);
@@ -85,20 +84,15 @@ export function reviewOperationalProposal(
       for (const employee of DEMO_EMPLOYEES) errors.push(...adjacentRestProblems(next, employee, date));
     }
   }
-  // Jornadas-base são 7h20; domingo é 6h15 sem intervalo informado. Limite semanal depende do jurídico.
+  // Minutos líquidos por jornada (12×36: 11h; 6×1: 7h20; 5×2: 8h24/8h). Limite semanal depende do jurídico.
   const weeklyMinutes = DEMO_EMPLOYEES.map(employee => ({
     employeeId: employee.id,
     weeks: Array.from({ length: 4 }, (_, week) => reference.dates.slice(week * 7, week * 7 + 7)
       .reduce((total, date) => {
         const group = next.overrides[overrideKey(date, employee.id)];
         if (!group) return total;
-        if (dayOfWeek(date) === 0 || next.rules.holidays.includes(date)) {
-          const shift = reference.sundayShifts[GROUP_IDS.indexOf(group)];
-          return total + (shift ? toMinutes(shift.end) - toMinutes(shift.start) : 0);
-        }
-        const shift = reference.shifts[group]?.shift;
-        if (!shift) return total;
-        return total + toMinutes(shift.breakStart) - toMinutes(shift.start) + toMinutes(shift.end) - toMinutes(shift.breakEnd);
+        if (group !== employee.group) return total;
+        return total + shiftMinutes(employeeShift(employee, date));
       }, 0)),
   }));
   if (weeklyLimitMinutes !== undefined) for (const employee of weeklyMinutes) {

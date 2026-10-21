@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { CalendarDays, Eye, Info, Printer, Search, ShieldCheck, Users, X } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { GROUPS, GROUP_IDS, RULES, UNIT } from "@/domain/config";
+import { GROUPS, GROUP_IDS, RULES, UNIT, employeeShift } from "@/domain/config";
 import { buildDashboard } from "@/domain/dashboard";
 import { DEMO_EMPLOYEES, demoPunches } from "@/domain/demo-data";
 import { filterArrivals, isValidReferenceDate, type EntryFilter } from "@/domain/operation-query";
@@ -42,7 +42,7 @@ function demoHistory(employee: Employee, date: string) {
     current.setUTCDate(current.getUTCDate() - i);
     const day = current.toISOString().slice(0, 10);
     const entry = demoPunches(day, [employee])[0]?.entry;
-    return { day, entry, status: classifyArrival(GROUPS[employee.group].shift.start, entry).status };
+    return { day, entry, status: classifyArrival(employeeShift(employee, day).start, entry).status };
   });
 }
 export function CollaboratorsDirectory() {
@@ -59,7 +59,7 @@ export function CollaboratorsDirectory() {
   const schedule = stores?.schedule ?? DEFAULT_SCHEDULE;
   const dashboard = useMemo(() => {
     const day = buildDashboard(date, DEMO_EMPLOYEES, schedule);
-    // Lista completa (63): quem está de folga aparece com o motivo, sem contar como atraso.
+    // Lista completa: quem está de folga aparece com o motivo, sem contar como atraso.
     const arrivals = DEMO_EMPLOYEES.map(employee => {
       const found = day.arrivals.find(a => a.employee.id === employee.id);
       return found ? { ...found, employee } : { employee, planned: "", entry: undefined as string | undefined, status: "sem_registro" as ArrivalStatus, offToday: true };
@@ -102,10 +102,10 @@ export function CollaboratorsDirectory() {
     </header>
     {dateInvalid && <p className="op-date-error mt-3" role="alert">Data inválida. Mantendo {showDate(date)}.</p>}
     <div className="op-demo mt-5"><ShieldCheck size={17} aria-hidden="true" />
-      <span><strong>Demonstração.</strong> Os 63 colaboradores e as entradas são fictícios. Sem cadastro editável nem ponto oficial.</span>
+      <span><strong>Demonstração.</strong> Os {DEMO_EMPLOYEES.length} colaboradores (portaria e serviços gerais) e as entradas são fictícios. Sem cadastro editável nem ponto oficial.</span>
     </div>
 
-    <section aria-label="Quadro por grupo" className="rh-group-overview mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+    <section aria-label="Quadro por grupo" className="rh-group-overview mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
       <button type="button" aria-pressed={group === "all"} onClick={() => chooseGroup("all")}
         className={`rh-group-card rounded-xl border bg-card p-4 text-left shadow-card transition ${group === "all" ? "rh-group-card-active" : ""}`}>
         <span className="flex items-center gap-2 text-xs font-semibold text-muted-foreground"><Users size={17} className="text-primary" /> Quadro completo</span>
@@ -118,10 +118,10 @@ export function CollaboratorsDirectory() {
           className={`rh-group-card rounded-xl border bg-card p-4 text-left shadow-card transition ${group === id ? "rh-group-card-active" : ""}`}>
           <span className="flex items-center gap-2 text-xs font-semibold text-muted-foreground">
             <span className="flex h-6 w-6 items-center justify-center rounded-md bg-accent font-bold text-primary">{id}</span>
-            Grupo {id} · {GROUPS[id].name}
+            {GROUPS[id].name} · {id === "P" ? "12×36" : "6×1 → 5×2"}
           </span>
           <strong className="mt-2 block font-display text-4xl tabular-nums text-foreground">{count}</strong>
-          <small className="mt-1 block text-muted-foreground">Entrada-base: {GROUPS[id].shift.start}</small>
+          <small className="mt-1 block text-muted-foreground">{id === "P" ? "Diurno 07h–19h · Noturno 19h–07h" : "Entrada-base: " + employeeShift({ group: id }, date).start}</small>
         </button>;
       })}
     </section>
@@ -139,14 +139,14 @@ export function CollaboratorsDirectory() {
         <label className="rh-directory-search flex min-w-[210px] flex-1 items-center gap-2 rounded-lg border border-input bg-background px-3 py-2.5">
           <Search size={16} className="text-muted-foreground" aria-hidden="true" />
           <input type="search" className="w-full bg-transparent text-sm outline-none" aria-label="Buscar por nome ou código"
-            placeholder="Nome ou código FM-..." value={query}
+            placeholder="Nome ou código MN-..." value={query}
             onChange={e => setQuery(e.target.value)} />
         </label>
         <select aria-label="Filtrar por grupo" value={group}
           onChange={e => chooseGroup(e.target.value as "all" | GroupId)}
           className="rh-directory-select min-h-10 rounded-lg border border-input bg-background px-3 text-sm">
           <option value="all">Todos os grupos</option>
-          {GROUP_IDS.map(id => <option key={id} value={id}>Grupo {id} · {GROUPS[id].name}</option>)}
+          {GROUP_IDS.map(id => <option key={id} value={id}>{GROUPS[id].name}</option>)}
         </select>
         <select aria-label="Filtrar por situação da entrada" value={status}
           onChange={e => setStatus(e.target.value as EntryFilter)}
@@ -157,24 +157,24 @@ export function CollaboratorsDirectory() {
           type="button" onClick={reset}><X size={14} /> Limpar filtros</button>}
       </div>
       <p className="border-y border-border bg-muted/40 px-5 py-2 text-[11px] text-muted-foreground">
-        <span role="status">{rowsFiltered.length} de 63 colaboradores</span> · Consulta {showDate(date)} · Entrada é simulação, não presença confirmada.
+        <span role="status">{rowsFiltered.length} de {DEMO_EMPLOYEES.length} colaboradores</span> · Consulta {showDate(date)} · Entrada é simulação, não presença confirmada.
       </p>
       <div ref={tableScroll} className="rh-directory-scroll" role="region" tabIndex={0}
         aria-label="Tabela de colaboradores com rolagem vertical; em telas pequenas também horizontal">
         <table className="rh-directory-table w-full min-w-[870px] text-left text-xs">
           <caption className="sr-only">Colaboradores fictícios da MN Patrimônios em {showDate(date)}</caption>
           <thead className="bg-muted/60 text-[11px] uppercase tracking-wide text-muted-foreground">
-            <tr>{["Colaborador", "Grupo", "Jornada-base", "Hoje", "Entrada simulada", "Banco de horas", "Atrasos/mês*"].map(label =>
+            <tr>{["Colaborador", "Função", "Jornada-base", "Hoje", "Entrada simulada", "Banco de horas", "Atrasos/mês*"].map(label =>
               <th scope="col" className="px-4 py-3 font-semibold" key={label}>{label}</th>)}
               <th scope="col" className="px-4 py-3 no-print"><span className="sr-only">Consultar ficha</span></th>
             </tr>
           </thead>
           <tbody>
             {rowsFiltered.map(({ employee, entry, status: entryStatus }) => {
-              const shift = GROUPS[employee.group].shift;
+              const shift = employeeShift(employee, date);
               return <tr key={employee.id} className="border-t border-border/70 even:bg-muted/30 hover:bg-accent/40">
                 <td className="px-4 py-3"><strong className="block text-foreground">{employee.name}</strong><small className="text-muted-foreground">{employee.id}</small></td>
-                <td className="px-4 py-3"><strong className="text-primary">Grupo {employee.group}</strong><small className="block text-muted-foreground">{GROUPS[employee.group].name}</small></td>
+                <td className="px-4 py-3"><strong className="text-primary">{GROUPS[employee.group].name}</strong><small className="block text-muted-foreground">{GROUPS[employee.group].name}</small></td>
                 <td className="px-4 py-3"><strong className="tabular-nums">{shift.start}–{shift.end}</strong><small className="block text-muted-foreground">Intervalo {shift.breakStart}–{shift.breakEnd}</small></td>
                 <td className="px-4 py-3">{(() => {
                   const slot = assignmentFor(schedule, employee, date);
@@ -233,7 +233,7 @@ export function CollaboratorsDirectory() {
         <DialogHeader>
           <DialogTitle className="text-xl">{selected.employee.name}</DialogTitle>
           <DialogDescription>
-            {selected.employee.id} · Grupo {selected.employee.group} — {GROUPS[selected.employee.group].name}<br />
+            {selected.employee.id} · {GROUPS[selected.employee.group].name} · {employeeShift(selected.employee, date).label}<br />
             Unidade {UNIT.unit} · {UNIT.city} · Registro fictício
           </DialogDescription>
         </DialogHeader>
@@ -257,9 +257,9 @@ export function CollaboratorsDirectory() {
         </div>
         <dl className="rh-employee-details-grid grid grid-cols-1 gap-2 sm:grid-cols-3">
           {[
-            ["Entrada-base", GROUPS[selected.employee.group].shift.start],
-            ["Saída-base", GROUPS[selected.employee.group].shift.end],
-            ["Intervalo", `${GROUPS[selected.employee.group].shift.breakStart}–${GROUPS[selected.employee.group].shift.breakEnd}`],
+            ["Entrada-base", employeeShift(selected.employee, date).start],
+            ["Saída-base", employeeShift(selected.employee, date).end],
+            ["Intervalo", `${employeeShift(selected.employee, date).breakStart}–${employeeShift(selected.employee, date).breakEnd}`],
             [`Entrada simulada (${showDate(date)})`, selected.entry ?? "Sem marcação"],
             ["Admissão", "Não informada"],
             ["Banco de horas", "Não implantado"],
@@ -275,7 +275,7 @@ export function CollaboratorsDirectory() {
               <h3 className="font-display text-sm font-semibold">Últimas cinco datas simuladas</h3>
               <p className="mt-1 text-xs text-muted-foreground">Sem considerar folgas, domingos ou escala efetiva.</p>
             </div>
-            <span className="text-[11px] font-medium text-muted-foreground">Entrada-base: {GROUPS[selected.employee.group].shift.start}</span>
+            <span className="text-[11px] font-medium text-muted-foreground">Entrada-base: {employeeShift(selected.employee, date).start}</span>
           </div>
           <div className="rh-employee-records mt-3" role="table" aria-label="Últimas cinco entradas fictícias">
             <div role="row" className="rh-employee-record-head">

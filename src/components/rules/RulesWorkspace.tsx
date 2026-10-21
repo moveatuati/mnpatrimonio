@@ -4,14 +4,18 @@ import { PageHeader } from "@/components/layout/AppShell";
 import { ABSENCE_STORAGE_KEY, restoreAbsences } from "@/domain/absences";
 import { HOUR_KEY, restoreHours } from "@/domain/hour-bank";
 import { readPointStore } from "@/domain/point-simulator";
-import { BANK_RULES, GROUPS, GROUP_IDS, SPECIAL_SLOT_LABEL } from "@/domain/config";
+import { BANK_RULES, GROUPS, GROUP_IDS, LABOR_LAW, RULES, SERVICE_SHIFTS } from "@/domain/config";
+import { DEMO_EMPLOYEES } from "@/domain/demo-data";
+import { SCHEDULE_STORAGE_KEY } from "@/domain/absences";
 import { DEFAULT_SCHEDULE, reviseStore, type ScheduleStore } from "@/domain/schedule";
 import type { GroupId } from "@/domain/types";
-import { RH_POINT_KEY, RH_SETTINGS_EVENT, defaultRhSettings, describeChanges, readRhSettingsStore,
-  saveRhSettings, validateRhSettings, type RhSettings } from "@/domain/rh-settings";
+import { RH_POINT_KEY, RH_SETTINGS_EVENT, SHIFT_KEYS, SHIFT_KEY_LABEL, defaultRhSettings, describeChanges, readRhSettingsStore,
+  saveRhSettings, validateRhSettings, type RhSettings, type ShiftKey } from "@/domain/rh-settings";
 import "./RulesWorkspace.css";
 
-const SCHEDULE_KEY="formosa:augusto-montenegro:escala-demo:v1";
+const SCHEDULE_KEY=SCHEDULE_STORAGE_KEY;
+const groupSize=(g:GroupId)=>DEMO_EMPLOYEES.filter(e=>e.group===g&&e.status==="ativo").length;
+const br=(d:string)=>d.split("-").reverse().join("/");
 const number=(x:number)=>x.toLocaleString("pt-BR");
 const dateLabel=(d:string)=>d.split("-").reverse().join("/");
 const initialSchedule=():ScheduleStore=>DEFAULT_SCHEDULE;
@@ -26,8 +30,8 @@ function validDate(x:string){
   const d=new Date(x+"T12:00:00Z");
   return Number.isFinite(d.getTime())&&d.toISOString().slice(0,10)===x;
 }
-type Kind="sunday"|"holiday";
-const menu=["Horários regulares","Domingos e feriados","Parâmetros e histórico"] as const;
+type Kind="daily"|"sunday"|"holiday";
+const menu=["Horários regulares","Vagas, domingos e feriados","Parâmetros e histórico"] as const;
 type Pane=typeof menu[number];
 type HistoryView={id:string;date:string;who:string;details:string;source:string};
 function readConnectedHistory():HistoryView[]{
@@ -83,23 +87,19 @@ export function RulesWorkspace(){
       .filter(h=>!filter||(h.details+" "+h.who+" "+h.date+" "+h.source).toLocaleLowerCase("pt-BR").includes(filter))
       .sort((a,b)=>b.date.localeCompare(a.date)).slice(0,250);
   },[stored.history,schedule.history,connectedHistory,historyFilter]);
-  const shiftField=(g:GroupId,field:"start"|"breakStart"|"breakEnd"|"end",value:string)=>{
+  const shiftField=(g:ShiftKey,field:"start"|"breakStart"|"breakEnd"|"end",value:string)=>{
     setDraft(prev=>({...prev,shifts:{...prev.shifts,[g]:{...prev.shifts[g],[field]:value}}}));
-    setFeedback("");
-  };
-  const sundayField=(index:number,key:"start"|"end",value:string)=>{
-    setDraft(prev=>({...prev,sundayShifts:prev.sundayShifts.map((v,i)=>i===index?{...v,[key]:value}:v)}));
     setFeedback("");
   };
   const setTarget=(kind:Kind,g:GroupId,value:number)=>{
     if(!Number.isFinite(value))return;
-    const n=Math.max(0,Math.min(kind==="sunday"?63:GROUPS[g].requiredStaff,Math.trunc(value)));
+    const n=Math.max(0,Math.min(groupSize(g),Math.trunc(value)));
     setSchedule(prev=>({...prev,rules:{...prev.rules,[kind]:{...prev.rules[kind],[g]:n}}}));
     setFeedback("");
   };
   const setHolidayTarget=(date:string,g:GroupId,value:number)=>{
     if(!Number.isFinite(value))return;
-    const n=Math.max(0,Math.min(GROUPS[g].requiredStaff,Math.trunc(value)));
+    const n=Math.max(0,Math.min(groupSize(g),Math.trunc(value)));
     setSchedule(prev=>({...prev,rules:{...prev.rules,holidayByDate:{
       ...prev.rules.holidayByDate,[date]:{...(prev.rules.holidayByDate[date]??prev.rules.holiday),[g]:n},
     }}}));
@@ -129,9 +129,9 @@ export function RulesWorkspace(){
     const latest=readSchedule();
     const old=latest.rules;
     const diffs:string[]=[];
-    for(const kind of ["sunday","holiday"] as const)for(const g of GROUP_IDS){
+    for(const kind of ["daily","sunday","holiday"] as const)for(const g of GROUP_IDS){
       if(old[kind][g]!==schedule.rules[kind][g])
-        diffs.push((kind==="sunday"?"Domingo":"Feriado")+" "+g+": "+old[kind][g]+" → "+schedule.rules[kind][g]);
+        diffs.push((kind==="daily"?"Dia útil":kind==="sunday"?"Domingo":"Feriado")+" · "+GROUPS[g].name+": "+old[kind][g]+" → "+schedule.rules[kind][g]);
     }
     for(const date of [...new Set([...old.holidays,...schedule.rules.holidays])]){
       if(old.holidays.includes(date)!==schedule.rules.holidays.includes(date))
@@ -139,7 +139,7 @@ export function RulesWorkspace(){
       if(schedule.rules.holidays.includes(date))for(const g of GROUP_IDS){
         const oldN=(old.holidayByDate[date]??old.holiday)[g];
         const newN=(schedule.rules.holidayByDate[date]??schedule.rules.holiday)[g];
-        if(oldN!==newN)diffs.push("Feriado "+date+" / "+g+": "+oldN+" → "+newN);
+        if(oldN!==newN)diffs.push("Feriado "+date+" / "+GROUPS[g].name+": "+oldN+" → "+newN);
       }
     }
     if(!changed.length&&!diffs.length){setFeedback("Não há diferenças em relação às configurações salvas.");return;}
@@ -165,64 +165,61 @@ export function RulesWorkspace(){
     <PageHeader title="Regras & histórico" subtitle="Central de parâmetros, políticas operacionais e rastreabilidade das alterações do RH."/>
     <main className="rh-config">
       <section className="rh-hero">
-        <div><p className="rh-eyebrow">MN PATRIMÔNIOS · AUGUSTO MONTENEGRO</p>
+        <div><p className="rh-eyebrow">MN PATRIMÔNIOS · PORTARIA E SERVIÇOS GERAIS</p>
           <h2>Central de regras da operação</h2>
-          <p>Configure horários, intervalos, limites e escalas especiais em um só lugar. Os módulos de Escala, Ponto, Dashboard, Férias, Relatórios e Simulador consultam essas referências.</p></div>
-        <div className="rh-hero-count"><span>Equipe de referência</span><strong>63</strong><small>Operadores de caixa · A / B / C</small></div>
+          <p>Configure horários, intervalos, limites e vagas em um só lugar. Os módulos de Escala, Ponto, Dashboard, Férias, Banco de horas, Relatórios e Simulador consultam essas referências.</p></div>
+        <div className="rh-hero-count"><span>Equipe de referência</span><strong>{DEMO_EMPLOYEES.length}</strong><small>{groupSize("P")} portaria 12×36 · {groupSize("S")} serviços gerais</small></div>
       </section>
       <div className="rh-rule-banner"><ShieldCheck size={20}/>
         <div><b>Proteções que não podem ser desativadas pelo painel</b>
-          <p>Descanso entre jornadas nunca inferior a 11 horas; histórico de ponto não pode ser adulterado. No estudo 5×2: sábado integral, domingos alternados, duas folgas separadas e até cinco jornadas consecutivas. Alterações continuam demonstrativas e exigem validação do RH e da norma coletiva.</p></div></div>
+          <p>Descanso entre jornadas nunca inferior a 11 horas (art. 66 da CLT) e 36h após o plantão da 12×36 (art. 59-A); no máximo {RULES.maxConsecutiveDays6x1} dias seguidos no 6×1 e {RULES.maxConsecutiveDays5x2} na 5×2; histórico de ponto não pode ser adulterado. Alterações continuam demonstrativas e exigem validação do RH e da convenção coletiva.</p></div></div>
       <nav className="rh-nav" aria-label="Categorias das regras">{menu.map((item,i)=><button key={item} type="button" className={pane===item?"rh-active":""} onClick={()=>setPane(item)}>
         {i===0?<Clock3 size={16}/>:i===1?<CalendarDays size={16}/>:<SlidersHorizontal size={16}/>} {item}</button>)}</nav>
       {!loaded&&<p className="rh-notice">Carregando parâmetros demonstrativos...</p>}
       {pane==="Horários regulares"&&<section className="rh-panel">
-        <div className="rh-panel-header"><div><p className="rh-eyebrow">TURNOS A · B · C</p><h3>Jornadas e intervalos de trabalho</h3><p>Todos são operadores de caixa, no mesmo setor. Os horários se sobrepõem; os intervalos não são tempo em atendimento.</p></div></div>
-        <div className="rh-shift-grid">{GROUP_IDS.map(g=><div key={g} className="rh-shift-card">
-          <div className="rh-shift-name"><b>Grupo {g} · {GROUPS[g].name}</b><span>{GROUPS[g].requiredStaff} atuais</span></div>
+        <div className="rh-panel-header"><div><p className="rh-eyebrow">PORTARIA 12×36 · SERVIÇOS GERAIS 6×1</p><h3>Jornadas e intervalos de trabalho</h3><p>A portaria trabalha 12h e descansa 36h (turmas diurna e noturna). Os serviços gerais fazem 6×1 de 44h até a transição para a 5×2. O intervalo não conta como tempo de trabalho.</p></div></div>
+        <div className="rh-shift-grid">{SHIFT_KEYS.map(g=><div key={g} className="rh-shift-card">
+          <div className="rh-shift-name"><b>{SHIFT_KEY_LABEL[g]}</b><span>{g==="servicos"?groupSize("S")+" pessoas":DEMO_EMPLOYEES.filter(e=>e.group==="P"&&(g==="portariaNoturno")===(e.turn==="noturno")).length+" agentes"}</span></div>
           <div className="rh-fields">{(["start","breakStart","breakEnd","end"] as const).map((key,i)=><label key={key}>
             <span>{["Entrada","Saída intervalo","Retorno intervalo","Saída final"][i]}</span>
-            <input aria-label={"Grupo "+g+" "+key} type="time" value={draft.shifts[g][key]}
+            <input aria-label={SHIFT_KEY_LABEL[g]+" "+key} type="time" value={draft.shifts[g][key]}
               onChange={e=>shiftField(g,key,e.target.value)}/></label>)}</div>
-          <p>Configuração de trabalho: a mudança é refletida no previsto do ponto, na escala e nos relatórios futuros. Não altera marcações históricas.</p>
+          <p>{g==="portariaNoturno"?"Atravessa a meia-noite. Das 22h às 5h: adicional noturno de 20% e hora de 52min30s (art. 73 da CLT).":g==="servicos"?"Segunda a sábado, 7h20 líquidas = 44h semanais. Domingo é o descanso semanal (Lei 605/1949).":"12 horas seguidas com 1h de intervalo (observado ou indenizado, art. 59-A)."}</p>
         </div>)}</div>
-        <p className="rh-footnote"><Info size={16}/> Os 63 cadastros originais permanecem fixos na demonstração. Mudar horários não contrata, transfere nem troca automaticamente colaboradores.</p>
+        <div className="rh-immutable"><CalendarDays size={17}/><p><b>Transição legal ({LABOR_LAW.amendment}):</b> a partir de {br(LABOR_LAW.fiveTwoStart)} os serviços gerais passam para 5×2 com {SERVICE_SHIFTS["5x2-42h"].label.split("·")[1]?.trim()} e, a partir de {br(LABOR_LAW.fortyHoursStart)}, {SERVICE_SHIFTS["5x2-40h"].label.split("·")[1]?.trim()}. A escala muda sozinha nessas datas. A 6×1 só pode continuar com convenção ou acordo coletivo.</p></div>
+        <p className="rh-footnote"><Info size={16}/> Os cadastros fictícios permanecem fixos na demonstração. Mudar horários não contrata, transfere nem troca automaticamente colaboradores.</p>
       </section>}
-      {pane==="Domingos e feriados"&&<>
-        <section className="rh-panel"><div className="rh-panel-header"><div><p className="rh-eyebrow">ESCALAS ESPECIAIS</p><h3>Turnos de domingo e feriado</h3><p>Domingo sim, domingo não: metade da equipe trabalha. Defina o horário e quantas pessoas cada turno precisa. Qualquer operador pode ser escalado em qualquer turno.</p></div></div>
-          <div className="rh-special-grid">{draft.sundayShifts.map((shift,i)=><div key={i} className="rh-special">
-            <b>{SPECIAL_SLOT_LABEL[GROUP_IDS[i]!]}</b><div className="rh-fields">{(["start","end"] as const).map(key=><label key={key}><span>{key==="start"?"Entrada":"Saída"}</span>
-              <input type="time" aria-label={"Domingo turno "+(i+1)+" "+key} value={shift[key]}
-                onChange={e=>sundayField(i,key,e.target.value)}/></label>)}</div></div>)}</div>
-          <p className="rh-footnote"><AlertTriangle size={16}/> No domingo a jornada é direta (6h15) com uma pausa rápida de cerca de 15 minutos (banheiro/lanche). Confirmar o tratamento dessa pausa com o jurídico e a convenção coletiva.</p>
-          <div className="rh-target-grid">{(["sunday","holiday"] as const).map(kind=><div key={kind}>
-            <h4>{kind==="sunday"?"Vagas por turno no domingo":"Equipe-padrão nos feriados"}</h4>
-            <div className="rh-fields">{GROUP_IDS.map(g=><label key={g}><span>{kind==="sunday"?SPECIAL_SLOT_LABEL[g]:"Grupo "+g}</span>
-              <input aria-label={(kind==="sunday"?"Domingo "+SPECIAL_SLOT_LABEL[g]:"Feriado grupo "+g)} type="number" min={0} max={kind==="sunday"?63:GROUPS[g].requiredStaff}
+      {pane==="Vagas, domingos e feriados"&&<>
+        <section className="rh-panel"><div className="rh-panel-header"><div><p className="rh-eyebrow">VAGAS POR DIA</p><h3>Dia útil, domingo e feriado</h3><p>Portaria: agentes por dia somando diurno e noturno (a 12×36 cobre o domingo e o feriado normalmente). Serviços gerais: 0 no domingo = todos descansam.</p></div></div>
+          <div className="rh-target-grid">{(["daily","sunday","holiday"] as const).map(kind=><div key={kind}>
+            <h4>{kind==="daily"?"Vagas em dia útil":kind==="sunday"?"Vagas no domingo":"Equipe-padrão nos feriados"}</h4>
+            <div className="rh-fields">{GROUP_IDS.map(g=><label key={g}><span>{GROUPS[g].name}</span>
+              <input aria-label={kind+" "+GROUPS[g].name} type="number" min={0} max={groupSize(g)}
                 value={schedule.rules[kind][g]} onChange={e=>setTarget(kind,g,Number(e.target.value))}/>
-              <small>{kind==="sunday"?"pessoas neste turno":"Máximo: "+GROUPS[g].requiredStaff}</small></label>)}</div>
+              <small>Máximo: {groupSize(g)}</small></label>)}</div>
           </div>)}</div>
+          <p className="rh-footnote"><AlertTriangle size={16}/> Serviços gerais escalados no domingo recebem a folga antecipada (mesma semana) e a folga do 7º dia (semana seguinte). Domingo trabalhado sem folga compensatória é pago em dobro.</p>
         </section>
-        <section className="rh-panel"><div className="rh-panel-header"><div><p className="rh-eyebrow">CALENDÁRIO OPERACIONAL</p><h3>Feriados cadastrados</h3><p>Altere contingentes de datas especiais, sem criar folgas adicionais ou mexer em registros de ponto.</p></div></div>
+        <section className="rh-panel"><div className="rh-panel-header"><div><p className="rh-eyebrow">CALENDÁRIO OPERACIONAL</p><h3>Feriados cadastrados</h3><p>Altere o efetivo de datas especiais, sem criar folgas adicionais ou mexer em registros de ponto. Na 12×36 o feriado já está compensado (art. 59-A, parágrafo único).</p></div></div>
           <div className="rh-holiday-add"><label><span>Data do feriado</span><input type="date" aria-label="Data do novo feriado" value={holiday} onChange={e=>setHoliday(e.target.value)}/></label>
             <button type="button" className="rh-outline" onClick={addHoliday}>Adicionar feriado</button></div>
           <div className="rh-holiday-list">{schedule.rules.holidays.length===0&&<p>Não há feriados cadastrados nesta demonstração.</p>}
             {schedule.rules.holidays.map(day=><div key={day} className="rh-holiday-row"><b>{dateLabel(day)}</b>
-              {GROUP_IDS.map(g=><label key={g}><span>Grupo {g}</span><input type="number" min={0} max={GROUPS[g].requiredStaff}
-                aria-label={"Feriado "+day+" grupo "+g} value={(schedule.rules.holidayByDate[day]??schedule.rules.holiday)[g]}
+              {GROUP_IDS.map(g=><label key={g}><span>{GROUPS[g].name}</span><input type="number" min={0} max={groupSize(g)}
+                aria-label={"Feriado "+day+" "+GROUPS[g].name} value={(schedule.rules.holidayByDate[day]??schedule.rules.holiday)[g]}
                 onChange={e=>setHolidayTarget(day,g,Number(e.target.value))}/></label>)}
               <button type="button" className="rh-remove" onClick={()=>removeHoliday(day)}>Excluir data</button>
             </div>)}</div>
         </section>
       </>}
       {pane==="Parâmetros e histórico"&&<>
-        <section className="rh-panel"><div className="rh-panel-header"><div><p className="rh-eyebrow">REGRAS DA LOJA</p><h3>Movimento do mês e banco de horas</h3><p>Regras informadas pela gerência e usadas em todas as telas.</p></div></div>
+        <section className="rh-panel"><div className="rh-panel-header"><div><p className="rh-eyebrow">PONTO ELETRÔNICO E BANCO DE HORAS</p><h3>Como o saldo é calculado</h3><p>Regras usadas em todas as telas (art. 58 e 59 da CLT; Portaria MTP 671/2021).</p></div></div>
           <div className="rh-policy-grid" style={{padding:16,display:"grid",gap:10,gridTemplateColumns:"repeat(auto-fit,minmax(220px,1fr))",fontSize:14}}>
-            <div><b>🔴 Alto movimento</b><p>Do dia 28 até o dia 18 do mês seguinte. Evitar folgas extras.</p></div>
-            <div><b>🟢 Baixo movimento</b><p>Do dia 19 ao dia 27. Melhor período para folgas do banco e férias.</p></div>
-            <div><b>⏱️ Crédito no banco</b><p>Minutos após o horário de saída (acima de {BANK_RULES.creditToleranceMinutes} min) viram crédito.</p></div>
+            <div><b>🖐️ Ponto eletrônico</b><p>REP-C, REP-A ou REP-P (Portaria MTP 671/2021): entrada, intervalo e saída. Turno noturno conta no mesmo plantão.</p></div>
+            <div><b>⏱️ Crédito no banco</b><p>Minutos após o horário de saída (acima de {BANK_RULES.creditToleranceMinutes} min por marcação, máx. 10 min/dia, art. 58, § 1º) viram crédito.</p></div>
             <div><b>🟡 Planejar folga</b><p>A partir de {BANK_RULES.attentionMinutes/60}h acumuladas.</p></div>
-            <div><b>🔴 Dar folga</b><p>Com {BANK_RULES.compensateMinutes/60}h acumuladas: folga de compensação (desconta {BANK_RULES.folgaMinutes/60}h).</p></div>
+            <div><b>🔴 Dar folga</b><p>Com 1 jornada acumulada: folga de compensação (7h20 nos serviços gerais 6×1; 11h na portaria 12×36).</p></div>
+            <div><b>📅 Prazo</b><p>Compensar em até {BANK_RULES.compensationMonths} meses (acordo individual escrito) ou 12 meses (acordo/convenção coletiva). Vencido o prazo, vira hora extra paga.</p></div>
             <div><b>🩺 Saída antecipada / entrada tarde</b><p>Usa o saldo do banco. Sem saldo, fica pendente para o RH.</p></div>
           </div>
         </section>
@@ -235,7 +232,7 @@ export function RulesWorkspace(){
               value={draft.minRestHours} onChange={e=>setDraft(prev=>({...prev,minRestHours:Number(e.target.value)}))}/>
               <small>11–16h · abaixo de 11h não é permitido no painel.</small></label>
           </div>
-          <div className="rh-immutable"><ShieldCheck size={17}/><p>O máximo de cinco dias consecutivos na simulação 5×2, a proteção contra folgas consecutivas e o rodízio dominical são regras fixas, não interruptores de flexibilização. Alterações de legislação e convenção coletiva dependem de revisão jurídica.</p></div>
+          <div className="rh-immutable"><ShieldCheck size={17}/><p>O descanso de 36h da 12×36, o limite de dias seguidos (6 no 6×1, 5 na 5×2) e a folga compensatória do domingo são regras fixas, não interruptores de flexibilização. Alterações de legislação e convenção coletiva dependem de revisão jurídica.</p></div>
         </section>
         <section className="rh-panel"><div className="rh-panel-header"><div><p className="rh-eyebrow">AUDITORIA DEMONSTRATIVA</p><h3>Histórico de decisões</h3><p>Consulta unificada dos históricos demonstrativos de regras, escalas, ponto, férias e banco de horas armazenados neste navegador.</p></div></div>
           <div className="rh-history-top"><label><span>Buscar evento</span><input aria-label="Pesquisar histórico de regras" placeholder="Data, gestor ou alteração" value={historyFilter}

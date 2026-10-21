@@ -11,15 +11,15 @@ describe("Escala & trocas — interface demonstrativa",()=>{
     expect(screen.getByRole("navigation",{name:"Áreas de escalas e trocas"})).toBeInTheDocument();
     const table=screen.getByRole("region",{name:"Tabela de escala com rolagem vertical"});
     expect(within(table).getAllByRole("row")).toHaveLength(64);
-    fireEvent.change(screen.getByRole("textbox",{name:"Buscar colaborador"}),{target:{value:"FM-001"}});
+    fireEvent.change(screen.getByRole("textbox",{name:"Buscar colaborador"}),{target:{value:"MN-001"}});
     expect(within(table).getAllByRole("row")).toHaveLength(2);
     expect(screen.queryByRole("button",{name:"Próxima página"})).not.toBeInTheDocument();
   });
   it("mantém solicitação pendente antes de aprovar, e conserva histórico",()=>{
     render(<ScheduleWorkspace/>);
     fireEvent.click(screen.getByRole("button",{name:/Trocas & autorização/}));
-    fireEvent.change(screen.getByLabelText("Colaborador de origem"),{target:{value:"FM-001"}});
-    fireEvent.change(screen.getByLabelText("Colega / destino"),{target:{value:"FM-005"}});
+    fireEvent.change(screen.getByLabelText("Colaborador de origem"),{target:{value:"MN-001"}});
+    fireEvent.change(screen.getByLabelText("Colega / destino"),{target:{value:"MN-005"}});
     fireEvent.change(screen.getByLabelText("Motivo informado (obrigatório)"),
       {target:{value:"Compromisso pessoal previamente informado"}});
     fireEvent.click(screen.getByRole("button",{name:"Solicitar troca"}));

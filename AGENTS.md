@@ -12,11 +12,11 @@
 ## Project rules
 - Business rules and typed models live in `src/domain` with no UI imports; why: spec requires separating rules from interface and keeping them testable.
 - Stage 1 is demo-only (fictional data, no backend/auth); why: spec forbids connecting a database or production migrations without authorization.
-- The 5×2 simulator must never share state with the real 6×1 schedule; why: explicit spec constraint.
-- Full spec is in `docs/FORMOSA-REQUISITOS.md`; read it before changing scheduling logic.
-- Operational references are pure, versioned 28-day snapshots in `src/domain/schedule-reference.ts`; validation requires explicit nominal assignments and daily targets with boundary context, never writes storage or grants homologation, because managerial approval is external to the demo.
-- Schedule changes are validated atomically by employee/date across all changed dates; explicit daily targets may replace legacy headcount targets, because weekly replanning must not silently invent leave or waive coverage.
-- Base roster follows the real Formosa paper sheets (25/10/2026): Sunday alternates (half of each group works, "domingo sim, domingo não"), Sunday turns 08h/09h/15h15 are independent of A/B/C (on Sundays/holidays the assignment code means the turn), each worked Sunday gets "folga antecipada" (Mon–Fri same week) and "folga do 7º dia" exactly 7 days later, Saturday is full team; why: managers validated this against the real schedule and it keeps 11h rest and no 7-day streaks.
-- Weekday coverage targets depend on the store's movement calendar (high: day 28 to 18; low: 19 to 27) in `src/domain/movement.ts`; why: the manager stated demand peaks from the 28th to the 18th.
-- Hour bank: minutes after the shift end accrue credit; 4h = plan a day off, 7h = give a compensation day off (debits 7h, preferably on low-movement days); early exit/late entry requests use the balance and stay pending without balance; why: rules informed by the Formosa manager.
-- Shared shell materials and dashboard presentation use semantic CSS tokens in `src/styles.css`, with dashboard-specific classes scoped to the operation view; why: visual refinements must not alter domain rules or other module content.
+- The 5×2 simulator must never share state with the real schedule; why: explicit spec constraint.
+- MN Patrimônios serves condominiums with two groups only (`GroupId = "P" | "S"`): P = agente de portaria in 12×36 (art. 59-A CLT; day 07–19 and night 19–07 turmas, team 0/1 alternate days; DSR/holidays compensated; 36h rest), S = serviços gerais in 6×1 (Mon–Sat 7h20, Sunday DSR) until the EC 141/2026 transition; why: client operates only these two functions.
+- Legal timeline lives in `LABOR_LAW` (`src/domain/config.ts`): EC 141/2026 promulgated 16/10/2026; S switches automatically to 5×2 42h on 2026-12-15 and 40h on 2027-12-15 (`serviceRegime(date)`); why: the amendment is promulgated and the schedule must follow the date. Confirm dates with the client's accountant/union before production.
+- Shifts come from `employeeShift(employee, date)` (night shift crosses midnight); never read `GROUPS[g].shift` for a person; why: portaria has two turns and S changes by regime.
+- Sunday S work is optional (`rules.sunday.S`, default 0); whoever works it gets "folga antecipada" (same week) and "folga do 7º dia" (+7); why: prevents 7-day streaks (art. 67 CLT) and double pay.
+- Hour bank: minutes after shift end (beyond 5 min tolerance, art. 58 §1) accrue; 1 jornada (7h20 S / 11h P) = compensation day off; deadline 6 months (art. 59 §5); why: electronic point (Portaria MTP 671/2021) feeds the bank.
+- Vacations: 5–30 days per period blocks; start-day rule (art. 134 §3) is a non-blocking note; why: CLT art. 130/134.
+- Shared shell materials use semantic CSS tokens in `src/styles.css`; primary buttons, active tabs and selected filters use the darker `--mn-action` blue; why: client asked for a light screen with darker action controls.

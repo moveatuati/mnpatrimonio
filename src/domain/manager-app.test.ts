@@ -9,7 +9,7 @@ import { DEFAULT_SCHEDULE } from "./schedule";
 
 const DATE = "2026-10-21";
 
-describe("App do gerente — chegada por turno e alertas", () => {
+describe("App do supervisor — chegada por turno e alertas", () => {
   it("antes do turno ninguém aparece como atrasado; batidas só surgem depois que acontecem", () => {
     const early = arrivalBoard(DEFAULT_SCHEDULE, demoAbsences(), DATE, "06:30");
     expect(early.every(c => c.counts.ainda_nao === c.rows.length)).toBe(true);
@@ -23,7 +23,7 @@ describe("App do gerente — chegada por turno e alertas", () => {
       if (r.state === "no_horario") expect(r.lateMinutes).toBeLessThanOrEqual(10);
     }
     const total = board.reduce((n, c) => n + c.rows.length, 0);
-    expect(total).toBeLessThan(63); // folgas e ausências não entram
+    expect(total).toBeLessThan(21); // folgas e ausências não entram
   });
   it("fluxo completo: alerta → ciente → RH → advertência numerada → arquivada", () => {
     const board = arrivalBoard(DEFAULT_SCHEDULE, demoAbsences(), DATE, "22:00");
@@ -50,8 +50,10 @@ describe("App do gerente — chegada por turno e alertas", () => {
     expect(store.occurrences[0]!.events[0]!.text).toContain("Autorizado");
     expect(restoreManagerStore(JSON.parse(JSON.stringify(store))).occurrences).toHaveLength(1);
   });
-  it("gerentes de plantão por horário", () => {
-    expect(managersOnDuty("07:10").map(m => m.id)).toEqual(["GL", "GM"]);
+  it("supervisores de plantão por horário (o noturno atravessa a meia-noite)", () => {
+    expect(managersOnDuty("07:10").map(m => m.id)).toEqual(["GM", "GN"]);
+    expect(managersOnDuty("09:00").map(m => m.id)).toEqual(["GL", "GM"]);
+    expect(managersOnDuty("02:00").map(m => m.id)).toEqual(["GN"]);
     expect(managersOnDuty("21:00").map(m => m.id)).toEqual(["GN"]);
   });
 });

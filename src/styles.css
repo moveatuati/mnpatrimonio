@@ -1837,3 +1837,31 @@ html body .bm-balance strong{font-size:26px}
 html body .ft-answer-main{padding:12px 14px}
 html body .ft-answer-main strong{font-size:21px}
 html body .ft-answer-side{padding:10px 14px;font-size:14px}
+
+/* ------------------------------------------------------------------
+ * MN Patrimônios — botões principais, abas ativas e filtros selecionados
+ * em azul mais escuro (pedido da cliente). Tela continua clara; só ações
+ * e seleções ganham contraste.
+ * ------------------------------------------------------------------ */
+:root { --mn-action: #1e3a5f; --mn-action-hover: #152c49; --mn-action-soft: #e6edf6; }
+body :is(.fs-primary, .bh-primary, .rm-primary, .fa-primary, .ft-primary, .fp-primary, .rh-save,
+  .cd-btn-primary, .ci-btn-primary, .bm-btn, .ra-btn) {
+  background: var(--mn-action) !important; border-color: var(--mn-action) !important; color: #fff !important;
+}
+body :is(.fs-primary, .bh-primary, .rm-primary, .fa-primary, .ft-primary, .fp-primary, .rh-save,
+  .cd-btn-primary, .ci-btn-primary, .bm-btn, .ra-btn):hover:not(:disabled) { background: var(--mn-action-hover) !important; }
+body :is(.fs-tabs, .fa-tabs, .bh-tabs, .ft-tabs, .cd-tabs, .rh-nav) :is(.fs-tab-active, .fa-tab-active, .bh-tab-active, .ft-tab-active, .cd-tab-active, .rh-active),
+body .fs-tabs button[aria-current="page"] {
+  background: var(--mn-action) !important; border-color: var(--mn-action) !important; color: #fff !important;
+}
+body .op-group-filters button[aria-pressed="true"],
+body .ft-scenario-options .ft-selected,
+body .fp-active-step {
+  background: var(--mn-action) !important; border-color: var(--mn-action) !important; color: #fff !important;
+}
+body .ft-scenario-options .ft-selected :is(small, span, strong) { color: #fff !important; }
+body .rh-group-card[aria-pressed="true"] { border-color: var(--mn-action) !important; box-shadow: inset 0 0 0 1px var(--mn-action) !important; }
+body :is(.fs-filters, .cd-list-tools, .fa-filters, .bh-filters, .rm-filters, .ft-filter-row) select:focus,
+body :is(.fs-filters, .cd-list-tools, .fa-filters, .bh-filters, .rm-filters, .ft-filter-row) input:focus {
+  outline: 2px solid var(--mn-action); outline-offset: 0; border-color: var(--mn-action);
+}

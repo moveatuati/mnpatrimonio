@@ -1,4 +1,4 @@
-import { GROUP_IDS } from "./config";
+import { GROUP_IDS, serviceRegime } from "./config";
 import { DEMO_EMPLOYEES } from "./demo-data";
 import { isValidReferenceDate } from "./operation-query";
 import { assignmentFor, dateOffset, requiredFor, type ScheduleStore } from "./schedule";
@@ -46,19 +46,19 @@ export interface AbsenceDraft {
   end: ISODate;
   note: string;
 }
-export const ABSENCE_STORAGE_KEY = "formosa:augusto-montenegro:ausencias-demo:v1";
-export const SCHEDULE_STORAGE_KEY = "formosa:augusto-montenegro:escala-demo:v1";
+export const ABSENCE_STORAGE_KEY = "mn:condominios:ausencias-demo:v1";
+export const SCHEDULE_STORAGE_KEY = "mn:condominios:escala-demo:v1";
 export const DEMO_ACTOR = "Gestão demonstrativa";
 export const ABSENCE_DEMO_DATE = "2026-10-20";
 
 const initial = [
-  ["AUS-001", "FM-006", "ferias", "2026-10-12", "2026-10-26", "aprovado"],
-  ["AUS-002", "FM-018", "atestado", "2026-10-19", "2026-10-21", "aprovado"],
-  ["AUS-003", "FM-049", "afastamento", "2026-10-15", "2026-10-24", "aprovado"],
-  ["AUS-004", "FM-032", "ferias", "2026-10-22", "2026-10-30", "aprovado"],
-  ["AUS-005", "FM-003", "atestado", "2026-10-20", "2026-10-22", "pendente"],
-  ["AUS-006", "FM-055", "ferias", "2026-10-28", "2026-11-08", "pendente"],
-  ["AUS-007", "FM-025", "ferias", "2026-10-03", "2026-10-09", "aprovado"],
+  ["AUS-001", "MN-006", "ferias", "2026-10-12", "2026-10-26", "aprovado"],
+  ["AUS-002", "MN-011", "atestado", "2026-10-19", "2026-10-21", "aprovado"],
+  ["AUS-003", "MN-016", "afastamento", "2026-10-15", "2026-10-24", "aprovado"],
+  ["AUS-004", "MN-013", "ferias", "2026-10-22", "2026-10-30", "aprovado"],
+  ["AUS-005", "MN-003", "atestado", "2026-10-20", "2026-10-22", "pendente"],
+  ["AUS-006", "MN-020", "ferias", "2026-10-28", "2026-11-08", "pendente"],
+  ["AUS-007", "MN-019", "ferias", "2026-10-03", "2026-10-09", "aprovado"],
 ] as const;
 export function demoAbsences(): AbsenceStore {
   return { version: 1, entries: initial.map(([id, employeeId, type, start, end, status]) => ({
@@ -130,10 +130,40 @@ export function validateAbsence(store: AbsenceStore, draft: AbsenceDraft, exclud
     else if (Math.round((Date.parse(draft.end+"T12:00:00Z")-Date.parse(draft.start+"T12:00:00Z"))/86400000)>366)
       errors.push("Período superior a 367 dias; confirme com o RH antes de registrar.");
   }
+  if (draft.type === "ferias" && isValidReferenceDate(draft.start) && isValidReferenceDate(draft.end) && draft.start <= draft.end) {
+    const days = periodDays(draft.start, draft.end);
+    if (days < 5) errors.push("Férias: cada período tem no mínimo 5 dias corridos (art. 134, § 1º, da CLT).");
+    if (days > 30) errors.push("Férias: no máximo 30 dias corridos por período aquisitivo (art. 130 da CLT).");
+  }
   if (store.entries.some(entry => entry.id !== originalApproved && isConflicting(entry, draft, exclude)))
     errors.push("Já existe um pedido pendente ou aprovado para este colaborador em período sobreposto.");
   if (draft.note.length > 240) errors.push("Observação muito longa.");
   return errors;
+}
+/** Dias corridos do período, inclusive. */
+export function periodDays(start: ISODate, end: ISODate) {
+  return Math.round((Date.parse(end + "T12:00:00Z") - Date.parse(start + "T12:00:00Z")) / 86400000) + 1;
+}
+/**
+ * Orientações legais de férias (não bloqueiam): fracionamento em até 3 períodos (um com 14+ dias)
+ * e início fora dos 2 dias que antecedem feriado ou descanso semanal (art. 134, §§ 1º e 3º).
+ */
+export function vacationNotes(draft: AbsenceDraft, holidays: ISODate[] = []): string[] {
+  if (draft.type !== "ferias" || !isValidReferenceDate(draft.start) || !isValidReferenceDate(draft.end) || draft.start > draft.end) return [];
+  const notes: string[] = [];
+  const employee = DEMO_EMPLOYEES.find(e => e.id === draft.employeeId);
+  const days = periodDays(draft.start, draft.end);
+  if (days < 14) notes.push("Período menor que 14 dias: só vale se outro período das mesmas férias tiver 14 dias ou mais (máximo 3 períodos).");
+  const weekday = new Date(draft.start + "T12:00:00Z").getUTCDay();
+  const nextTwo = [dateOffset(draft.start, 1), dateOffset(draft.start, 2)];
+  const restDays = employee?.group === "S" ? (serviceRegime(draft.start) === "6x1" ? [0] : [0, 6]) : [];
+  const beforeRest = nextTwo.some(d => restDays.includes(new Date(d + "T12:00:00Z").getUTCDay()));
+  const beforeHoliday = nextTwo.some(d => holidays.includes(d)) || holidays.includes(draft.start);
+  if ((beforeRest && !restDays.includes(weekday)) || beforeHoliday)
+    notes.push("As férias não devem começar nos 2 dias antes de feriado ou do descanso semanal (art. 134, § 3º): prefira começar " +
+      (employee?.group === "S" ? "de segunda a " + (restDays.includes(6) ? "quarta" : "quinta") + "-feira." : "no dia seguinte a uma folga."));
+  if (employee?.group === "P") notes.push("Portaria 12×36: combine o folguista ou a troca de turma para cobrir os plantões do período.");
+  return notes;
 }
 function event(absenceId: string, description: string, now: string): AbsenceEvent {
   return { id: now+"-"+Math.random().toString(36).slice(2,8), absenceId,

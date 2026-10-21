@@ -29,7 +29,7 @@ export function HelpBubble({ label, description }: { label: string; description:
 export function ScenarioExplanation({ result }: { result: ScenarioResult }) {
   const total = result.metrics.headcount;
   const extra = total - BASE_PEOPLE;
-  const growth = (extra / BASE_PEOPLE * 100).toLocaleString("pt-BR", {
+  const growth = (extra / Math.max(1, BASE_PEOPLE) * 100).toLocaleString("pt-BR", {
     minimumFractionDigits: 1, maximumFractionDigits: 1,
   });
   return (
@@ -37,31 +37,29 @@ export function ScenarioExplanation({ result }: { result: ScenarioResult }) {
       <div className="ft-heading"><div>
         <p className="op-eyebrow">MEMÓRIA DE PLANEJAMENTO</p>
         <h2 id="scenario-reading">Como interpretar a projeção</h2>
-        <p>63 operadores atuais · uma função · três horários integrados</p>
+        <p>Serviços gerais · 6×1 hoje → 5×2 pela EC 141/2026 · portaria segue na 12×36</p>
       </div></div>
       <div className="ft-reading-grid">
         <div>
-          <b>{BASE_PEOPLE} · Operação atual 6×1</b>
-          <HelpBubble label="Referência atual" description="Os 63 operadores atendem à necessidade atual no 6×1, conforme premissa aprovada pela gestão. Não é medição independente do simulador."/>
-          <p>Cobertura de 100% informada pela gestão. A, B e C trabalham no mesmo setor e podem se cobrir durante as sobreposições.</p>
+          <b>{BASE_PEOPLE} · Serviços gerais hoje (6×1)</b>
+          <HelpBubble label="Referência atual" description="Cada pessoa trabalha de segunda a sábado (7h20) e descansa no domingo: 6 jornadas por semana."/>
+          <p>Cobrem segunda a sábado com {BASE_PEOPLE} pessoas por dia. Na 5×2 cada um passa a fazer 5 jornadas por semana.</p>
         </div>
         <div>
-          <b>{PROJECTED_PEOPLE} · Projeção 5×2</b>
-          <HelpBubble label="Projeção de 83" description="83 é a projeção gerencial: 20 operadores hipotéticos além dos 63 atuais (+31,7%). A cobertura por horário ainda deve ser validada."/>
-          <p>Quadro para estudar a transição para duas folgas semanais, sem exigir equipes completas de cada turno em todos os dias.</p>
+          <b>{PROJECTED_PEOPLE} · Mínimo para manter o sábado</b>
+          <HelpBubble label="Projeção" description="Jornadas necessárias na semana ÷ 5 jornadas por pessoa, arredondado para cima. Não inclui margem para férias e atestados."/>
+          <p>Se os condomínios precisarem de serviços gerais também no sábado, a mesma cobertura exige pelo menos {PROJECTED_PEOPLE} pessoas.</p>
         </div>
         <div>
           <b>{total} · Cenário selecionado</b>
-          <HelpBubble label="Variação do quadro" description="Crescimento = (pessoas do cenário − 63) ÷ 63 × 100. A distribuição por grupo é ajustável."/>
-          <p>{total} operadores, {extra} adicionais e crescimento de {growth}% diante do quadro atual.</p>
+          <HelpBubble label="Variação do quadro" description={`Crescimento = (pessoas do cenário − ${BASE_PEOPLE}) ÷ ${BASE_PEOPLE} × 100.`}/>
+          <p>{total} pessoas, {extra} adicionais e crescimento de {growth}% sobre o quadro atual de serviços gerais.</p>
         </div>
       </div>
       <div className="ft-reading-result">
-        <h3>Como confirmar a cobertura equivalente?</h3>
-        <p>Comparar, data por data e horário por horário, os <b>operadores de caixa efetivamente em atividade</b> no 6×1 e no 5×2. Somar A/B/C quando os horários se sobrepõem e descontar os intervalos individuais.</p>
-        <p><b>Sem déficits artificiais:</b> os antigos postos-dia e o piso por grupo pressupunham que cada turno funcionava isoladamente. Foram retirados da apresentação porque não descrevem a operação integrada dos caixas.</p>
-        <p><b>A tela já calcula:</b> pessoas, folgas intercaladas, sábados integrais, domingos alternados, jornada semanal e alertas de descanso.</p>
-        <p><b>Validação pendente:</b> reconstruir a escala individual atual e aferir cobertura por faixa horária, pausas, feriados e ausências. A projeção de {PROJECTED_PEOPLE} não certifica automaticamente 100% de cobertura no 5×2.</p>
+        <h3>E a portaria 12×36?</h3>
+        <p>A 12×36 continua permitida (art. 59-A da CLT). Na média são 3,5 plantões por semana: <b>{result.portaria.hours.toLocaleString("pt-BR")}h líquidas</b>, abaixo do teto de 42h (e de 40h a partir de 15/12/2027). O que muda é garantir o acordo escrito ou a convenção coletiva e, na média do mês, duas folgas por semana.</p>
+        <p><b>Validação pendente:</b> confirmar com cada condomínio se precisa de serviços gerais no sábado, conferir a convenção coletiva e o custo dos reforços antes de contratar.</p>
       </div>
     </section>
   );

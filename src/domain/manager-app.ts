@@ -1,28 +1,31 @@
 /**
- * App do gerente (prévia) — regras puras, sem interface.
+ * App do supervisor (prévia) — regras puras, sem interface.
  * Chegada por turno com tolerância de 10 min, alertas de atraso no momento da batida,
  * ciência do gerente, envio ao RH e advertência; saída antecipada com consulta ao banco de horas.
  * Dados fictícios: o relógio de ponto oficial será conectado numa etapa futura.
  */
-import { GROUPS, GROUP_IDS, RULES, SPECIAL_SLOT_LABEL } from "./config";
+import { GROUPS, RULES, employeeShift } from "./config";
 import { DEMO_EMPLOYEES, demoPunches } from "./demo-data";
 import type { AbsenceStore } from "./absences";
-import { assignmentFor, dayOfWeek, shiftFor, type ScheduleStore } from "./schedule";
+import { assignmentFor, type ScheduleStore } from "./schedule";
 import { fromMinutes, toMinutes } from "./time";
 import type { Employee, GroupId, ISODate } from "./types";
 
 export const TOLERANCE_MINUTES = RULES.lateAlertMinutes; // 10 minutos
 
-/** Gerentes fictícios e horário em que estão na loja (recebem os alertas desse período). */
+/** Supervisores fictícios e horário em que estão de plantão (recebem os alertas desse período). */
 export const DEMO_MANAGERS = [
-  { id: "GL", name: "Gerente da loja (demo)", from: "07:00", to: "16:20" },
-  { id: "GM", name: "Gerente do setor · manhã (demo)", from: "06:40", to: "15:00" },
-  { id: "GN", name: "Gerente do setor · noite (demo)", from: "13:00", to: "22:00" },
+  { id: "GL", name: "Gestor(a) MN · administrativo (demo)", from: "08:00", to: "17:00" },
+  { id: "GM", name: "Supervisor(a) diurno (demo)", from: "06:30", to: "19:30" },
+  { id: "GN", name: "Supervisor(a) noturno (demo)", from: "18:30", to: "07:30" },
 ] as const;
 export type ManagerId = (typeof DEMO_MANAGERS)[number]["id"];
 export function managersOnDuty(time: string) {
   const t = toMinutes(time);
-  return DEMO_MANAGERS.filter(m => t >= toMinutes(m.from) && t <= toMinutes(m.to));
+  return DEMO_MANAGERS.filter(m => {
+    const a = toMinutes(m.from), b = toMinutes(m.to);
+    return b >= a ? t >= a && t <= b : t >= a || t <= b;
+  });
 }
 
 export type ArrivalState = "no_horario" | "atrasado" | "aguardando" | "sem_entrada" | "ainda_nao";
@@ -43,6 +46,8 @@ export interface ArrivalRow {
 }
 export interface ShiftCard {
   slot: GroupId;
+  /** P-diurno, P-noturno ou S. */
+  key: string;
   label: string;
   start: string;
   end: string;
@@ -52,17 +57,21 @@ export interface ShiftCard {
 
 /** Quadro "Agora": cada turno do dia com quem chegou, quem está atrasado e quem falta. */
 export function arrivalBoard(schedule: ScheduleStore, absences: AbsenceStore | null, date: ISODate, now: string): ShiftCard[] {
-  const special = dayOfWeek(date) === 0 || schedule.rules.holidays.includes(date);
   const away = new Set((absences?.entries ?? []).filter(a => a.status === "aprovado" && a.start <= date && a.end >= date).map(a => a.employeeId));
   const working = DEMO_EMPLOYEES.filter(e => e.status === "ativo" && !away.has(e.id))
     .map(e => ({ e, slot: assignmentFor(schedule, e, date) }))
-    .filter((x): x is { e: Employee; slot: GroupId } => x.slot !== null);
-  const startOf = (slot: GroupId) => shiftFor(date, slot, schedule.rules).start;
-  const punches = demoPunches(date, working.map(x => ({ ...x.e, group: x.slot })), e => startOf(e.group));
+    .filter((x): x is { e: Employee; slot: GroupId } => x.slot !== null && x.slot === x.e.group);
+  const punches = demoPunches(date, working.map(x => x.e), e => employeeShift(e, date).start);
   const nowMin = toMinutes(now);
-  return GROUP_IDS.map(slot => {
-    const shift = shiftFor(date, slot, schedule.rules);
-    const rows = working.filter(x => x.slot === slot).map(({ e }) => {
+  const cards = [
+    { key: "P-diurno", slot: "P" as GroupId, pick: (e: Employee) => e.group === "P" && e.turn !== "noturno" },
+    { key: "P-noturno", slot: "P" as GroupId, pick: (e: Employee) => e.group === "P" && e.turn === "noturno" },
+    { key: "S", slot: "S" as GroupId, pick: (e: Employee) => e.group === "S" },
+  ];
+  return cards.map(({ key, slot, pick }) => {
+    const members = working.filter(x => pick(x.e));
+    const shift = members[0] ? employeeShift(members[0].e, date) : employeeShift({ group: slot, turn: key === "P-noturno" ? "noturno" : "diurno" }, date);
+    const rows = members.map(({ e }) => {
       const raw = punches.find(p => p.employeeId === e.id)?.entry ?? null;
       const punch = raw && toMinutes(raw) <= nowMin ? raw : null; // batida só aparece depois que acontece
       const late = punch ? Math.max(0, toMinutes(punch) - toMinutes(shift.start)) : Math.max(0, nowMin - toMinutes(shift.start));
@@ -75,7 +84,7 @@ export function arrivalBoard(schedule: ScheduleStore, absences: AbsenceStore | n
     }).sort((a, b) => order(a.state) - order(b.state) || a.employee.name.localeCompare(b.employee.name));
     const counts = { no_horario: 0, atrasado: 0, aguardando: 0, sem_entrada: 0, ainda_nao: 0 } as Record<ArrivalState, number>;
     for (const r of rows) counts[r.state]++;
-    return { slot, label: special ? SPECIAL_SLOT_LABEL[slot] : GROUPS[slot].name + " · " + shift.start, start: shift.start, end: shift.end, rows, counts };
+    return { slot, key, label: GROUPS[slot].name + " · " + shift.label, start: shift.start, end: shift.end, rows, counts };
   }).filter(card => card.rows.length > 0);
 }
 function order(s: ArrivalState) { return { sem_entrada: 0, atrasado: 1, aguardando: 2, no_horario: 3, ainda_nao: 4 }[s]; }
@@ -112,7 +121,7 @@ export interface Occurrence {
   events: OccurrenceEvent[];
 }
 export interface ManagerStore { version: 1; occurrences: Occurrence[]; warningSeq: number }
-export const MANAGER_KEY = "formosa:augusto-montenegro:app-gerente-demo:v1";
+export const MANAGER_KEY = "mn:condominios:app-gestor-demo:v1";
 export const EMPTY_MANAGER_STORE: ManagerStore = { version: 1, occurrences: [], warningSeq: 0 };
 
 export function occurrenceId(date: ISODate, employeeId: string, type: OccurrenceType) { return date + ":" + employeeId + ":" + type; }

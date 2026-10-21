@@ -36,7 +36,7 @@ function selectStatus(value: string) {
 
 function tableIds() {
   return within(screen.getByRole("table"))
-    .queryAllByText(/^FM-\d{3}$/)
+    .queryAllByText(/^MN-\d{3}$/)
     .map((element) => element.textContent);
 }
 
@@ -63,7 +63,7 @@ describe("Consulta de entradas da página inicial", () => {
     ({ card, status, expected }) => {
       render(<OperationDashboard />);
       selectDate();
-      fireEvent.click(screen.getByRole("button", { name: "Grupo A" }));
+      fireEvent.click(screen.getByRole("button", { name: "Agente de portaria" }));
       search("nome inexistente");
       selectStatus("no_horario");
 
@@ -85,22 +85,22 @@ describe("Consulta de entradas da página inicial", () => {
   it("combina o grupo selecionado com a busca de nome sem acentos", () => {
     render(<OperationDashboard />);
     selectDate();
-    fireEvent.click(screen.getByRole("button", { name: "Grupo B" }));
+    fireEvent.click(screen.getByRole("button", { name: "Serviços gerais" }));
     search("  JOAO  ");
 
     const expected = consulted.arrivals.filter(
-      (arrival) => arrival.employee.group === "B" && arrival.employee.name.includes("João"),
+      (arrival) => arrival.employee.group === "S" && arrival.employee.name.includes("João"),
     );
     expect(expected.length).toBeGreaterThan(0);
     expect(tableIds()).toEqual(expected.map((arrival) => arrival.employee.id));
     expect(screen.getByRole("status")).toHaveTextContent(`${expected.length} colaborador`);
-    expect(screen.getByRole("button", { name: "Grupo B" })).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByRole("button", { name: "Serviços gerais" })).toHaveAttribute("aria-pressed", "true");
   });
 
   it("limpa a consulta vazia sem voltar à data inicial", () => {
     render(<OperationDashboard />);
     selectDate();
-    fireEvent.click(screen.getByRole("button", { name: "Grupo C" }));
+    fireEvent.click(screen.getByRole("button", { name: "Agente de portaria" }));
     selectStatus("sem_registro");
     search("matrícula inexistente");
     expect(
@@ -154,13 +154,13 @@ describe("Consulta de entradas da página inicial", () => {
     expect(screen.getByText(`${consulted.arrivals.length} registros na lista · role para consultar todos`)).toBeInTheDocument();
 
     region.scrollTop = 250;
-    fireEvent.click(screen.getByRole("button", { name: "Grupo B" }));
+    fireEvent.click(screen.getByRole("button", { name: "Serviços gerais" }));
     expect(region.scrollTop).toBe(0);
     expect(within(region).getAllByRole("row")).toHaveLength(30);
     expect(screen.getByText("29 registros na lista · role para consultar todos")).toBeInTheDocument();
 
     region.scrollTop = 130;
-    search("FM-005");
+    search("MN-005");
     expect(region.scrollTop).toBe(0);
     expect(within(region).getAllByRole("row")).toHaveLength(2);
     expect(screen.getByText("1 registro na lista · role para consultar todos")).toBeInTheDocument();
@@ -185,7 +185,7 @@ describe("Consulta de entradas da página inicial", () => {
       CONSULTED_DATE,
       consulted.arrivals.map((item) => item.employee),
     );
-    expect(dialog).toHaveTextContent(`${arrival.employee.id} · Grupo ${arrival.employee.group}`);
+    expect(dialog).toHaveTextContent(`${arrival.employee.id} ·`);
     expect(dialog).toHaveTextContent("20 de outubro de 2026 · Registro fictício");
     expect(dialogContent.getByText("Entrada prevista").parentElement).toHaveTextContent(
       arrival.planned,

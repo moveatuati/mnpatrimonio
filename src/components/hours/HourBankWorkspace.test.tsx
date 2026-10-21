@@ -7,12 +7,12 @@ beforeEach(()=>{
 });
 afterEach(()=>{cleanup();vi.restoreAllMocks();});
 describe("Banco de horas — operação demonstrativa",()=>{
-  it("mostra 63 colaboradores e tabela sem paginação",()=>{
+  it("mostra todos os colaboradores e tabela sem paginação",()=>{
     render(<HourBankWorkspace/>);
     expect(screen.getByRole("heading",{name:/Banco de horas/})).toBeInTheDocument();
     const table=screen.getByRole("region",{name:"Tabela de saldos com rolagem vertical"});
     expect(within(table).getAllByRole("row")).toHaveLength(64);
-    fireEvent.change(screen.getByRole("textbox",{name:"Buscar colaborador"}),{target:{value:"FM-001"}});
+    fireEvent.change(screen.getByRole("textbox",{name:"Buscar colaborador"}),{target:{value:"MN-001"}});
     expect(within(table).getAllByRole("row")).toHaveLength(2);
   });
   it("registra pendência e contabiliza após a autorização",()=>{

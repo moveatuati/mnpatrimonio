@@ -6,7 +6,8 @@ import {
 } from "lucide-react";
 import { GROUP_IDS, GROUPS, UNIT } from "@/domain/config";
 import { DEMO_EMPLOYEES } from "@/domain/demo-data";
-import { ABSENCE_STORAGE_KEY, demoAbsences, restoreAbsences } from "@/domain/absences";
+import { ABSENCE_STORAGE_KEY, SCHEDULE_STORAGE_KEY, demoAbsences, restoreAbsences } from "@/domain/absences";
+import { RH_POINT_KEY } from "@/domain/rh-settings";
 import { HOUR_KEY, demoHourStore, duration, restoreHours } from "@/domain/hour-bank";
 import { EMPTY_POINT_STORE, readPointStore } from "@/domain/point-simulator";
 import { DEFAULT_SCHEDULE, dateOffset, dayOfWeek, reviseStore, startOfWeek } from "@/domain/schedule";
@@ -21,8 +22,8 @@ import "./ReportsWorkspace.css";
 type ReportId="executivo"|"cobertura"|"ponto"|"ausencias"|"horas"|"escalas"|"comparativo";
 type Period="semana"|"mes"|"personalizado";
 type DisplaySheet={title:string;headers:string[];rows:string[][];note:string};
-const POINT_KEY="formosa:augusto-montenegro:ponto-demo:v1";
-const SCHEDULE_KEY="formosa:augusto-montenegro:escala-demo:v1";
+const POINT_KEY=RH_POINT_KEY;
+const SCHEDULE_KEY=SCHEDULE_STORAGE_KEY;
 const DATE="2026-10-20";
 const REPORTS:{id:ReportId;title:string;subtitle:string;icon:typeof LayoutDashboard}[]=[
   {id:"executivo",title:"Resumo executivo",subtitle:"Decisões e indicadores",icon:LayoutDashboard},
@@ -75,27 +76,27 @@ function sheetFor(model:ReportModel,type:ReportId):DisplaySheet{
       ["Trocas aprovadas",num(s.approvedSwaps),"Solicitações com data de escala no período"],
     ],note:"Resumo de gestão ilustrativo; valores não substituem documentação legal ou registros oficiais."};
   if(type==="cobertura")return {title:"Cobertura por grupo e data",
-    headers:["Data","Grupo","Necessário","Escalado","Ausências aprovadas","Disponível","Déficit"],
-    rows:model.coverage.map(r=>[dateBR(r.date),"Grupo "+r.group,String(r.required),String(r.scheduled),
+    headers:["Data","Função","Necessário","Escalado","Ausências aprovadas","Disponível","Déficit"],
+    rows:model.coverage.map(r=>[dateBR(r.date),GROUPS[r.group].name,String(r.required),String(r.scheduled),
       String(r.absent),String(r.available),String(r.deficit)]),
     note:"Déficit medido em postos-dia. Não multiplica automaticamente por horas ou salários. Filtro individual não se aplica a metas de grupo."};
   if(type==="ponto")return {title:"Marcações e pontualidade por colaborador e data",
-    headers:["Data","Colaborador","Grupo","Previsto","Entrada","Saída intervalo","Retorno","Saída final","Atraso (min)","Situação"],
+    headers:["Data","Colaborador","Função","Previsto","Entrada","Saída intervalo","Retorno","Saída final","Atraso (min)","Situação"],
     rows:model.dailyPoint.map(r=>[dateBR(r.date),r.name+" · "+r.employeeId,r.group,r.planned,r.entry??"—",
       r.breakOut??"—",r.breakIn??"—",r.exit??"—",r.lateness===null?"—":String(r.lateness),r.status]),
     note:"A tabela lista também jornadas previstas sem entrada simulada, priorizando exceções. Sem registro não constitui falta comprovada."};
   if(type==="ausencias")return {title:"Controle de férias e afastamentos",
-    headers:["Colaborador","Grupo","Tipo","Início","Fim (inclusive)","Situação","Retorno previsto"],
+    headers:["Colaborador","Função","Tipo","Início","Fim (inclusive)","Situação","Retorno previsto"],
     rows:model.absenceRows.map(r=>[r.name+" · "+r.employeeId,r.group,r.kind,dateBR(r.start),dateBR(r.end),
       r.status,r.returnDate?dateBR(r.returnDate):"—"]),
     note:"Retorno indica primeiro turno previsto após o fim do período. Não é alta clínica nem confirmação de presença."};
   if(type==="horas")return {title:"Livro de movimentações do banco de horas",
-    headers:["Data","Colaborador","Grupo","Movimento","Minutos","Duração","Situação","Responsável","ID"],
+    headers:["Data","Colaborador","Função","Movimento","Minutos","Duração","Situação","Responsável","ID"],
     rows:model.hourMovements.map(r=>[dateBR(r.date),r.name+" · "+r.employeeId,r.group,r.kind,
       String(r.minutes),duration(r.minutes),r.status,r.responsible,r.id]),
     note:"Somente movimentos aprovados entram nos saldos. A exportação inclui pendentes/recusados do intervalo, sem recalcular folha."};
   if(type==="escalas")return {title:"Escalas, folgas, domingos, feriados e trocas",
-    headers:["Data","Grupo","Escalados","Folgas no grupo","Meta","Domingo","Feriado"],
+    headers:["Data","Função","Escalados","Folgas na função","Meta","Domingo","Feriado"],
     rows:model.shifts.map(r=>[dateBR(r.date),r.group,String(r.scheduled),String(r.restDays),
       String(r.required),r.sunday?"Sim":"Não",r.holiday?"Sim":"Não"]),
     note:"Trocas aprovadas, recusadas e pendentes são mostradas em quadro próprio. Folga planejada não é falta."};
@@ -173,7 +174,7 @@ export function ReportsWorkspace(){
     <header className="rm-top no-print"><div>
       <p className="op-eyebrow">MN PATRIMÔNIOS · GESTÃO DE PESSOAS · {UNIT.unit.toUpperCase()}</p>
       <h1>Central de <span>relatórios</span></h1>
-      <p>Relatórios prontos para o gerente e o RH: riscos de multa, banco de horas, escala de domingo e folgas da semana.</p>
+      <p>Relatórios prontos para o supervisor e o RH: riscos de multa, banco de horas, escala de domingo e folgas da semana.</p>
     </div><div className="rm-top-actions">
       {mode==="detalhados"&&<>
       <button type="button" className="rm-secondary" disabled={!model} onClick={download}><Download size={16}/> Exportar CSV</button>
@@ -187,7 +188,7 @@ export function ReportsWorkspace(){
       <button type="button" aria-label="Fechar aviso" onClick={()=>setMsg("")}>×</button></div>}
     <div className="rm-mode no-print" role="tablist" aria-label="Tipo de relatório">
       <button type="button" role="tab" aria-selected={mode==="prontos"} className={mode==="prontos"?"rm-mode-on":""}
-        onClick={()=>setMode("prontos")}>📋 Relatórios prontos <small>gerente e RH</small></button>
+        onClick={()=>setMode("prontos")}>📋 Relatórios prontos <small>supervisor e RH</small></button>
       <button type="button" role="tab" aria-selected={mode==="detalhados"} className={mode==="detalhados"?"rm-mode-on":""}
         onClick={()=>setMode("detalhados")}>📊 Relatórios detalhados <small>por período</small></button>
     </div>
@@ -211,11 +212,11 @@ export function ReportsWorkspace(){
         <label className="rm-field"><span>Fim</span><input type="date" aria-label="Fim do relatório"
           value={filters.end} onChange={e=>{setPeriod("personalizado");
             setFilters(p=>({...p,end:e.target.value}));setShowAll(false);}}/></label>
-        <label className="rm-field"><span>Grupo</span>
-          <select aria-label="Grupo do relatório" value={filters.group}
+        <label className="rm-field"><span>Função</span>
+          <select aria-label="Função do relatório" value={filters.group}
             onChange={e=>setFilters(p=>({...p,group:e.target.value as "all"|GroupId,employeeId:"all"}))}>
             <option value="all">Todos os grupos</option>
-            {GROUP_IDS.map(g=><option key={g} value={g}>Grupo {g} · {GROUPS[g].name}</option>)}
+            {GROUP_IDS.map(g=><option key={g} value={g}>{GROUPS[g].name}</option>)}
           </select></label>
         <label className="rm-field"><span>Colaborador</span>
           <select aria-label="Colaborador do relatório" value={filters.employeeId}
@@ -251,7 +252,7 @@ export function ReportsWorkspace(){
             </div>
             <div className="rm-meta">
               <span><CalendarDays size={13}/> {dateBR(filters.start)} a {dateBR(filters.end)} · {model.days} dia(s)</span>
-              <span><Users size={13}/> {model.persons} colaborador(es) · {filters.group==="all"?"Todos os grupos":"Grupo "+filters.group}</span>
+              <span><Users size={13}/> {model.persons} colaborador(es) · {filters.group==="all"?"Todas as funções":GROUPS[filters.group].name}</span>
               <span><FileText size={13}/> {sheet.rows.length} registro(s) no detalhamento</span>
             </div>
             <div className="rm-section-head"><p className="op-eyebrow">VISÃO GERENCIAL</p>
@@ -324,7 +325,7 @@ export function ReportsWorkspace(){
             </div>}
             {selected==="cobertura"&&<div className="rm-group-snapshot">
               {groupData.map(r=><div key={r.group}>
-                <span>Grupo {r.group} · {GROUPS[r.group].name}</span>
+                <span>{GROUPS[r.group].name}</span>
                 <strong>{r.available}/{r.required}</strong>
                 <div className="rm-meter"><i style={{width:r.required?Math.min(100,100*r.available/r.required)+"%":"100%"}}/></div>
                 <small>{r.absent} ausência(s) · {r.deficit} déficit(s)</small>

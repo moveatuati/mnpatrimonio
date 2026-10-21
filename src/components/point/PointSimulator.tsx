@@ -5,6 +5,8 @@ import {
   Pencil, Play, RotateCcw, Search, ShieldCheck, Users, X,
 } from "lucide-react";
 import { GROUPS, GROUP_IDS, UNIT } from "@/domain/config";
+import { RH_POINT_KEY } from "@/domain/rh-settings";
+import { SCHEDULE_STORAGE_KEY } from "@/domain/absences";
 import { DEMO_EMPLOYEES } from "@/domain/demo-data";
 import { isValidReferenceDate } from "@/domain/operation-query";
 import {
@@ -16,8 +18,8 @@ import { DEFAULT_SCHEDULE, assignmentFor, reviseStore, type ScheduleStore } from
 import type { Employee, GroupId } from "@/domain/types";
 import "./PointSimulator.css";
 
-const POINT_STORAGE = "formosa:augusto-montenegro:ponto-demo:v1";
-const SCHEDULE_STORAGE = "formosa:augusto-montenegro:escala-demo:v1";
+const POINT_STORAGE = RH_POINT_KEY;
+const SCHEDULE_STORAGE = SCHEDULE_STORAGE_KEY;
 const REFERENCE_DATE = "2026-10-20";
 function dateLabel(date: string) {
   const [y,m,d] = date.split("-");
@@ -49,7 +51,7 @@ export function PointSimulator() {
   const [schedule, setSchedule] = useState<ScheduleStore>(DEFAULT_SCHEDULE);
   const [ready, setReady] = useState(false);
   const [date, setDate] = useState(REFERENCE_DATE);
-  const [employeeId, setEmployeeId] = useState("FM-001");
+  const [employeeId, setEmployeeId] = useState("MN-001");
   const [time, setTime] = useState("07:00");
   const [correction, setCorrection] = useState<Mark | null>(null);
   const [reason, setReason] = useState("");
@@ -150,7 +152,7 @@ export function PointSimulator() {
     <header className="fp-head">
       <div><p className="op-eyebrow">MN Patrimônios · Gestão de Pessoas · {UNIT.unit}</p>
         <h1>Ponto <span>simulado.</span></h1>
-        <p>Registre quatro marcações fictícias, confira desvios e acompanhe o movimento do dia.</p>
+        <p>Ponto eletrônico simulado (REP-C/REP-A/REP-P, Portaria MTP 671/2021): quatro marcações por jornada, inclusive no plantão noturno da portaria, que atravessa a meia-noite.</p>
       </div>
       <div className="fp-head-tools">
         <div className="fp-live"><Clock3 size={17}/><div><span>Relógio do dispositivo</span><strong>{clock}</strong></div></div>
@@ -179,11 +181,11 @@ export function PointSimulator() {
         <div className="fp-clock-content">
           <label className="fp-field"><span>Colaborador</span>
             <select aria-label="Selecionar colaborador" value={employeeId} onChange={e => selectPerson(e.target.value)}>
-              {DEMO_EMPLOYEES.map(item=><option key={item.id} value={item.id}>{item.name} · {item.id} · Grupo {item.group}</option>)}
+              {DEMO_EMPLOYEES.map(item=><option key={item.id} value={item.id}>{item.name} · {item.id} · {GROUPS[item.group].name}</option>)}
             </select></label>
           <div className="fp-worker">
             <div className="fp-avatar">{employee.name.split(" ").map(s=>s[0]).slice(0,2).join("")}</div>
-            <div><strong>{employee.name}</strong><small>{employee.id} · Grupo {employee.group}
+            <div><strong>{employee.name}</strong><small>{employee.id} · {GROUPS[employee.group].name}
               {plannedShift ? " · Turno " + plannedShift : " · Folga na escala"}</small></div>
           </div>
           <div className="fp-moments">
@@ -245,13 +247,13 @@ export function PointSimulator() {
     </div>
     <section className="fp-panel fp-table-panel" aria-label="Consulta de marcações simuladas">
       <div className="fp-panel-head"><div><p className="op-eyebrow">CONSULTA DA EQUIPE</p><h2>Registros do dia</h2>
-        <p>Os 63 colaboradores permanecem disponíveis com cabeçalho fixo e rolagem vertical.</p></div>
+        <p>Todos os colaboradores aparecem com cabeçalho fixo e rolagem vertical.</p></div>
         <span className="fp-chip">{filtered.length} resultado(s)</span></div>
       <div className="fp-filters">
         <label className="fp-search"><Search size={16}/><input aria-label="Buscar nome ou matrícula" value={query}
           placeholder="Buscar nome ou matrícula" onChange={e=>setQuery(e.target.value)}/></label>
         <select aria-label="Filtrar grupo" value={group} onChange={e=>setGroup(e.target.value as "all"|GroupId)}>
-          <option value="all">Todos os grupos</option>{GROUP_IDS.map(id=><option key={id} value={id}>Grupo {id} · {GROUPS[id].name}</option>)}
+          <option value="all">Todas as funções</option>{GROUP_IDS.map(id=><option key={id} value={id}>{GROUPS[id].name}</option>)}
         </select>
         <select aria-label="Filtrar situação" value={statusFilter} onChange={e=>setStatusFilter(e.target.value)}>
           <option value="all">Todas as situações</option>
@@ -262,7 +264,7 @@ export function PointSimulator() {
       <div className="fp-table-scroll" role="region" aria-label="Tabela com rolagem vertical do ponto simulado"
         ref={tableRef} tabIndex={0}>
         <table className="fp-table">
-          <thead><tr><th>Colaborador</th><th>Grupo</th><th>Previsto</th><th>Entrada</th>
+          <thead><tr><th>Colaborador</th><th>Função</th><th>Previsto</th><th>Entrada</th>
             <th>Saída intervalo</th><th>Retorno</th><th>Saída final</th><th>Situação</th><th>Ação</th></tr></thead>
           <tbody>
             {filtered.map(item=><tr key={item.employee.id}>

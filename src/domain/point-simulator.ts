@@ -1,11 +1,15 @@
-import { GROUPS, RULES } from "./config";
+import { RULES, employeeShift } from "./config";
 import { DEMO_EMPLOYEES } from "./demo-data";
 import { isValidReferenceDate } from "./operation-query";
-import { assignmentFor, dayOfWeek, shiftFor, type ScheduleStore } from "./schedule";
+import { assignmentFor, type ScheduleStore } from "./schedule";
 import { fromMinutes, toMinutes } from "./time";
 import type { Employee, ISODate } from "./types";
 
-/** Marcações exclusivamente fictícias; separadas do ponto oficial e do gerador da Visão da operação. */
+/**
+ * Ponto eletrônico simulado (modelo da Portaria MTP 671/2021: REP-C, REP-A ou REP-P).
+ * Marcações exclusivamente fictícias; separadas do ponto oficial e do gerador da Visão da operação.
+ * Turno noturno da portaria (19h–07h) atravessa a meia-noite: as marcações da madrugada contam no mesmo plantão.
+ */
 export const MARKS = ["entry", "breakOut", "breakIn", "exit"] as const;
 export type Mark = (typeof MARKS)[number];
 export const MARK_LABELS: Record<Mark, string> = {
@@ -38,20 +42,21 @@ export function pointKey(date: ISODate, employeeId: string) { return date + ":" 
 export function validTime(time: string) { return /^(?:[01]\d|2[0-3]):[0-5]\d$/.test(time); }
 export function requiredMarks(schedule: ScheduleStore, employee: Employee, date: ISODate): Mark[] {
   if (assignmentFor(schedule, employee, date) === null) return [];
-  // Turnos especiais de domingo/feriado têm somente entrada e saída na configuração atual;
-  // não inventar intervalo, que dependerá de confirmação do RH.
-  if (dayOfWeek(date) === 0 || schedule.rules.holidays.includes(date)) return ["entry", "exit"];
+  // 12×36 e 6×1/5×2 têm intervalo de 1h: as quatro marcações são exigidas.
   return [...MARKS];
 }
 export function plannedMarks(schedule: ScheduleStore, employee: Employee, date: ISODate) {
   const group = assignmentFor(schedule, employee, date);
   if (!group) return {} as Partial<Record<Mark, string>>;
-  const shift = shiftFor(date, group, schedule.rules);
-  const special = dayOfWeek(date) === 0 || schedule.rules.holidays.includes(date);
-  return special
-    ? { entry: shift.start, exit: shift.end }
-    : { entry: shift.start, breakOut: GROUPS[group].shift.breakStart,
-        breakIn: GROUPS[group].shift.breakEnd, exit: shift.end };
+  const shift = employeeShift(employee, date);
+  return { entry: shift.start, breakOut: shift.breakStart, breakIn: shift.breakEnd, exit: shift.end } as Partial<Record<Mark, string>>;
+}
+/** Minutos do plantão a partir da entrada prevista (horários da madrugada viram +24h no turno noturno). */
+export function shiftClock(time: string, plannedEntry: string | undefined): number {
+  const t = toMinutes(time);
+  if (!plannedEntry) return t;
+  const base = toMinutes(plannedEntry);
+  return base >= 12 * 60 && t < base - 180 ? t + 1440 : t;
 }
 export function nextMark(schedule: ScheduleStore, employee: Employee, date: ISODate, day?: PointDay) {
   return requiredMarks(schedule, employee, date).find(mark => !day?.marks[mark]) ?? null;
@@ -101,7 +106,8 @@ export function markPoint(store: PointStore, schedule: ScheduleStore, employee: 
   if (!correction && nextMark(schedule, employee, date, current) !== mark)
     return error("Respeite a sequência das marcações de ponto.");
   const marks = { ...current?.marks, [mark]: time };
-  const times = required.map(item => marks[item]).filter((t): t is string => Boolean(t)).map(toMinutes);
+  const entryPlan = plannedMarks(schedule, employee, date).entry;
+  const times = required.map(item => marks[item]).filter((t): t is string => Boolean(t)).map(t => shiftClock(t, entryPlan));
   if (times.some((v, i) => i > 0 && v <= times[i - 1]!))
     return error("As marcações devem seguir horários crescentes, sem sobreposição.");
   const now = options?.recordedAt ?? new Date().toISOString();
@@ -123,16 +129,19 @@ export function analysePoint(schedule: ScheduleStore, store: PointStore, employe
   const registered = required.filter(mark => Boolean(marks[mark])).length;
   const complete = required.length > 0 && registered === required.length;
   const late = typeof marks.entry === "string" && typeof planned.entry === "string"
-    ? Math.max(0, toMinutes(marks.entry) - toMinutes(planned.entry)) : null;
+    ? Math.max(0, shiftClock(marks.entry, planned.entry) - shiftClock(planned.entry, planned.entry)) : null;
   const earlyExit = typeof marks.exit === "string" && typeof planned.exit === "string"
-    ? Math.max(0, toMinutes(planned.exit) - toMinutes(marks.exit)) : null;
+    ? Math.max(0, shiftClock(planned.exit, planned.entry) - shiftClock(marks.exit, planned.entry)) : null;
+  /** Minutos após a saída prevista (crédito potencial do banco de horas, além da tolerância do art. 58, § 1º). */
+  const overtime = typeof marks.exit === "string" && typeof planned.exit === "string"
+    ? Math.max(0, shiftClock(marks.exit, planned.entry) - shiftClock(planned.exit, planned.entry)) : null;
   const orphanMarks = required.length === 0 && MARKS.some(mark => Boolean(marks[mark]));
   const anomaly = orphanMarks || (late !== null && late > store.alertMinutes) ||
     (earlyExit !== null && earlyExit > 0);
   const status = orphanMarks ? "atenção" : required.length === 0 ? "folga" :
     registered === 0 ? "sem registro" :
     complete ? (anomaly ? "atenção" : "completo") : "em andamento";
-  return { planned, marks, required, registered, complete, late, earlyExit, anomaly, status };
+  return { planned, marks, required, registered, complete, late, earlyExit, overtime, anomaly, status };
 }
 export function pointSummary(schedule: ScheduleStore, store: PointStore, date: ISODate) {
   const analysis = DEMO_EMPLOYEES.map(e => analysePoint(schedule, store, e, date));

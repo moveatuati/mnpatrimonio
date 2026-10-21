@@ -12,7 +12,7 @@ export function PrintHeader({ title, subtitle, right }: { title: string; subtitl
     </div>
     <div className="ph-right">
       <b>{UNIT.company} · {UNIT.unit}</b>
-      <span>{right ?? "Setor: Operadora de caixa"}</span>
+      <span>{right ?? "Portaria e serviços gerais"}</span>
     </div>
   </header>;
 }

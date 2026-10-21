@@ -4,11 +4,12 @@ import {
   History, Info, Printer, RotateCcw, Search, Settings2,
   ShieldCheck, Users, X,
 } from "lucide-react";
-import { GROUPS, GROUP_IDS, RULES, SPECIAL_SLOT_LABEL, UNIT } from "@/domain/config";
-import { movementPeriod } from "@/domain/movement";
+import { GROUPS, GROUP_IDS, GROUP_REGIME, LABOR_LAW, REGIME_LABEL, RULES, UNIT, serviceRegime } from "@/domain/config";
 import { PaperSheets } from "@/components/sheets/PaperSheets";
 import { RestAuditPanel } from "./RestAuditPanel";
-import { loadAbsences } from "@/lib/demo-storage";
+import { loadAbsences, loadClients } from "@/lib/demo-storage";
+import { SCHEDULE_STORAGE_KEY } from "@/domain/absences";
+import { demoClients, type ClientStore } from "@/domain/clients";
 import { DEMO_EMPLOYEES } from "@/domain/demo-data";
 import { isValidReferenceDate } from "@/domain/operation-query";
 import {
@@ -20,7 +21,7 @@ import {
 import type { GroupId } from "@/domain/types";
 import "./ScheduleWorkspace.css";
 
-const STORAGE_KEY = "formosa:augusto-montenegro:escala-demo:v1";
+const STORAGE_KEY = SCHEDULE_STORAGE_KEY;
 const REFERENCE_DATE = "2026-10-20";
 const DAYS = ["dom.", "seg.", "ter.", "qua.", "qui.", "sex.", "sáb."];
 
@@ -30,7 +31,7 @@ function prettyDate(value: string) {
 }
 function employeeLabel(id: string) {
   const found = DEMO_EMPLOYEES.find(e => e.id === id);
-  return found ? found.name + " · " + id + " · Grupo " + found.group : id;
+  return found ? found.name + " · " + id + " · " + GROUPS[found.group].name : id;
 }
 const STAMP_ACTOR = "Gestão (demonstração)";
 function stamp(date: string, detail: string) {
@@ -40,7 +41,11 @@ function stamp(date: string, detail: string) {
 function monthDay(date: string) { return DAYS[dayOfWeek(date)] + " " + date.slice(8, 10); }
 function groupName(group: Assignment, date?: string) {
   if (!group) return "Folga";
-  return date && dayOfWeek(date) === 0 ? SPECIAL_SLOT_LABEL[group] : "Grupo " + group + " — " + GROUPS[group].name;
+  return GROUPS[group].name + " — " + (group === "S" ? REGIME_LABEL[serviceRegime(date ?? REFERENCE_DATE)] : GROUP_REGIME.P);
+}
+function turnLabel(id: string) {
+  const e = DEMO_EMPLOYEES.find(x => x.id === id);
+  return e?.group === "P" ? (e.turn === "noturno" ? "noturno" : "diurno") + " · turma " + ((e.team ?? 0) + 1) : "";
 }
 function SelectEmployee({ value, onChange, label }: {
   value: string; onChange: (id: string) => void; label: string;
@@ -48,7 +53,7 @@ function SelectEmployee({ value, onChange, label }: {
   return <label className="fs-field"><span>{label}</span>
     <select value={value} onChange={e => onChange(e.target.value)}>
       <option value="">Selecione colaborador</option>
-      {DEMO_EMPLOYEES.map(e => <option key={e.id} value={e.id}>{e.name} · {e.id} · {e.group}</option>)}
+      {DEMO_EMPLOYEES.map(e => <option key={e.id} value={e.id}>{e.name} · {e.id} · {GROUPS[e.group].name}{e.group === "P" ? " (" + turnLabel(e.id) + ")" : ""}</option>)}
     </select>
   </label>;
 }
@@ -77,6 +82,8 @@ export function ScheduleWorkspace() {
   const [message, setMessage] = useState("");
   const [showOnlyScheduled, setShowOnlyScheduled] = useState(false);
   const [historySearch, setHistorySearch] = useState("");
+  const [condo, setCondo] = useState("all");
+  const [clients, setClients] = useState<ClientStore>(demoClients);
   const editRef = useRef<HTMLElement | null>(null);
   const tableRef = useRef<HTMLDivElement | null>(null);
 
@@ -85,6 +92,7 @@ export function ScheduleWorkspace() {
       const stored = window.localStorage.getItem(STORAGE_KEY);
       if (stored) setStore(reviseStore(JSON.parse(stored)));
     } catch { /* Modo demonstrativo: manter dados padrão se storage estiver inacessível. */ }
+    setClients(loadClients());
     setReady(true);
   }, []);
   useEffect(() => {
@@ -95,7 +103,8 @@ export function ScheduleWorkspace() {
   useEffect(() => { if (tableRef.current) tableRef.current.scrollTop = 0; },
     [date, group, search, showOnlyScheduled]);
 
-  const period = movementPeriod(date);
+  const regime = serviceRegime(date);
+  const condoName = (id?: string) => clients.condos.find(c => c.id === id)?.name ?? "—";
   const absences = useMemo(() => (ready ? loadAbsences() : null), [ready]);
   const week = startOfWeek(date);
   const days = Array.from({ length: 7 }, (_, i) => dateOffset(week, i));
@@ -107,6 +116,7 @@ export function ScheduleWorkspace() {
   const holiday = store.rules.holidays.includes(date);
   const filtered = roster.filter(row => {
     if (group !== "all" && row.employee.group !== group) return false;
+    if (condo !== "all" && row.employee.condoId !== condo) return false;
     if (showOnlyScheduled && row.group === null) return false;
     const q = search.trim().toLocaleLowerCase("pt-BR");
     return !q || (row.employee.name + " " + row.employee.id).toLocaleLowerCase("pt-BR").includes(q);
@@ -202,35 +212,23 @@ export function ScheduleWorkspace() {
     });
     setMessage(approve ? "Troca aprovada na demonstração e escala recalculada." : "Troca recusada; escala preservada.");
   }
-  function setTarget(kind: "sunday" | "holiday", g: GroupId, value: number) {
+  const groupSize = (g: GroupId) => DEMO_EMPLOYEES.filter(e => e.group === g && e.status === "ativo").length;
+  function setTarget(kind: "sunday" | "holiday" | "daily", g: GroupId, value: number) {
     if (!Number.isFinite(value)) return;
-    const n = Math.max(0, Math.min(kind === "sunday" ? DEMO_EMPLOYEES.length : GROUPS[g].requiredStaff, Math.trunc(value)));
+    const n = Math.max(0, Math.min(groupSize(g), Math.trunc(value)));
     setStore(prev => {
       if (prev.rules[kind][g] === n) return prev;
       return {
         ...prev,
         rules: { ...prev.rules, [kind]: { ...prev.rules[kind], [g]: n } },
         history: [...prev.history, stamp(date, "Parâmetro de " +
-          (kind === "sunday" ? "domingo · " + SPECIAL_SLOT_LABEL[g] : "feriado-padrão · Grupo " + g) + ": " + prev.rules[kind][g] + " → " + n)].slice(-350),
-      };
-    });
-  }
-  function setWeekdayTarget(kind: "alta" | "baixa", g: GroupId, value: number) {
-    if (!Number.isFinite(value)) return;
-    const n = Math.max(0, Math.min(GROUPS[g].requiredStaff, Math.trunc(value)));
-    setStore(prev => {
-      if (prev.rules.weekday[kind][g] === n) return prev;
-      return {
-        ...prev,
-        rules: { ...prev.rules, weekday: { ...prev.rules.weekday, [kind]: { ...prev.rules.weekday[kind], [g]: n } } },
-        history: [...prev.history, stamp(date, "Meta de dia útil (" + (kind === "alta" ? "alto" : "baixo") +
-          " movimento) · " + GROUPS[g].name + ": " + prev.rules.weekday[kind][g] + " → " + n)].slice(-350),
+          (kind === "sunday" ? "domingo" : kind === "daily" ? "dia útil" : "feriado-padrão") + " · " + GROUPS[g].name + ": " + prev.rules[kind][g] + " → " + n)].slice(-350),
       };
     });
   }
   function setHolidayDayTarget(day: string, g: GroupId, value: number) {
     if (!Number.isFinite(value)) return;
-    const count = Math.max(0, Math.min(GROUPS[g].requiredStaff, Math.trunc(value)));
+    const count = Math.max(0, Math.min(groupSize(g), Math.trunc(value)));
     setStore(prev => {
       const before = (prev.rules.holidayByDate[day] ?? prev.rules.holiday)[g];
       if (before === count) return prev;
@@ -244,7 +242,7 @@ export function ScheduleWorkspace() {
           },
         },
         history: [...prev.history, stamp(day,
-          "Efetivo de feriado: " + prettyDate(day) + " · Grupo " + g +
+          "Efetivo de feriado: " + prettyDate(day) + " · " + GROUPS[g].name +
           ": " + before + " → " + count)].slice(-350),
       };
     });
@@ -274,7 +272,7 @@ export function ScheduleWorkspace() {
       <div>
         <p className="op-eyebrow">MN Patrimônios · Gestão de Pessoas · {UNIT.unit}</p>
         <h1>Escala <span>&</span> trocas</h1>
-        <p>Domingo sim, domingo não. Quem trabalha no domingo folga um dia antes (folga antecipada) e um dia na semana seguinte (folga do 7º dia).</p>
+        <p>Portaria em 12×36 (turmas diurna e noturna em dias alternados). Serviços gerais em {REGIME_LABEL[regime]}{regime === "6x1" ? ", com descanso no domingo" : ", de segunda a sexta"}.</p>
       </div>
       <div className="fs-ref"><CalendarDays size={17} /><label>Data de referência
         <input aria-label="Data da escala" type="date" value={date}
@@ -284,14 +282,16 @@ export function ScheduleWorkspace() {
     <div className="fs-demo"><ShieldCheck size={17} />
       <span><strong>Ambiente demonstrativo · {UNIT.unit}.</strong> Colaboradores fictícios. Configurações, decisões e histórico ficam somente neste navegador; não há ponto, aprovação oficial, sincronização entre gerentes ou conexão com banco.</span>
     </div>
-    <div className={"fs-period fs-period-" + period.kind}><b>{period.kind === "alta" ? "🔴" : "🟢"} {period.label}</b>
-      <span>de {prettyDate(period.from)} a {prettyDate(period.until)} · {period.advice}</span></div>
+    <div className={"fs-period " + (regime === "6x1" ? "fs-period-alta" : "fs-period-baixa")}><b>⚖️ {LABOR_LAW.amendment}</b>
+      <span>{regime === "6x1"
+        ? "Serviços gerais em 6×1 (44h) até " + prettyDate(LABOR_LAW.fiveTwoStart) + ". A partir dessa data a escala passa sozinha para 5×2 de 42h (40h a partir de " + prettyDate(LABOR_LAW.fortyHoursStart) + ")."
+        : "5×2 em vigor para serviços gerais: " + REGIME_LABEL[regime] + ", folgas no sábado e no domingo. A portaria segue na 12×36."}</span></div>
     {message && <div role="status" className="fs-toast"><Info size={16}/><span>{message}</span>
       <button type="button" aria-label="Dispensar aviso" onClick={() => setMessage("")}><X size={15}/></button></div>}
 
     <section className="fs-stats" aria-label="Indicadores da escala">
-      <div className="fs-stat"><span><Users size={17}/> Quadro demonstrativo</span><strong>63</strong><small>Colaboradores cadastrados</small></div>
-      <div className="fs-stat"><span><CalendarDays size={17}/> Escalados na data</span><strong>{assigned}</strong><small>{sunday ? "Domingo / revezamento" : holiday ? "Efetivo de feriado" : "Dia de operação"}</small></div>
+      <div className="fs-stat"><span><Users size={17}/> Quadro demonstrativo</span><strong>{DEMO_EMPLOYEES.length}</strong><small>{groupSize("P")} portaria · {groupSize("S")} serviços gerais</small></div>
+      <div className="fs-stat"><span><CalendarDays size={17}/> Escalados na data</span><strong>{assigned}</strong><small>{holiday ? "Efetivo de feriado" : sunday ? "Domingo (portaria 12×36)" : "Dia de operação"}</small></div>
       <div className="fs-stat"><span><ShieldCheck size={17}/> Cobertura operacional</span><strong>{missing === 0 ? "OK" : missing}</strong><small>{missing === 0 ? "Metas atendidas" : "Postos abaixo da meta"}</small></div>
       <div className="fs-stat"><span><ArrowLeftRight size={17}/> Trocas em análise</span><strong>{pending.length}</strong><small>Dependem de aprovação</small></div>
     </section>
@@ -339,15 +339,16 @@ export function ScheduleWorkspace() {
         </div>
         <div className="fs-coverage">
           {coverage.map(c => <div key={c.group} className="fs-coverage-item">
-            <div><b>{sunday ? SPECIAL_SLOT_LABEL[c.group] : c.group + " · " + GROUPS[c.group].name}</b><strong>{c.assigned}/{c.required}</strong></div>
+            <div><b>{GROUPS[c.group].name} · {c.group === "S" ? REGIME_LABEL[regime] : GROUP_REGIME.P}</b><strong>{c.assigned}/{c.required}</strong></div>
             <div className="fs-meter"><span style={{width: c.required ? Math.min(100,c.assigned/c.required*100)+"%" : "100%"}} /></div>
             <small className={c.assigned < c.required ? "fs-warn-text" : "fs-good-text"}>
               {c.assigned < c.required ? "Faltam " + (c.required - c.assigned) + " pessoa(s)" : c.assigned > c.required ? "Sobram " + (c.assigned - c.required) + " pessoa(s)" : "Quantidade certa"}
             </small>
           </div>)}
         </div>
-        <p className="fs-note"><Info size={14}/> Sábado: equipe completa. Segunda a sexta: cada pessoa tem uma folga, sugerida pelo sistema e
-          ajustável pelo gerente. Meta do dia útil muda conforme o período ({period.label.toLowerCase()}).</p>
+        <p className="fs-note"><Info size={14}/> Portaria: cada turma trabalha 12h e descansa 36h (art. 59-A da CLT); DSR e feriados já compensados.
+          Serviços gerais: {regime === "6x1" ? "segunda a sábado (7h20), DSR no domingo (Lei 605/1949)" : "segunda a sexta (" + REGIME_LABEL[regime] + "), sábado e domingo de folga"}.
+          O gestor pode ajustar qualquer dia; o sistema confere descanso e cobertura.</p>
       </section>
       <section className="fs-panel">
         <div className="fs-panel-heading">
@@ -359,18 +360,21 @@ export function ScheduleWorkspace() {
           <label className="fs-search"><Search size={16}/><input aria-label="Buscar colaborador"
             placeholder="Buscar nome ou matrícula" value={search} onChange={e=>setSearch(e.target.value)} /></label>
           <select aria-label="Filtrar grupo de origem" value={group} onChange={e=>setGroup(e.target.value as "all"|GroupId)}>
-            <option value="all">Todos os grupos</option>{GROUP_IDS.map(id => <option key={id} value={id}>Grupo {id}</option>)}
+            <option value="all">Todas as funções</option>{GROUP_IDS.map(id => <option key={id} value={id}>{GROUPS[id].name}</option>)}
+          </select>
+          <select aria-label="Filtrar condomínio" value={condo} onChange={e=>setCondo(e.target.value)}>
+            <option value="all">Todos os condomínios</option>{clients.condos.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
           </select>
           <label className="fs-check"><input type="checkbox" checked={showOnlyScheduled}
             onChange={e=>setShowOnlyScheduled(e.target.checked)} /> Só escalados</label>
         </div>
         <div className="fs-table-scroll" ref={tableRef} role="region" aria-label="Tabela de escala com rolagem vertical" tabIndex={0}>
           <table className="fs-table"><thead><tr>
-            <th>Colaborador</th><th>Horário da semana</th><th>Turno do dia</th><th>Horário</th><th>Situação</th><th>Ação</th>
+            <th>Colaborador</th><th>Função · condomínio</th><th>Escala do dia</th><th>Horário</th><th>Situação</th><th>Ação</th>
           </tr></thead><tbody>
             {filtered.map(row => <tr key={row.employee.id}>
               <td><b>{row.employee.name}</b><small>{row.employee.id}</small></td>
-              <td>{GROUPS[row.employee.group].name}</td>
+              <td>{GROUPS[row.employee.group].name}{row.employee.group === "P" ? " · " + turnLabel(row.employee.id) : ""}<small>{condoName(row.employee.condoId)}</small></td>
               <td>{row.group ? slotLabel(date, row.group, store.rules) : "—"}</td>
               <td className="fs-time">{row.shift ? row.shift.start + "–" + row.shift.end : "—"}</td>
               <td><span className={"fs-pill " + (row.group ? "fs-pill-good" : "fs-pill-neutral")}>{row.group ? "Trabalha" : restReason(store, row.employee, date) ?? "Folga"}</span></td>
@@ -394,12 +398,12 @@ export function ScheduleWorkspace() {
           <label className="fs-field"><span>Nova situação em {prettyDate(date)}</span>
             <select value={editDest} onChange={e=>setEditDest(e.target.value as "off"|GroupId)}>
               <option value="off">Folga / dispensado da escala</option>
-              {GROUP_IDS.map(id => <option value={id} key={id}>{sunday ? SPECIAL_SLOT_LABEL[id] : "Grupo " + id + " · " + GROUPS[id].name}</option>)}
+              {GROUP_IDS.filter(id => !chosen || id === chosen.group).map(id => <option value={id} key={id}>Trabalha · {groupName(id, date)}</option>)}
             </select>
           </label>
           <label className="fs-field fs-wide"><span>Motivo do ajuste (obrigatório)</span>
             <input value={editReason} onChange={e=>setEditReason(e.target.value)}
-              placeholder="Ex.: cobertura de setor, compromisso, revezamento..." maxLength={240} />
+              placeholder="Ex.: cobertura de posto, troca de turma, compromisso..." maxLength={240} />
           </label>
         </div>
         {chosen && (noEditChange
@@ -487,31 +491,18 @@ export function ScheduleWorkspace() {
     {tab === "rules" && <>
       <section className="fs-panel">
         <div className="fs-panel-heading"><div><p className="op-eyebrow">REGRAS OPERACIONAIS PARAMETRIZÁVEIS</p>
-          <h2>Domingos, dias úteis e feriados</h2><p>Quantas pessoas são necessárias em cada turno. O revezamento é montado automaticamente.</p></div></div>
+          <h2>Vagas por dia, domingos e feriados</h2><p>Quantas pessoas de cada função precisam estar no condomínio. As escalas são montadas automaticamente.</p></div></div>
         <div className="fs-config-grid">
-          {(["sunday","holiday"] as const).map(kind => <div className="fs-config-card" key={kind}>
-            <h3>{kind==="sunday"?"Vagas por turno no domingo":"Efetivo especial dos feriados"}</h3>
-            <p>{kind==="sunday"?"Domingo sim, domingo não: metade da equipe trabalha. Qualquer operador pode ficar em qualquer turno; quem fecha o sábado às 22h vai para o turno das 15h15.":
-              "Padrão inicial para novos feriados; cada data cadastrada permite alterar os três grupos."}</p>
-            <div className="fs-targets">{GROUP_IDS.map(g => <label key={g}>
-              <span>{kind==="sunday" ? SPECIAL_SLOT_LABEL[g] : "Grupo " + g}</span>
-              <input aria-label={(kind==="sunday"?"Domingo "+SPECIAL_SLOT_LABEL[g]:"Feriado grupo "+g)} type="number" min={0}
-                max={kind==="sunday" ? DEMO_EMPLOYEES.length : GROUPS[g].requiredStaff} value={store.rules[kind][g]}
-                onChange={e=>setTarget(kind,g,Number(e.target.value))}/>
-              <small>{kind==="sunday" ? "pessoas" : "máx. " + GROUPS[g].requiredStaff}</small>
-            </label>)}</div>
-          </div>)}
-        </div>
-        <div className="fs-config-grid">
-          {(["alta","baixa"] as const).map(kind => <div className="fs-config-card" key={kind}>
-            <h3>{kind==="alta" ? "🔴 Dias úteis no ALTO movimento (dia 28 ao 18)" : "🟢 Dias úteis no BAIXO movimento (dia 19 ao 27)"}</h3>
-            <p>Mínimo de operadores de segunda a sexta. Abaixo disso o sistema avisa “faltam pessoas”.</p>
+          {(["daily","sunday","holiday"] as const).map(kind => <div className="fs-config-card" key={kind}>
+            <h3>{kind==="daily" ? "Vagas em dia útil" : kind==="sunday" ? "Vagas no domingo" : "Efetivo padrão dos feriados"}</h3>
+            <p>{kind==="daily" ? "Portaria: agentes por dia somando diurno e noturno (cada turma de 12×36 cobre um dia sim, outro não). Serviços gerais: pessoas de segunda a " + (regime === "6x1" ? "sábado" : "sexta") + "."
+              : kind==="sunday" ? "Portaria segue a 12×36. Serviços gerais: 0 = todos descansam no domingo (DSR). Se o condomínio pedir equipe, quem trabalha ganha a folga antecipada e a do 7º dia."
+              : "Padrão para novos feriados. Na 12×36 o feriado já é compensado (art. 59-A); serviços gerais folgam, salvo escala especial."}</p>
             <div className="fs-targets">{GROUP_IDS.map(g => <label key={g}>
               <span>{GROUPS[g].name}</span>
-              <input aria-label={"Meta "+kind+" "+GROUPS[g].name} type="number" min={0} max={GROUPS[g].requiredStaff}
-                value={store.rules.weekday[kind][g]}
-                onChange={e=>setWeekdayTarget(kind,g,Number(e.target.value))}/>
-              <small>de {GROUPS[g].requiredStaff}</small>
+              <input aria-label={kind + " " + GROUPS[g].name} type="number" min={0} max={groupSize(g)} value={store.rules[kind][g]}
+                onChange={e=>setTarget(kind,g,Number(e.target.value))}/>
+              <small>de {groupSize(g)}</small>
             </label>)}</div>
           </div>)}
         </div>
@@ -524,9 +515,9 @@ export function ScheduleWorkspace() {
             {!store.rules.holidays.length && <span className="fs-empty">Nenhum feriado cadastrado.</span>}
             {store.rules.holidays.map(day => <div className="fs-holiday-date" key={day}>
               <strong>{prettyDate(day)}</strong>
-              {GROUP_IDS.map(g => <label key={g}>Grupo {g}
-                <input type="number" min={0} max={GROUPS[g].requiredStaff}
-                  aria-label={"Feriado "+prettyDate(day)+" grupo "+g}
+              {GROUP_IDS.map(g => <label key={g}>{GROUPS[g].name}
+                <input type="number" min={0} max={groupSize(g)}
+                  aria-label={"Feriado "+prettyDate(day)+" "+GROUPS[g].name}
                   value={(store.rules.holidayByDate[day] ?? store.rules.holiday)[g]}
                   onChange={e=>setHolidayDayTarget(day,g,Number(e.target.value))}/>
               </label>)}
@@ -536,9 +527,9 @@ export function ScheduleWorkspace() {
           </div>
         </div>
         <div className="fs-policy"><ShieldCheck size={18}/><p><b>Regras de proteção:</b> ao aprovar trocas,
-          bloqueamos menos de {RULES.minRestHours}h entre jornadas e sete dias consecutivos na simulação 6×1.
-          Cobertura não pode piorar abaixo do necessário. Essas configurações não substituem validação das convenções coletivas,
-          legislação vigente, repouso semanal, domingos e feriados específicos.</p></div>
+          bloqueamos menos de {RULES.minRestHours}h entre jornadas (art. 66 da CLT), menos de 36h após o plantão da 12×36,
+          mais de {RULES.maxConsecutiveDays6x1} dias seguidos no 6×1 e mais de {RULES.maxConsecutiveDays5x2} na 5×2, e trocas entre funções diferentes.
+          Cobertura não pode piorar abaixo do necessário. Não substitui a convenção coletiva, o acordo escrito da 12×36 nem a validação do RH/jurídico.</p></div>
       </section>
     </>}
 

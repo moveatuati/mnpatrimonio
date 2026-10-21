@@ -4,27 +4,31 @@ import {
   Edit3, FileText, History, Info, Plane, Plus, RotateCcw, Search,
   ShieldCheck, Users, X,
 } from "lucide-react";
-import { GROUP_IDS, GROUPS, UNIT } from "@/domain/config";
+import { GROUP_IDS, GROUPS, REGIME_LABEL, UNIT, serviceRegime } from "@/domain/config";
 import { DEMO_EMPLOYEES } from "@/domain/demo-data";
 import { isValidReferenceDate } from "@/domain/operation-query";
 import { DEFAULT_SCHEDULE, dateOffset, reviseStore, type ScheduleStore } from "@/domain/schedule";
 import {
   ABSENCE_DEMO_DATE, ABSENCE_LABELS, ABSENCE_STORAGE_KEY,
   SCHEDULE_STORAGE_KEY, absenceSummary, coverageWithAbsences,
-  decideAbsence, demoAbsences, nextWorkDate, restoreAbsences, saveAbsence, validateAbsence,
+  decideAbsence, demoAbsences, nextWorkDate, restoreAbsences, saveAbsence, vacationNotes, validateAbsence,
   type Absence, type AbsenceDraft, type AbsenceStore, type AbsenceType,
 } from "@/domain/absences";
 import type { GroupId } from "@/domain/types";
 import "./AbsenceWorkspace.css";
 
 const INITIAL_DRAFT: AbsenceDraft = {
-  employeeId: "FM-001", type: "ferias", start: ABSENCE_DEMO_DATE,
+  employeeId: "MN-001", type: "ferias", start: ABSENCE_DEMO_DATE,
   end: dateOffset(ABSENCE_DEMO_DATE,6), note: "",
 };
 function displayDate(value: string | null | undefined) {
   if (!value) return "Não definido";
   const [year, month, day] = value.split("-");
   return [day, month, year].join("/");
+}
+function groupNameOf(id: string) {
+  const e = DEMO_EMPLOYEES.find(x => x.id === id);
+  return e ? GROUPS[e.group].name : "—";
 }
 function person(id: string) {
   return DEMO_EMPLOYEES.find(e => e.id === id);
@@ -178,7 +182,7 @@ export function AbsenceWorkspace(){
       </label>
     </header>
     <div className="fa-demo"><ShieldCheck size={18}/><p><b>Ambiente demonstrativo — {UNIT.unit}.</b>
-      Os 63 colaboradores são fictícios. Pedidos e decisões ficam somente neste navegador, sem documento médico,
+      Os {DEMO_EMPLOYEES.length} colaboradores são fictícios. Pedidos e decisões ficam somente neste navegador, sem documento médico,
       autenticação gerencial ou comunicação com a empresa. Não constitui aprovação real de férias ou atestado.</p></div>
     {banner&&<div className="fa-banner" role="status"><Info size={16}/><span>{banner}</span>
       <button type="button" aria-label="Fechar mensagem" onClick={()=>setBanner("")}><X size={15}/></button></div>}
@@ -203,13 +207,13 @@ export function AbsenceWorkspace(){
     {tab==="overview"&&<>
       <div className="fa-duo">
         <section className="fa-panel">
-          <div className="fa-panel-head"><div><p className="op-eyebrow">EFETIVO DO DIA · A/B/C</p>
+          <div className="fa-panel-head"><div><p className="op-eyebrow">EFETIVO DO DIA · PORTARIA E SERVIÇOS GERAIS</p>
             <h2>Disponibilidade operacional</h2><p>Programados na escala, ausências aprovadas e disponíveis.</p></div>
             <span className="fa-count">{summary.scheduledAbsent} ausente(s) escalado(s)</span>
           </div>
           <div className="fa-cover">
             {cover.map(c=><div className="fa-cover-row" key={c.group}>
-              <div className="fa-cover-title"><b><span>Grupo {c.group}</span> · {GROUPS[c.group].name}</b>
+              <div className="fa-cover-title"><b><span>{GROUPS[c.group].name}</span> · {c.group === "P" ? "12×36" : REGIME_LABEL[serviceRegime(date)]}</b>
                 <strong>{c.available}/{c.required}</strong></div>
               <div className="fa-cover-track"><span style={{width:c.required?Math.min(100,c.available/c.required*100)+"%":"100%"}}
                 className={c.deficit?"fa-track-low":"fa-track-ok"}/></div>
@@ -236,7 +240,7 @@ export function AbsenceWorkspace(){
             {returning.slice(0,6).map(item=><div className="fa-return" key={item.id}>
               <span className="fa-return-calendar"><CalendarDays size={16}/>{displayDate(item.returnDate)}</span>
               <div><b>{person(item.employeeId)?.name}</b>
-                <small>{ABSENCE_LABELS[item.type]} · Grupo {person(item.employeeId)?.group} · Fim: {displayDate(item.end)}</small></div>
+                <small>{ABSENCE_LABELS[item.type]} · {groupNameOf(item.employeeId)} · Fim: {displayDate(item.end)}</small></div>
               <span className="fa-pill fa-pill-future">Previsto</span>
             </div>)}
           </div>
@@ -252,7 +256,7 @@ export function AbsenceWorkspace(){
           <label className="fa-search"><Search size={16}/><input aria-label="Buscar colaborador ou matrícula"
             value={search} onChange={e=>setSearch(e.target.value)} placeholder="Buscar nome ou matrícula"/></label>
           <select aria-label="Filtrar grupo" value={group} onChange={e=>setGroup(e.target.value as "all"|GroupId)}>
-            <option value="all">Todos os grupos</option>{GROUP_IDS.map(g=><option key={g} value={g}>Grupo {g}</option>)}
+            <option value="all">Todas as funções</option>{GROUP_IDS.map(g=><option key={g} value={g}>{GROUPS[g].name}</option>)}
           </select>
           <select aria-label="Filtrar tipo" value={kind} onChange={e=>setKind(e.target.value as typeof kind)}>
             <option value="all">Todos os tipos</option><option value="ferias">Férias</option>
@@ -266,7 +270,7 @@ export function AbsenceWorkspace(){
         </div>
         <div className="fa-table-scroll" ref={tableRef} tabIndex={0} role="region"
           aria-label="Tabela de ausências com rolagem vertical">
-          <table className="fa-table"><thead><tr><th>Colaborador</th><th>Grupo</th><th>Tipo</th>
+          <table className="fa-table"><thead><tr><th>Colaborador</th><th>Função</th><th>Tipo</th>
             <th>Início</th><th>Fim</th><th>Retorno previsto</th><th>Situação</th><th>Ações</th></tr></thead>
             <tbody>{visible.map(item=><tr key={item.id}>
               <td><b>{person(item.employeeId)?.name}</b><small>{item.employeeId}</small></td>
@@ -301,7 +305,7 @@ export function AbsenceWorkspace(){
           <select aria-label="Colaborador" value={draft.employeeId}
             disabled={editingRecord?.status==="aprovado"}
             onChange={e=>writeDraft("employeeId",e.target.value)}>
-            {DEMO_EMPLOYEES.map(e=><option key={e.id} value={e.id}>{e.name} · {e.id} · Grupo {e.group}</option>)}
+            {DEMO_EMPLOYEES.map(e=><option key={e.id} value={e.id}>{e.name} · {e.id} · {GROUPS[e.group].name}</option>)}
           </select></label>
         <label className="fa-field"><span>Tipo do pedido</span>
           <select aria-label="Tipo da ausência" value={draft.type} onChange={e=>writeDraft("type",e.target.value as AbsenceType)}>
@@ -318,7 +322,7 @@ export function AbsenceWorkspace(){
             value={draft.note} onChange={e=>writeDraft("note",e.target.value)}/></label>
       </div>
       <div className="fa-form-forecast">
-        <div><span>Colaborador e setor</span><strong>{person(draft.employeeId)?.name??"—"} · Grupo {person(draft.employeeId)?.group??"—"}</strong></div>
+        <div><span>Colaborador e setor</span><strong>{person(draft.employeeId)?.name??"—"} · {groupNameOf(draft.employeeId)}</strong></div>
         <div><span>Duração em dias corridos</span><strong>{isValidReferenceDate(draft.start)&&isValidReferenceDate(draft.end)&&draft.end>=draft.start
           ?Math.round((Date.parse(draft.end+"T12:00:00Z")-Date.parse(draft.start+"T12:00:00Z"))/86400000)+1:"—"}</strong></div>
         <div><span>Primeiro turno previsto após o fim</span><strong>{isValidReferenceDate(draft.end)
@@ -326,6 +330,8 @@ export function AbsenceWorkspace(){
       </div>
       {errors.length>0&&<div className="fa-warning" role="alert"><AlertTriangle size={16}/>
         <div>{errors.map((line,i)=><p key={i}>{line}</p>)}</div></div>}
+      {vacationNotes(draft,schedule.rules.holidays).length>0&&<div className="fa-demo"><Info size={16}/>
+        <div><b>Orientação legal das férias (CLT, art. 134):</b>{vacationNotes(draft,schedule.rules.holidays).map((line,i)=><p key={i}>{line}</p>)}</div></div>}
       {response&&<div className="fa-warning" role="alert">{response}</div>}
       <div className="fa-privacy"><ShieldCheck size={16}/>
         Não anexar atestados, CID, diagnósticos nem documentos reais nesta demonstração. Após salvar,
@@ -346,7 +352,7 @@ export function AbsenceWorkspace(){
           const outlook=previewImpact(store,schedule,entry);
           return <article className="fa-request" key={entry.id}>
             <div className="fa-request-heading"><div><b>{person(entry.employeeId)?.name}</b>
-              <span>{entry.employeeId} · Grupo {person(entry.employeeId)?.group} · {ABSENCE_LABELS[entry.type]}
+              <span>{entry.employeeId} · {groupNameOf(entry.employeeId)} · {ABSENCE_LABELS[entry.type]}
                 {entry.supersedesId?" · Alteração de período aprovado":""}</span></div>
               <span className="fa-pill fa-pill-pending">Pendente</span></div>
             <div className="fa-request-dates"><CalendarDays size={15}/> {displayDate(entry.start)} — {displayDate(entry.end)}

@@ -13,14 +13,14 @@ describe("Férias e afastamentos — painel demonstrativo",()=>{
     const table=screen.getByRole("region",{name:"Tabela de ausências com rolagem vertical"});
     expect(within(table).getAllByRole("row")).toHaveLength(8);
     fireEvent.change(screen.getByRole("textbox",{name:"Buscar colaborador ou matrícula"}),
-      {target:{value:"FM-006"}});
+      {target:{value:"MN-006"}});
     expect(within(table).getAllByRole("row")).toHaveLength(2);
     expect(screen.queryByRole("button",{name:"Próxima página"})).not.toBeInTheDocument();
   });
   it("cria solicitação pendente sem descontar cobertura antes da decisão",()=>{
     render(<AbsenceWorkspace/>);
     fireEvent.click(screen.getByRole("button",{name:"Cadastrar pedido"}));
-    fireEvent.change(screen.getByRole("combobox",{name:"Colaborador"}),{target:{value:"FM-002"}});
+    fireEvent.change(screen.getByRole("combobox",{name:"Colaborador"}),{target:{value:"MN-002"}});
     fireEvent.change(screen.getByRole("combobox",{name:"Tipo da ausência"}),{target:{value:"atestado"}});
     fireEvent.change(screen.getByRole("textbox",{name:"Observação administrativa"}),{target:{value:"Registro operacional genérico"}});
     fireEvent.click(screen.getByRole("button",{name:"Registrar pedido"}));
