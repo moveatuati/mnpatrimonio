@@ -25,9 +25,8 @@ const br = (d: string) => d.split("-").reverse().join("/");
 const nameOf = (id: string) => DEMO_EMPLOYEES.find(e => e.id === id)?.name ?? id;
 const ICON = { no_horario: "✅", atrasado: "🔴", aguardando: "⏳", sem_entrada: "❌", ainda_nao: "·" } as const;
 
-export function ManagerApp() {
-  const [view, setView] = useState<"gerente" | "rh">("gerente");
-  const [tab, setTab] = useState<PhoneTab>("agora");
+/** Dados da demonstração compartilhados entre a prévia no computador e o modo celular. */
+function useManagerDemo() {
   const [date, setDate] = useState("2026-10-21");
   const [now, setNow] = useState("07:15");
   const [manager, setManager] = useState<ManagerId>("GM");
@@ -53,6 +52,76 @@ export function ManagerApp() {
   });
   const fresh = myAlerts.filter(a => a.status === "novo").length;
   const onDuty = managersOnDuty(now);
+  return { date, setDate, now, setNow, manager, setManager, schedule, absences, hours, setHours, store, setStore, me, board, myAlerts, fresh, onDuty };
+}
+
+/** Tela do celular (cabeçalho com logo, conteúdo e 4 abas). Usada na prévia e no modo celular. */
+function PhoneScreen({ d, tab, setTab, onSettings }: {
+  d: ReturnType<typeof useManagerDemo>; tab: PhoneTab; setTab: (t: PhoneTab) => void; onSettings?: () => void;
+}) {
+  return <>
+    <div className="ma-phone-head">
+      <img src="/formosa-logo.svg" alt="Formosa" className="ma-phone-logo" />
+      <div className="ma-phone-hello">
+        <b>Olá, Gerente</b>
+        <span>{d.me.name.replace(" (demo)", "")} · {br(d.date)} · {d.now}</span>
+        <span>{movementPeriod(d.date).kind === "alta" ? "🔴 Alto movimento" : "🟢 Baixo movimento"}</span>
+      </div>
+      {onSettings && <button type="button" className="ma-gear" aria-label="Controles da demonstração" onClick={onSettings}>⚙️</button>}
+    </div>
+    <div className="ma-phone-body">
+      {tab === "agora" && <NowTab board={d.board} />}
+      {tab === "alertas" && <AlertsTab alerts={d.myAlerts} store={d.store} setStore={d.setStore} manager="Gerente" date={d.date} />}
+      {tab === "banco" && <BankTab hours={d.hours} setHours={d.setHours} store={d.store} setStore={d.setStore} manager="Gerente" date={d.date} schedule={d.schedule} />}
+      {tab === "equipe" && <TeamTab schedule={d.schedule} absences={d.absences} hours={d.hours} date={d.date} />}
+    </div>
+    <nav className="ma-tabs">
+      {([["agora", Clock3, "Agora"], ["alertas", Bell, "Alertas"], ["banco", Wallet, "Banco"], ["equipe", Users, "Equipe"]] as const).map(([id, Icon, label]) =>
+        <button key={id} type="button" className={tab === id ? "on" : ""} onClick={() => setTab(id)}>
+          <Icon size={21} /><span>{label}</span>{id === "alertas" && d.fresh > 0 && <b>{d.fresh}</b>}
+        </button>)}
+    </nav>
+  </>;
+}
+
+/** Controles da simulação (hora, dia e turno do gerente) — só para conduzir a demonstração. */
+function SimControls({ d }: { d: ReturnType<typeof useManagerDemo> }) {
+  return <>
+    <label>Dia <input type="date" value={d.date} onChange={e => e.target.value && d.setDate(e.target.value)} /></label>
+    <label>Hora simulada <input type="time" value={d.now} onChange={e => e.target.value && d.setNow(e.target.value)} /></label>
+    <div className="ma-steps">
+      {[["−10 min", -10], ["+5 min", 5], ["+10 min", 10], ["+1 h", 60]].map(([t, n]) =>
+        <button key={t} type="button" onClick={() => d.setNow(fromMinutes(Math.min(23 * 60 + 59, Math.max(0, toMinutes(d.now) + (n as number)))))}>{t}</button>)}
+    </div>
+    <label>Gerente <select value={d.manager} onChange={e => d.setManager(e.target.value as ManagerId)}>
+      {DEMO_MANAGERS.map(m => <option key={m.id} value={m.id}>{m.name.replace(" (demo)", "")} ({m.from}–{m.to})</option>)}
+    </select></label>
+  </>;
+}
+
+/** Modo celular de verdade: tela cheia, sem menu do sistema. Endereço: /celular */
+export function MobileManagerApp() {
+  const d = useManagerDemo();
+  const [tab, setTab] = useState<PhoneTab>("agora");
+  const [settings, setSettings] = useState(false);
+  return <div className="mm">
+    <PhoneScreen d={d} tab={tab} setTab={setTab} onSettings={() => setSettings(true)} />
+    {settings && <div className="mm-sheet-bg" onClick={() => setSettings(false)}>
+      <div className="mm-sheet ma-sim" onClick={e => e.stopPropagation()}>
+        <b>Controles da demonstração</b>
+        <SimControls d={d} />
+        <p className="ma-muted">Avance a hora para ver as batidas de ponto e os alertas acontecendo.</p>
+        <button type="button" className="ma-big" onClick={() => setSettings(false)}>Fechar</button>
+      </div>
+    </div>}
+  </div>;
+}
+
+export function ManagerApp() {
+  const [view, setView] = useState<"gerente" | "rh">("gerente");
+  const [tab, setTab] = useState<PhoneTab>("agora");
+  const d = useManagerDemo();
+  const { date, store, setStore, onDuty } = d;
 
   return <div className="ma formosa-operation">
     <header className="ma-top">
@@ -68,37 +137,15 @@ export function ManagerApp() {
     </header>
 
     <section className="ma-sim" aria-label="Controles da simulação">
-      <label>Dia <input type="date" value={date} onChange={e => e.target.value && setDate(e.target.value)} /></label>
-      <label>Hora simulada <input type="time" value={now} onChange={e => e.target.value && setNow(e.target.value)} /></label>
-      <div className="ma-steps">
-        {[["−10 min", -10], ["+5 min", 5], ["+10 min", 10], ["+1 h", 60]].map(([t, n]) =>
-          <button key={t} type="button" onClick={() => setNow(fromMinutes(Math.min(23 * 60 + 59, Math.max(0, toMinutes(now) + (n as number)))))}>{t}</button>)}
-      </div>
-      <label>Você é <select value={manager} onChange={e => setManager(e.target.value as ManagerId)}>
-        {DEMO_MANAGERS.map(m => <option key={m.id} value={m.id}>{m.name} ({m.from}–{m.to})</option>)}
-      </select></label>
+      <SimControls d={d} />
       <span className="ma-duty">Na loja agora: {onDuty.length ? onDuty.map(m => m.name.replace(" (demo)", "")).join(", ") : "nenhum gerente"}</span>
+      <a className="ma-mobile-link" href="/celular" target="_blank" rel="noopener noreferrer">📱 Abrir modo celular</a>
     </section>
 
     {view === "gerente"
       ? <div className="ma-layout">
           <div className="ma-phone" aria-label="Tela do celular">
-            <div className="ma-phone-head">
-              <b>Olá, {me.name.replace(" (demo)", "")}</b>
-              <span>{br(date)} · {now} · {movementPeriod(date).kind === "alta" ? "🔴 Alto movimento" : "🟢 Baixo movimento"}</span>
-            </div>
-            <div className="ma-phone-body">
-              {tab === "agora" && <NowTab board={board} />}
-              {tab === "alertas" && <AlertsTab alerts={myAlerts} store={store} setStore={setStore} manager={me.name} date={date} />}
-              {tab === "banco" && <BankTab hours={hours} setHours={setHours} store={store} setStore={setStore} manager={me.name} date={date} schedule={schedule} />}
-              {tab === "equipe" && <TeamTab schedule={schedule} absences={absences} hours={hours} date={date} />}
-            </div>
-            <nav className="ma-tabs">
-              {([["agora", Clock3, "Agora"], ["alertas", Bell, "Alertas"], ["banco", Wallet, "Banco"], ["equipe", Users, "Equipe"]] as const).map(([id, Icon, label]) =>
-                <button key={id} type="button" className={tab === id ? "on" : ""} onClick={() => setTab(id)}>
-                  <Icon size={19} /><span>{label}</span>{id === "alertas" && fresh > 0 && <b>{fresh}</b>}
-                </button>)}
-            </nav>
+            <PhoneScreen d={d} tab={tab} setTab={setTab} />
           </div>
           <GuideCard />
         </div>

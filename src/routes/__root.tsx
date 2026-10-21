@@ -2,6 +2,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import {
   Outlet,
   Link,
+  useRouterState,
   createRootRouteWithContext,
   useRouter,
   HeadContent,
@@ -135,6 +136,15 @@ function RootComponent() {
       window.removeEventListener("storage",fromStorage);
     };
   },[]);
+  // Modo celular do app do gerente abre em tela cheia, sem o menu do sistema.
+  const pathname = useRouterState({ select: (state) => state.location.pathname });
+  if (pathname.startsWith("/celular")) {
+    return (
+      <QueryClientProvider client={queryClient}>
+        <Outlet key={rulesRevision} />
+      </QueryClientProvider>
+    );
+  }
   return (
     <QueryClientProvider client={queryClient}>
       {/* Nested modules remount when the shared operational policies change. */}
