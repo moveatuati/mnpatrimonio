@@ -17,18 +17,20 @@ const hour = (v?: string) => (v && v.length > 10 ? ` às ${v.slice(11, 16)}` : "
 
 /* ─────────────────────── Resultado do perfil ─────────────────────── */
 
-function Donut({ pct, cor }: { pct: number; cor: string }) {
-  return <div className="cd-donut" style={{ background: `conic-gradient(${cor} 0deg ${pct * 3.6}deg, ${cor}33 ${pct * 3.6}deg 360deg)` }} aria-hidden="true"><div className="cd-donut-hole" /></div>;
-}
-
+/** Barra dividida: cada lado ocupa a sua porcentagem, o lado que predomina fica com a cor forte. */
 function EixoCard({ e, cor }: { e: Eixo; cor: string }) {
+  const aLead = e.av >= e.bv, bLead = e.bv >= e.av;
+  const side = (lead: boolean) => ({ background: lead ? cor : `${cor}40`, color: lead ? "#fff" : "#3d4654" });
   return <div className="cd-rp-card">
     <span className="cd-eyebrow">{e.titulo}</span>
     <small className="cd-rp-sinal">{e.sinal}</small>
-    <div className="cd-rp-eixo">
-      <span><b style={{ color: cor }}>{e.av}%</b><small>{e.a}</small></span>
-      <Donut pct={e.av} cor={cor} />
-      <span><b>{e.bv}%</b><small>{e.b}</small></span>
+    <div className="cd-ax-labels">
+      <span className={aLead ? "cd-ax-lead" : ""} style={aLead ? { color: cor } : undefined}><b>{e.av}%</b> {e.a}</span>
+      <span className={bLead ? "cd-ax-lead" : ""} style={bLead ? { color: cor } : undefined}>{e.b} <b>{e.bv}%</b></span>
+    </div>
+    <div className="cd-ax-bar" role="img" aria-label={`${e.a} ${e.av}%, ${e.b} ${e.bv}%`}>
+      <span style={{ width: `${e.av}%`, ...side(aLead) }}>{e.av >= 15 ? e.a : ""}</span>
+      <span style={{ width: `${e.bv}%`, ...side(bLead) }}>{e.bv >= 15 ? e.b : ""}</span>
     </div>
     <p className="cd-rp-lead"><b>{e.lider.toUpperCase()} {e.equilibrio ? "EM EQUILÍBRIO" : "EM DESTAQUE"}</b> · {e.leitura}</p>
   </div>;

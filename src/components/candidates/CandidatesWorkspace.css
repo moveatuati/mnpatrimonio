@@ -358,3 +358,10 @@
 .cd-rp-card li{position:relative;padding-left:16px}
 .cd-rp-card li::before{content:"";position:absolute;left:2px;top:.55em;width:7px;height:7px;border-radius:50%;background:#2f6fd6}
 .cd-rp-warm li::before{background:#e8870f}
+
+/* Atuante × Pensante e Razão × Emoção: barra dividida, fácil de comparar */
+.cd-ax-labels{display:flex;justify-content:space-between;align-items:baseline;gap:8px;margin-top:6px;font-size:14px;font-weight:700;color:#5d6b79}
+.cd-ax-labels b{font-size:24px;font-weight:800}
+.cd-ax-lead{font-size:15px}
+.cd-ax-bar{display:flex;gap:3px;height:30px;border-radius:9px;overflow:hidden}
+.cd-ax-bar span{display:flex;align-items:center;justify-content:center;font-size:12.5px;font-weight:800;white-space:nowrap;overflow:hidden}
