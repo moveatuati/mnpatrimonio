@@ -14,6 +14,7 @@ import { hydrateRhSettings, RH_SETTINGS_EVENT, RH_SETTINGS_KEY } from "@/domain/
 
 import appCss from "../styles.css?url";
 import { AppShell } from "../components/layout/AppShell";
+import { LoginGate } from "../components/layout/LoginGate";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 
 function NotFoundComponent() {
@@ -148,9 +149,11 @@ function RootComponent() {
   return (
     <QueryClientProvider client={queryClient}>
       {/* Nested modules remount when the shared operational policies change. */}
-      <AppShell>
-        <Outlet key={rulesRevision} />
-      </AppShell>
+      <LoginGate>
+        <AppShell>
+          <Outlet key={rulesRevision} />
+        </AppShell>
+      </LoginGate>
     </QueryClientProvider>
   );
 }

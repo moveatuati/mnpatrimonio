@@ -3,6 +3,7 @@ import { BRAND } from "@/lib/brand";
 import { Fragment, useRef, useState, type ReactNode } from "react";
 import { MapPin, Menu, ShieldCheck, X } from "lucide-react";
 import { NAV } from "./nav";
+import { LogoutBox } from "./LoginGate";
 import { UNIT } from "@/domain/config";
 
 export function AppShell({ children }: { children: ReactNode }) {
@@ -74,6 +75,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           <p className="mt-2 text-[11px] leading-relaxed text-sidebar-foreground/60">
             Dados fictícios para avaliação. Sem registro oficial de ponto.
           </p>
+          <LogoutBox />
         </div>
       </aside>
 

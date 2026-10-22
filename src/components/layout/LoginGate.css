@@ -1,0 +1,19 @@
+.lg-page{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;padding:24px 16px;background:radial-gradient(1200px 600px at 20% 0%,#2b4b6b 0,#1a2f47 55%,#13243a 100%)}
+.lg-card{width:100%;max-width:420px;display:flex;flex-direction:column;gap:12px;padding:30px 28px;border-radius:20px;background:#fff;box-shadow:0 30px 60px -30px rgb(0 0 0 / 60%)}
+.lg-logo{display:flex;justify-content:center;margin-bottom:4px}.lg-logo img{height:86px;width:auto}
+.lg-eyebrow{margin:0;text-align:center;color:#40668d;font-size:12px;font-weight:800;letter-spacing:.14em;text-transform:uppercase}
+.lg-card h1{margin:0;text-align:center;color:#1e3a5f;font-size:28px;font-weight:800}
+.lg-sub{margin:0 0 6px;text-align:center;color:#4b5762;font-size:15px;line-height:1.45}
+.lg-f{display:flex;flex-direction:column;gap:6px}.lg-f>span:first-child{color:#2b3640;font-size:14px;font-weight:700}
+.lg-f input{width:100%;min-height:50px;padding:12px 14px;border:1px solid #c3cfdc;border-radius:12px;font-size:16px;color:#1b2433;background:#fff}
+.lg-f input:focus{outline:3px solid #b8cde4;border-color:#1e3a5f}
+.lg-pass{position:relative;display:block}.lg-pass input{padding-right:52px}
+.lg-pass button{position:absolute;right:6px;top:50%;transform:translateY(-50%);width:42px;height:42px;display:grid;place-items:center;border:0;background:none;color:#40668d;cursor:pointer}
+.lg-err{margin:0;padding:10px 12px;border:1px solid #f1cdc9;border-radius:10px;background:#fdf0ef;color:#a2382f;font-size:14px}
+.lg-btn{display:flex;align-items:center;justify-content:center;gap:8px;min-height:54px;margin-top:6px;border:0;border-radius:12px;background:#1e3a5f;color:#fff;font-size:17px;font-weight:800;cursor:pointer}
+.lg-btn:hover:not(:disabled){background:#152c49}.lg-btn:disabled{opacity:.5;cursor:not-allowed}
+.lg-foot{margin:4px 0 0;text-align:center;color:#6b7680;font-size:13px}
+.lg-legal{margin:0;color:#c9d4e3;font-size:12px;text-align:center}
+.lg-out{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:10px;font-size:11.5px;color:inherit}
+.lg-out button{display:inline-flex;align-items:center;gap:5px;min-height:34px;padding:6px 10px;border:1px solid rgb(255 255 255 / 30%);border-radius:8px;background:rgb(255 255 255 / 8%);color:inherit;font-size:12px;font-weight:700;cursor:pointer}
+.lg-out button:hover{background:rgb(255 255 255 / 16%)}
