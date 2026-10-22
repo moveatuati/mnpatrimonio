@@ -1873,3 +1873,23 @@ body :is(.fs-filters, .cd-list-tools, .fa-filters, .bh-filters, .rm-filters, .ft
 .formosa-shell-sidebar .formosa-shell-nav-demo.formosa-shell-nav-active { background: rgb(240 140 40 / 26%); color: #ffe1bd !important; box-shadow: inset 3px 0 0 #f0a050; }
 .formosa-shell-mobile .formosa-shell-nav-demo { color: #a0520f !important; background: #fff4e6; border-color: #f3c58f; }
 .formosa-shell-mobile .formosa-shell-nav-demo-label { color: #a0520f !important; border-top-color: #f3c58f; }
+
+/* ------------------------------------------------------------------
+ * Avivamento leve: fundo um pouco mais escuro, cards de números com tons
+ * suaves e item selecionado mais destacado (sem chegar ao azul escuro dos botões).
+ * ------------------------------------------------------------------ */
+:root { --background: oklch(0.955 0.012 250); --accent: oklch(0.915 0.035 250); }
+body :is(.cd-stat, .ft-metric, .bh-stat, .fa-stat, .rm-metric, .op-kpi) {
+  box-shadow: 0 10px 22px -16px rgb(20 40 70 / 50%) !important;
+}
+body :is(.cd-stat, .ft-metric, .bh-stat, .fa-stat, .rm-metric, .op-kpi):nth-child(4n+1) { background: linear-gradient(135deg, #dfeaf8, #f5f9fe) !important; border-color: #bfd2e8 !important; }
+body :is(.cd-stat, .ft-metric, .bh-stat, .fa-stat, .rm-metric, .op-kpi):nth-child(4n+2) { background: linear-gradient(135deg, #fcecd4, #fffaf2) !important; border-color: #eed2a6 !important; }
+body :is(.cd-stat, .ft-metric, .bh-stat, .fa-stat, .rm-metric, .op-kpi):nth-child(4n+3) { background: linear-gradient(135deg, #d9f0eb, #f3fbf9) !important; border-color: #b3dccf !important; }
+body :is(.cd-stat, .ft-metric, .bh-stat, .fa-stat, .rm-metric, .op-kpi):nth-child(4n+4) { background: linear-gradient(135deg, #e0f2e6, #f4fbf6) !important; border-color: #bbe0c8 !important; }
+body :is(.cd-item-on, .rm-nav-selected, .ft-selected) {
+  background: #d9e6f5 !important; border-color: #2f5d8c !important; box-shadow: inset 4px 0 0 #2f5d8c !important;
+}
+body .cd-item-on b { color: #17324f !important; }
+@media print {
+  body :is(.cd-stat, .ft-metric, .bh-stat, .fa-stat, .rm-metric, .op-kpi) { background: #fff !important; box-shadow: none !important; }
+}
