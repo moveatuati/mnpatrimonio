@@ -3,7 +3,7 @@ import {
   CRITERIA, INTERVIEW_QUESTIONS, applicationMissing, decide, demoCandidates, isValidCPF, newCandidate,
   removeCandidate, reopen, restoreCandidates, setRhOpinion, submit, decideProfile, receiveProfile, type Candidate,
 } from "./candidates";
-import { predominant, scoreAnswers, simulatedScores } from "./behavior-profile";
+import { predominant, profileReading, scoreAnswers, simulatedScores } from "./behavior-profile";
 import { DOC_LIST, docsComplete, docsReceived, receiveDocs } from "./candidate-docs";
 
 function complete(c: Candidate): Candidate {
@@ -79,5 +79,12 @@ describe("captação de candidatos", () => {
     const all = receiveDocs(back.docs, Object.fromEntries(DOC_LIST.map(d => [d.id, { name: d.short, at: "t", url: "x" }])));
     expect(docsComplete(all)).toBe(true);
     expect(all.seen).toBe(false);
+  });
+  it("leitura do perfil igual ao CRM: atuante/pensante e razão/emoção", () => {
+    const r = profileReading({ "Lobo": 60, "Tubarão": 20, "Gato": 16, "Águia": 4 });
+    expect(r.agir.av).toBe(36); expect(r.agir.bv).toBe(64); expect(r.agir.lider).toBe("Pensante");
+    expect(r.orientacao.av).toBe(80); expect(r.orientacao.sinal).toBe("Predominância acentuada");
+    expect(r.dominantes).toEqual(["Lobo"]);
+    expect(r.comoDecide[0]).toBe("As respostas favorecem critérios racionais");
   });
 });

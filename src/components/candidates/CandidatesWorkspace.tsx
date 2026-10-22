@@ -270,7 +270,7 @@ export function CandidatesWorkspace() {
             </div>
           </div>
         : <div className="cd-stack">
-            {current.profile.scores && <ProfileSummary c={current} />}
+            {current.profile.scores && <ProfileSummary c={current} unidade={condoName(current.condoId)} />}
             <InterviewForm key={current.id} c={current} me={me} setMe={setMe} clients={clients} onChange={patch} onDecide={s => decideCurrent(current, s)}
               onReopen={() => apply(reopen(current), current.interview.opinion.trim() ? "Candidato voltou para a etapa 2 · Entrevista." : "Candidato voltou para a etapa 1 · Perfil.")}
               onRemove={() => removeCurrent(current)} onGoForm={() => open("ficha", current)} />

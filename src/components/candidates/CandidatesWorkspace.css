@@ -322,3 +322,29 @@
 .cd-pred-top{display:flex;align-items:center;gap:12px}
 .cd-pred-emoji{display:inline-grid;place-items:center;flex:0 0 54px;height:54px;border-radius:50%;font-size:30px;box-shadow:0 0 0 3px #fff,0 6px 14px -6px rgb(0 0 0 / 45%)}
 .cd-psum-animal{display:inline-block;margin-right:6px;padding:3px 11px;border-radius:20px;color:#fff !important}
+
+/* Resultado do perfil — mesma leitura do CRM, em tamanho compacto */
+.cd-rp{display:flex;flex-direction:column;gap:12px;margin-top:8px}
+.cd-rp-top{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.cd-rp-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.cd-rp-card{display:flex;flex-direction:column;gap:6px;padding:14px 16px;border:1px solid #dce2ea;border-radius:12px;background:#fff}
+.cd-rp-card .cd-eyebrow{margin-bottom:2px}
+.cd-rp-warm{background:#fffaf2;border-color:#f0dcc0}
+.cd-rp-card ul{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:4px;font-size:14px;color:#2b3640}
+.cd-rp-note{margin:4px 0 0;padding-top:8px;border-top:1px dashed #dce2ea;color:#4b5762;font-size:13px}
+.cd-rp-sinal{color:#5d6b79;font-size:12.5px;margin-top:-4px}
+.cd-rp-eixo{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.cd-rp-eixo>span{display:flex;flex-direction:column}
+.cd-rp-eixo b{font-size:26px;line-height:1.1}.cd-rp-eixo small{font-size:13px;color:#4b5762;font-weight:700}
+.cd-donut{display:inline-grid;place-items:center;width:68px;height:68px;border-radius:50%}
+.cd-donut>span{width:44px;height:44px;border-radius:50%;background:#fff}
+.cd-rp-lead{margin:2px 0 0;font-size:13px;color:#2b3640}
+.cd-rp-lead b{font-size:12.5px}
+.cd-rp-dom{gap:10px}
+.cd-rp-sub{display:block;color:#5d6b79;font-size:13px}
+.cd-rp-desc{margin:0;font-size:13.5px;color:#2b3640;line-height:1.45}
+.cd-rp-foot{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px}
+.cd-rp-foot .cd-mini{margin:0;flex:1;min-width:240px}
+.cd-rp .cd-bar-row{grid-template-columns:110px minmax(0,1fr) 42px;font-size:14px}
+@media (max-width:1100px){.cd-rp-top,.cd-rp-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:700px){.cd-rp-top,.cd-rp-grid{grid-template-columns:1fr}}

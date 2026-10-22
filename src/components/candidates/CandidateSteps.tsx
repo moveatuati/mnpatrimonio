@@ -1,10 +1,11 @@
 import { useEffect, useState } from "react";
 import {
-  AlertTriangle, Archive, Check, CheckCircle2, ChevronLeft, ChevronRight, Clock3, Eye, FileText, Loader2, MessageCircle, Paperclip,
+  AlertTriangle, Archive, Check, Printer, CheckCircle2, ChevronLeft, ChevronRight, Clock3, Eye, FileText, Loader2, MessageCircle, Paperclip,
   RotateCw, Sparkles, Trash2, UserX, X, ZoomIn, ZoomOut,
 } from "lucide-react";
 import { basicMissing, formatPhone, sampleDocImage, type Candidate } from "@/domain/candidates";
-import { PERFIS, PROFILE_QUESTIONS, predominant, profileMessage, profileUrl, ranked, type ProfileScores } from "@/domain/behavior-profile";
+import { PERFIS, PROFILE_QUESTIONS, profileMessage, profileReading, profileUrl, ranked, type Eixo } from "@/domain/behavior-profile";
+import { abrirRelatorioPerfil } from "@/lib/perfil-relatorio";
 import { DOC_LIST, docsComplete, docsMessage, docsReceived, docsUrl, receiveDocs, type DocId } from "@/domain/candidate-docs";
 import { whatsappUrl } from "@/domain/candidate-link";
 import type { ClientStore } from "@/domain/clients";
@@ -16,47 +17,86 @@ const hour = (v?: string) => (v && v.length > 10 ? ` às ${v.slice(11, 16)}` : "
 
 /* ─────────────────────── Resultado do perfil ─────────────────────── */
 
-function ProfileBars({ scores }: { scores: ProfileScores }) {
-  const top = predominant(scores);
-  return <div className="cd-bars">{ranked(scores).map(r =>
-    <div key={r.nome} className={top.includes(r.nome) ? "cd-bar-row cd-bar-top" : "cd-bar-row"}>
-      <b>{r.nome}</b>
-      <span className="cd-bar-track"><span style={{ width: `${r.pct}%`, background: PERFIS[r.nome].cor }} /></span>
-      <strong>{r.pct}%</strong>
-    </div>)}</div>;
+function Donut({ pct, cor }: { pct: number; cor: string }) {
+  return <span className="cd-donut" style={{ background: `conic-gradient(${cor} ${pct * 3.6}deg, #e3e8ef 0)` }} aria-hidden="true"><span /></span>;
 }
 
-function ProfileResult({ scores }: { scores: ProfileScores }) {
-  const top = predominant(scores);
-  return <div className="cd-result">
-    <div className="cd-pred">
-      <span className="cd-eyebrow">{top.length > 1 ? "Perfis predominantes (empate)" : "Perfil predominante"}</span>
-      {top.map(n => <div key={n} className="cd-pred-item" style={{ borderColor: PERFIS[n].cor, background: PERFIS[n].fundo }}>
-        <span className="cd-pred-top"><span className="cd-pred-emoji" style={{ background: PERFIS[n].cor }} aria-hidden="true">{PERFIS[n].emoji}</span>
-          <b style={{ color: PERFIS[n].cor }}>{n} · {scores[n]}%</b></span>
-        <span>{PERFIS[n].foco}</span>
-        <small>Pontos fortes: {PERFIS[n].forcas.join(", ")}.</small>
-      </div>)}
+function EixoCard({ e, cor }: { e: Eixo; cor: string }) {
+  return <div className="cd-rp-card">
+    <span className="cd-eyebrow">{e.titulo}</span>
+    <small className="cd-rp-sinal">{e.sinal}</small>
+    <div className="cd-rp-eixo">
+      <span><b style={{ color: cor }}>{e.av}%</b><small>{e.a}</small></span>
+      <Donut pct={e.av} cor={cor} />
+      <span><b>{e.bv}%</b><small>{e.b}</small></span>
     </div>
-    <div><span className="cd-eyebrow">Distribuição das respostas</span><ProfileBars scores={scores} /></div>
-    <div className="cd-explore"><span className="cd-eyebrow">Perguntas sugeridas para a entrevista</span>
-      <ul>{top.flatMap(n => PERFIS[n].explorar).map(q => <li key={q}>{q}</li>)}</ul></div>
-    <p className="cd-mini">O perfil é um apoio para a conversa, não um diagnóstico. Use junto com a entrevista.</p>
+    <p className="cd-rp-lead"><b>{e.lider.toUpperCase()} {e.equilibrio ? "EM EQUILÍBRIO" : "EM DESTAQUE"}</b> · {e.leitura}</p>
+  </div>;
+}
+
+function ListCard({ title, items, note, warm }: { title: string; items: string[]; note?: string; warm?: boolean }) {
+  return <div className={warm ? "cd-rp-card cd-rp-warm" : "cd-rp-card"}>
+    <span className="cd-eyebrow">{title}</span>
+    <ul>{items.map(t => <li key={t}>{t}</li>)}</ul>
+    {note && <p className="cd-rp-note">{note}</p>}
+  </div>;
+}
+
+/** Resultado do perfil (mesma leitura do CRM), em tamanho compacto, com botão de impressão. */
+function ProfileResult({ c, unidade }: { c: Candidate; unidade: string }) {
+  const [erro, setErro] = useState("");
+  const scores = c.profile.scores!;
+  const r = profileReading(scores);
+  function imprimir() {
+    setErro(abrirRelatorioPerfil({ id: c.id, nome: c.name || "Candidato", vaga: c.role || "Vaga não definida", unidade,
+      scores, respondidoEm: c.profile.answeredAt, respostas: PROFILE_QUESTIONS.length }) ?? "");
+  }
+  return <div className="cd-rp">
+    <div className="cd-rp-top">
+      <EixoCard e={r.agir} cor="#1f5fcf" />
+      <EixoCard e={r.orientacao} cor="#e8870f" />
+      <div className="cd-rp-card cd-rp-dom">
+        <span className="cd-eyebrow">{r.dominantes.length > 1 ? "Perfis predominantes · empate" : "Perfil predominante"}</span>
+        {r.dominantes.map(n => <span key={n} className="cd-pred-top">
+          <span className="cd-pred-emoji" style={{ background: PERFIS[n].cor }} aria-hidden="true">{PERFIS[n].emoji}</span>
+          <span><b style={{ color: PERFIS[n].cor, fontSize: 22 }}>{n}</b><small className="cd-rp-sub">{scores[n]}% das respostas</small></span></span>)}
+        <p className="cd-rp-desc">{r.descricao}</p>
+      </div>
+    </div>
+    <div className="cd-rp-grid">
+      <div className="cd-rp-card"><span className="cd-eyebrow">Os quatro perfis</span>
+        <div className="cd-bars">{ranked(scores).map(x => <div key={x.nome} className={r.dominantes.includes(x.nome) ? "cd-bar-row cd-bar-top" : "cd-bar-row"}>
+          <b><span aria-hidden="true">{PERFIS[x.nome].emoji}</span> {x.nome}</b>
+          <span className="cd-bar-track"><span style={{ width: `${x.pct}%`, background: PERFIS[x.nome].cor }} /></span>
+          <strong>{x.pct}%</strong></div>)}</div>
+      </div>
+      <ListCard title="Características predominantes" items={r.caracteristicas} />
+      <ListCard title="Pontos de melhoria" items={r.pontosMelhoria} warm />
+      <ListCard title="Como tende a agir" items={r.comoAge} note={r.notaAgir} />
+      <ListCard title="Como tende a decidir" items={r.comoDecide} note={r.notaDecidir} warm />
+      <ListCard title="Forças e fatores de atuação" items={r.forcas} />
+    </div>
+    <div className="cd-rp-foot">
+      <p className="cd-mini">Leitura descritiva: tendências do autorrelato. Não é laudo psicológico nem decisão automática de contratação.</p>
+      <button className="cd-btn cd-btn-primary cd-btn-lg" onClick={imprimir}><Printer size={17} /> Imprimir relatório</button>
+    </div>
+    {erro && <p className="cd-warn"><AlertTriangle size={15} /> {erro}</p>}
   </div>;
 }
 
 /** Resumo do perfil mostrado no topo da entrevista. */
-export function ProfileSummary({ c }: { c: Candidate }) {
+export function ProfileSummary({ c, unidade }: { c: Candidate; unidade: string }) {
   const [openMore, setOpenMore] = useState(false);
   const scores = c.profile.scores!;
-  const top = predominant(scores);
+  const r = profileReading(scores);
+  const top = r.dominantes;
   return <section className="cd-panel cd-psum">
     <div className="cd-psum-row">
       <span className="cd-j-done cd-psum-ok"><Check size={13} /> Etapa 1 concluída</span>
-      <span>Perfil: {top.map(n => <b key={n} className="cd-psum-animal" style={{ background: PERFIS[n].cor }}>{PERFIS[n].emoji} {n} {scores[n]}%</b>)} — {PERFIS[top[0]!].foco}</span>
+      <span>Perfil: {top.map(n => <b key={n} className="cd-psum-animal" style={{ background: PERFIS[n].cor }}>{PERFIS[n].emoji} {n} {scores[n]}%</b>)} · {r.agir.lider} · {r.orientacao.lider}</span>
       <button className="cd-btn" onClick={() => setOpenMore(!openMore)}>{openMore ? "Fechar" : "Ver resultado completo"}</button>
     </div>
-    {openMore && <ProfileResult scores={scores} />}
+    {openMore && <ProfileResult c={c} unidade={unidade} />}
   </section>;
 }
 
@@ -123,7 +163,7 @@ export function ProfilePanel({ c, clients, onChange, onDecide, onSimulate, onRem
       </div>}
 
       {answered && <><h3 className="cd-h3">Resultado do perfil <span className="cd-badge cd-b-aprovado">Respondido em {br(c.profile.answeredAt)}</span></h3>
-        <ProfileResult scores={c.profile.scores!} /></>}
+        <ProfileResult c={c} unidade={condo} /></>}
     </div>
 
     <footer className="cd-decide">

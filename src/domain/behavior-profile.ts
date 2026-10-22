@@ -7,42 +7,40 @@
 export type PerfilNome = "Tubarão" | "Gato" | "Águia" | "Lobo";
 export const PERFIL_NOMES: PerfilNome[] = ["Tubarão", "Gato", "Águia", "Lobo"];
 
-export const PERFIS: Record<PerfilNome, { foco: string; forcas: string[]; explorar: string[]; cor: string; emoji: string; fundo: string }> = {
+export type PerfilInfo = {
+  emoji: string; cor: string; fundo: string; foco: string; leitura: string;
+  forcas: string[]; descricaoAcao: string[]; pontosDesenvolvimento: string[];
+};
+
+/** Textos iguais aos do relatório do CRM MoveAtuati. */
+export const PERFIS: Record<PerfilNome, PerfilInfo> = {
   "Tubarão": {
-    emoji: "🦈", fundo: "#e6f4ec",
-    foco: "Ação, iniciativa e resultados", cor: "#0f8a57",
+    emoji: "🦈", cor: "#0f8a57", fundo: "#e6f4ec", foco: "Ação, iniciativa e resultados",
+    leitura: "As respostas podem indicar preferência por agir, enfrentar desafios e manter atenção no avanço das entregas.",
     forcas: ["iniciativa", "senso de urgência", "orientação a resultados"],
-    explorar: [
-      "Conte uma situação em que precisou agir rápido e depois ajustar o plano.",
-      "Como você mantém a velocidade sem deixar de ouvir quem está à sua volta?",
-    ],
+    descricaoAcao: ["Tendência à iniciativa diante de desafios", "Foco no avanço das entregas e nos resultados", "Prefere partir para a ação quando há um caminho viável"],
+    pontosDesenvolvimento: ["Equilibrar rapidez com escuta ativa", "Reavaliar o plano quando surgem novas informações", "Confirmar detalhes importantes antes da decisão"],
   },
   "Gato": {
-    emoji: "🐱", fundo: "#fcefe2",
-    foco: "Colaboração, comunicação e relacionamentos", cor: "#c2620f",
+    emoji: "🐱", cor: "#c2620f", fundo: "#fcefe2", foco: "Colaboração, comunicação e relacionamentos",
+    leitura: "As respostas podem indicar preferência por construir em conjunto, manter diálogo e considerar o clima das relações.",
     forcas: ["comunicação", "cooperação", "construção de consenso"],
-    explorar: [
-      "Como você apresenta uma discordância sem deixar de dizer o que precisa?",
-      "Quando manter a harmonia atrapalha uma entrega, como você decide?",
-    ],
+    descricaoAcao: ["Valoriza diálogo e relações de colaboração", "Tende a buscar consenso para avançar em equipe", "Considera o clima das relações no cotidiano"],
+    pontosDesenvolvimento: ["Expressar discordâncias com clareza", "Conciliar harmonia e cumprimento das entregas", "Tomar posição quando há prioridades conflitantes"],
   },
   "Águia": {
-    emoji: "🦅", fundo: "#e7effc",
-    foco: "Exploração, criatividade e possibilidades", cor: "#1f5fcf",
+    emoji: "🦅", cor: "#1f5fcf", fundo: "#e7effc", foco: "Exploração, criatividade e possibilidades",
+    leitura: "As respostas podem indicar abertura para novas possibilidades, autonomia de pensamento e interesse por caminhos alternativos.",
     forcas: ["criatividade", "visão de possibilidades", "adaptação de ideias"],
-    explorar: [
-      "Conte uma ideia sua que deu certo no trabalho. Como você colocou em prática?",
-      "O que ajuda você a equilibrar ideias novas com atenção aos detalhes da rotina?",
-    ],
+    descricaoAcao: ["Explora novas ideias e possibilidades", "Tende a buscar caminhos alternativos", "Valoriza autonomia para pensar e criar"],
+    pontosDesenvolvimento: ["Transformar ideias em primeiros testes observáveis", "Equilibrar criatividade e atenção aos detalhes", "Estruturar o acompanhamento da execução"],
   },
   "Lobo": {
-    emoji: "🐺", fundo: "#f1eaf8",
-    foco: "Organização, consistência e planejamento", cor: "#7a3fb0",
-    forcas: ["organização", "consistência", "atenção a regras e critérios"],
-    explorar: [
-      "Quando o plano muda de repente, como você se organiza?",
-      "Que informações você precisa para começar uma tarefa nova com segurança?",
-    ],
+    emoji: "🐺", cor: "#7a3fb0", fundo: "#f1eaf8", foco: "Organização, consistência e planejamento",
+    leitura: "As respostas podem indicar preferência por estrutura, previsibilidade, critérios claros e acompanhamento cuidadoso.",
+    forcas: ["organização", "consistência", "atenção a critérios"],
+    descricaoAcao: ["Prefere critérios claros e planejamento", "Valoriza consistência na execução", "Acompanha com atenção o que foi combinado"],
+    pontosDesenvolvimento: ["Ajustar planos diante de mudanças reais", "Começar mesmo sem informações completas", "Conciliar método e flexibilidade"],
   },
 };
 
@@ -134,4 +132,51 @@ export const profileUrl = (origin: string, name: string) => `${origin}/perfil?n=
 export function profileMessage(name: string, role: string, condo: string, url: string): string {
   const first = name.trim().split(" ")[0] || "candidato(a)";
   return `Olá, ${first}! Aqui é da MN Patrimônios. Obrigado pelo interesse na vaga de ${role}${condo ? ` (${condo})` : ""}.\n\nO primeiro passo é um teste rápido de perfil (uns 5 minutos, não tem resposta certa ou errada):\n${url}\n\nAo terminar, toque em "Enviar".`;
+}
+
+export type Eixo = { titulo: string; a: string; av: number; b: string; bv: number; lider: string; sinal: string; leitura: string; equilibrio: boolean };
+
+function eixo(titulo: string, a: string, av: number, b: string, bv: number): Eixo {
+  const equilibrio = Math.abs(av - bv) < 0.01;
+  const lider = av >= bv ? a : b;
+  const sinal = equilibrio ? "Equilíbrio entre os polos" : Math.max(av, bv) > 70 ? "Predominância acentuada"
+    : Math.max(av, bv) > 60 ? "Predominância intermediária" : "Leve predominância";
+  const leituras: Record<string, string> = {
+    Atuante: "Tendência à ação e à iniciativa.", Pensante: "Tendência à reflexão antes da ação.",
+    Razão: "Tendência a priorizar critérios racionais.", Emoção: "Tendência a considerar aspectos emocionais e relacionais.",
+  };
+  return { titulo, a, av, b, bv, lider, sinal, equilibrio, leitura: equilibrio ? "As respostas se distribuem igualmente entre os polos." : leituras[lider]! };
+}
+
+/**
+ * Leitura completa do resultado — mesma inteligência do CRM:
+ * Atuante = Gato + Tubarão · Pensante = Águia + Lobo · Razão = Tubarão + Lobo · Emoção = Gato + Águia.
+ */
+export function profileReading(scores: ProfileScores) {
+  const p = (n: PerfilNome) => scores[n];
+  const atuante = p("Gato") + p("Tubarão"), pensante = p("Águia") + p("Lobo");
+  const razao = p("Tubarão") + p("Lobo"), emocao = p("Gato") + p("Águia");
+  const dominantes = predominant(scores);
+  const metas = dominantes.map(n => PERFIS[n]);
+  const fortalezas = [...new Set(metas.flatMap(m => m.forcas))];
+  return {
+    dominantes,
+    foco: metas.map(m => m.foco).join(" • "),
+    descricao: dominantes.length === 1 ? metas[0]!.leitura : "Empate no maior resultado. Os perfis predominantes são exibidos juntos, sem desempate artificial.",
+    agir: eixo("Forma de agir", "Atuante", atuante, "Pensante", pensante),
+    orientacao: eixo("Orientação", "Razão", razao, "Emoção", emocao),
+    caracteristicas: [...new Set([...fortalezas, ...metas.map(m => m.foco)])],
+    pontosMelhoria: [...new Set(metas.flatMap(m => m.pontosDesenvolvimento))],
+    comoAge: [...new Set(metas.flatMap(m => m.descricaoAcao))],
+    notaAgir: atuante === pensante ? "Equilíbrio entre ação e reflexão."
+      : atuante > pensante ? "Há maior preferência por iniciativa e ação." : "Há maior preferência por reflexão antes da ação.",
+    comoDecide: razao === emocao
+      ? ["Equilíbrio entre critérios racionais e relacionais", "Considere evidências e impactos humanos antes de decidir"]
+      : razao > emocao
+        ? ["As respostas favorecem critérios racionais", "Avaliar informações disponíveis antes de decidir", "Considerar também os impactos humanos"]
+        : ["As respostas favorecem aspectos relacionais", "Considerar emoções e contexto ao decidir", "Checar também os critérios e fatos envolvidos"],
+    notaDecidir: razao === emocao ? "Equilíbrio entre razão e emoção."
+      : razao > emocao ? "A orientação tende a privilegiar critérios racionais." : "A orientação tende a considerar aspectos relacionais e emocionais.",
+    forcas: fortalezas.map(f => f.charAt(0).toLocaleUpperCase("pt-BR") + f.slice(1)),
+  };
 }
