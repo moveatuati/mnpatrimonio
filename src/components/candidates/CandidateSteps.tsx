@@ -18,7 +18,7 @@ const hour = (v?: string) => (v && v.length > 10 ? ` às ${v.slice(11, 16)}` : "
 /* ─────────────────────── Resultado do perfil ─────────────────────── */
 
 function Donut({ pct, cor }: { pct: number; cor: string }) {
-  return <span className="cd-donut" style={{ background: `conic-gradient(${cor} ${pct * 3.6}deg, #e3e8ef 0)` }} aria-hidden="true"><span /></span>;
+  return <div className="cd-donut" style={{ background: `conic-gradient(${cor} 0deg ${pct * 3.6}deg, ${cor}33 ${pct * 3.6}deg 360deg)` }} aria-hidden="true"><div className="cd-donut-hole" /></div>;
 }
 
 function EixoCard({ e, cor }: { e: Eixo; cor: string }) {
