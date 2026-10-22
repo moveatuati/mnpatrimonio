@@ -1875,21 +1875,25 @@ body :is(.fs-filters, .cd-list-tools, .fa-filters, .bh-filters, .rm-filters, .ft
 .formosa-shell-mobile .formosa-shell-nav-demo-label { color: #a0520f !important; border-top-color: #f3c58f; }
 
 /* ------------------------------------------------------------------
- * Avivamento leve: fundo um pouco mais escuro, cards de números com tons
- * suaves e item selecionado mais destacado (sem chegar ao azul escuro dos botões).
+ * Avivamento: o fundo da tela continua claro; os cartões e quadros ficam
+ * levemente azulados para dar contraste. Cards de números com tons mais vivos.
  * ------------------------------------------------------------------ */
-:root { --background: oklch(0.955 0.012 250); --accent: oklch(0.915 0.035 250); }
-body :is(.cd-stat, .ft-metric, .bh-stat, .fa-stat, .rm-metric, .op-kpi) {
-  box-shadow: 0 10px 22px -16px rgb(20 40 70 / 50%) !important;
+:root { --card: oklch(0.962 0.016 250); --accent: oklch(0.905 0.04 250); }
+body :is(.cd-panel, .ov-table-box, .ov-card, .cd-stack > .cd-panel) { background: #edf2f9 !important; border-color: #c6d4e6 !important; }
+body .ov-table th { background: #dfe8f4 !important; }
+body :is(.cd-f input, .cd-f select, .cd-f textarea, .cd-search, .cd-list select) { background: #fff !important; }
+body :is(.cd-stat, .ft-metric, .bh-stat, .fa-stat, .rm-metric, .op-kpi:not(.op-kpi-brand)) {
+  box-shadow: 0 10px 22px -15px rgb(20 40 70 / 55%) !important;
 }
-body :is(.cd-stat, .ft-metric, .bh-stat, .fa-stat, .rm-metric, .op-kpi):nth-child(4n+1) { background: linear-gradient(135deg, #dfeaf8, #f5f9fe) !important; border-color: #bfd2e8 !important; }
-body :is(.cd-stat, .ft-metric, .bh-stat, .fa-stat, .rm-metric, .op-kpi):nth-child(4n+2) { background: linear-gradient(135deg, #fcecd4, #fffaf2) !important; border-color: #eed2a6 !important; }
-body :is(.cd-stat, .ft-metric, .bh-stat, .fa-stat, .rm-metric, .op-kpi):nth-child(4n+3) { background: linear-gradient(135deg, #d9f0eb, #f3fbf9) !important; border-color: #b3dccf !important; }
-body :is(.cd-stat, .ft-metric, .bh-stat, .fa-stat, .rm-metric, .op-kpi):nth-child(4n+4) { background: linear-gradient(135deg, #e0f2e6, #f4fbf6) !important; border-color: #bbe0c8 !important; }
+body :is(.cd-stat, .ft-metric, .bh-stat, .fa-stat, .rm-metric, .op-kpi:not(.op-kpi-brand)):nth-child(4n+1) { background: linear-gradient(135deg, #cfe0f5, #e9f1fb) !important; border-color: #a9c3e2 !important; }
+body :is(.cd-stat, .ft-metric, .bh-stat, .fa-stat, .rm-metric, .op-kpi:not(.op-kpi-brand)):nth-child(4n+2) { background: linear-gradient(135deg, #fbe0b8, #fdf2e2) !important; border-color: #e8c48c !important; }
+body :is(.cd-stat, .ft-metric, .bh-stat, .fa-stat, .rm-metric, .op-kpi:not(.op-kpi-brand)):nth-child(4n+3) { background: linear-gradient(135deg, #c8e9e1, #e6f6f2) !important; border-color: #9fd2c3 !important; }
+body :is(.cd-stat, .ft-metric, .bh-stat, .fa-stat, .rm-metric, .op-kpi:not(.op-kpi-brand)):nth-child(4n+4) { background: linear-gradient(135deg, #d0ecd9, #ebf7ef) !important; border-color: #a8d6b6 !important; }
 body :is(.cd-item-on, .rm-nav-selected, .ft-selected) {
-  background: #d9e6f5 !important; border-color: #2f5d8c !important; box-shadow: inset 4px 0 0 #2f5d8c !important;
+  background: #d3e2f4 !important; border-color: #2f5d8c !important; box-shadow: inset 4px 0 0 #2f5d8c !important;
 }
 body .cd-item-on b { color: #17324f !important; }
 @media print {
-  body :is(.cd-stat, .ft-metric, .bh-stat, .fa-stat, .rm-metric, .op-kpi) { background: #fff !important; box-shadow: none !important; }
+  :root { --card: #fff; }
+  body :is(.cd-stat, .ft-metric, .bh-stat, .fa-stat, .rm-metric, .op-kpi, .cd-panel, .ov-table-box, .ov-card) { background: #fff !important; box-shadow: none !important; }
 }
