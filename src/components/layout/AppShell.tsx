@@ -14,18 +14,23 @@ export function AppShell({ children }: { children: ReactNode }) {
       aria-label={mobile ? "Navegação móvel" : "Navegação principal"}
       className="formosa-shell-nav space-y-1"
     >
-      {NAV.map(({ to, label, icon: Icon }, index) => (
+      {NAV.map(({ to, label, icon: Icon, demo }, index) => (
         <Fragment key={to}>
           {index === 1 && (
             <p className="formosa-shell-nav-label px-3 pb-2 pt-5 text-[10px] font-semibold uppercase tracking-[0.16em]">
               Gestão de pessoas
             </p>
           )}
+          {demo && !NAV[index - 1]?.demo && (
+            <p className="formosa-shell-nav-label formosa-shell-nav-demo-label px-3 pb-2 pt-5 text-[10px] font-semibold uppercase tracking-[0.16em]">
+              Demonstração · não fica no sistema final
+            </p>
+          )}
           <Link
             to={to}
             activeOptions={{ exact: to === "/" }}
             onClick={() => setMobileOpen(false)}
-            className="formosa-shell-nav-link flex min-h-11 items-center gap-3 rounded-lg px-3 py-2.5 text-[13px] font-medium transition-colors"
+            className={`formosa-shell-nav-link${demo ? " formosa-shell-nav-demo" : ""} flex min-h-11 items-center gap-3 rounded-lg px-3 py-2.5 text-[13px] font-medium transition-colors`}
             activeProps={{ className: "formosa-shell-nav-active" }}
           >
             <Icon className="h-[18px] w-[18px] shrink-0" aria-hidden="true" />

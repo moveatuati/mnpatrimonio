@@ -1865,3 +1865,11 @@ body :is(.fs-filters, .cd-list-tools, .fa-filters, .bh-filters, .rm-filters, .ft
 body :is(.fs-filters, .cd-list-tools, .fa-filters, .bh-filters, .rm-filters, .ft-filter-row) input:focus {
   outline: 2px solid var(--mn-action); outline-offset: 0; border-color: var(--mn-action);
 }
+
+/* Telas de demonstração no menu: laranja-claro, no fim da lista (não ficam no sistema final). */
+.formosa-shell-nav-demo-label { color: #f6c48a !important; border-top: 1px dashed rgb(246 196 138 / 45%); padding-top: 14px; }
+.formosa-shell-nav-demo { color: #f9c98f !important; background: rgb(240 140 40 / 10%); border: 1px dashed rgb(246 180 110 / 35%); }
+.formosa-shell-nav-demo:hover { background: rgb(240 140 40 / 18%) !important; }
+.formosa-shell-sidebar .formosa-shell-nav-demo.formosa-shell-nav-active { background: rgb(240 140 40 / 26%); color: #ffe1bd !important; box-shadow: inset 3px 0 0 #f0a050; }
+.formosa-shell-mobile .formosa-shell-nav-demo { color: #a0520f !important; background: #fff4e6; border-color: #f3c58f; }
+.formosa-shell-mobile .formosa-shell-nav-demo-label { color: #a0520f !important; border-top-color: #f3c58f; }
