@@ -1,10 +1,13 @@
 /**
- * Captação de pessoas — entrevista do candidato e ficha de emprego (solicitação de emprego).
+ * Captação de pessoas — perfil comportamental, entrevista do candidato e ficha de emprego.
  * Regras puras, sem UI. Etapa 1: dados fictícios salvos só no navegador (sem backend).
- * Fluxo: entrevista → parecer do entrevistador → (aprovado) ficha de emprego liberada → envio → parecer do RH.
+ * Fluxo: perfil → (aprovado) entrevista → parecer → (aprovado) ficha de emprego + documentos → envio → parecer do RH.
+ * Ao aprovar uma etapa o candidato sai da sub-aba e passa para a próxima.
  */
+import { emptyProfile, simulatedScores, type BehaviorProfile, type ProfileScores } from "./behavior-profile";
+import { DOC_LIST, emptyDocs, restoreDocs, type DocRequest } from "./candidate-docs";
 
-export const CANDIDATE_KEY = "mn-candidatos-v1";
+export const CANDIDATE_KEY = "mn-candidatos-v2";
 
 /* ───────────── Entrevista (Formulário de Candidato) ───────────── */
 
@@ -31,8 +34,9 @@ export const CRITERIA = [
 ] as const;
 export type CriterionId = (typeof CRITERIA)[number]["id"];
 
-export type Stage = "entrevista" | "aprovado" | "banco" | "reprovado";
+export type Stage = "perfil" | "entrevista" | "aprovado" | "banco" | "reprovado";
 export const STAGE_LABELS: Record<Stage, string> = {
+  perfil: "Perfil comportamental",
   entrevista: "Em entrevista",
   aprovado: "Aprovado na entrevista",
   banco: "Banco de talentos",
@@ -165,8 +169,12 @@ export type Candidate = {
   decidedAt: string;
   interview: Interview;
   application: Application | null;
+  /** 1ª etapa: teste de perfil comportamental. */
+  profile: BehaviorProfile;
+  /** Documentos pedidos na etapa da ficha. */
+  docs: DocRequest;
 };
-export type CandidateStore = { version: 1; seq: number; candidates: Candidate[] };
+export type CandidateStore = { version: 2; seq: number; candidates: Candidate[] };
 
 const emptyExperience = (): Experience => ({ empresa: "", telefone: "", cargo: "", admissao: "", demissao: "", motivo: "", atividades: "" });
 const emptyReferences = () => [{ nome: "", endereco: "", telefone: "" }, { nome: "", endereco: "", telefone: "" }];
@@ -188,6 +196,33 @@ export function emptyApplication(c: Pick<Candidate, "name" | "role" | "phone">):
 }
 
 /* ───────────── Regras ───────────── */
+
+/** Dados básicos que toda etapa exige (nome, vaga, condomínio e WhatsApp). */
+export function basicMissing(c: Candidate): string[] {
+  const out: string[] = [];
+  if (!c.name.trim()) out.push("Nome do candidato");
+  if (!c.condoId) out.push("Condomínio da vaga");
+  if (!c.functionId || !c.role.trim()) out.push("Função da vaga");
+  if (c.phone.replace(/\D/g, "").length < 10) out.push("WhatsApp do candidato");
+  return out;
+}
+
+/** Resultado do perfil chegou (pelo link ou pela simulação): vira novidade para o recrutador. */
+export function receiveProfile(c: Candidate, scores: ProfileScores, now: string): Candidate | string {
+  if (c.stage !== "perfil") return "Este candidato já passou da etapa de perfil.";
+  return { ...c, profile: { ...c.profile, linkSentAt: c.profile.linkSentAt || now, answeredAt: now, scores, seen: false } };
+}
+
+/**
+ * Decide a etapa de perfil. "entrevista" = aprovado no perfil: sai da sub-aba Perfil e vai para Entrevista.
+ */
+export function decideProfile(c: Candidate, outcome: "entrevista" | "banco" | "reprovado", now: string): Candidate | string {
+  if (c.stage !== "perfil") return "Este candidato não está na etapa de perfil.";
+  const missing = basicMissing(c);
+  if (missing.length) return `Complete antes: ${missing.join(", ")}.`;
+  if (outcome === "entrevista" && !c.profile.scores) return "O candidato ainda não respondeu o teste de perfil.";
+  return { ...c, stage: outcome, decidedAt: outcome === "entrevista" ? "" : now, profile: { ...c.profile, seen: true } };
+}
 
 /** Pergunta(s) obrigatória(s) para fechar o parecer: todas as 10 do formulário. */
 export function interviewMissing(c: Candidate): string[] {
@@ -218,7 +253,8 @@ export function answeredCount(c: Candidate): number {
  * Decide a entrevista. Só "aprovado" libera a ficha de emprego.
  * Retorna erro (string) se faltar algo ou a ficha já tiver sido enviada.
  */
-export function decide(c: Candidate, stage: Exclude<Stage, "entrevista">, now: string): Candidate | string {
+export function decide(c: Candidate, stage: Exclude<Stage, "entrevista" | "perfil">, now: string): Candidate | string {
+  if (c.stage === "perfil") return "Aprove primeiro o Perfil comportamental.";
   const missing = interviewMissing(c);
   if (missing.length) return `Complete antes do parecer: ${missing.slice(0, 4).join(", ")}${missing.length > 4 ? ` e mais ${missing.length - 4}` : ""}.`;
   if (c.application?.status === "enviada" && stage !== "aprovado") return "A ficha de emprego já foi enviada; o parecer não pode ser revertido.";
@@ -228,10 +264,10 @@ export function decide(c: Candidate, stage: Exclude<Stage, "entrevista">, now: s
   };
 }
 
-/** Reabre a entrevista (somente antes do envio da ficha). */
+/** Reabre o processo (somente antes do envio da ficha): volta para a entrevista, ou para o perfil se não houve entrevista. */
 export function reopen(c: Candidate): Candidate | string {
   if (c.application?.status === "enviada") return "A ficha já foi enviada; a entrevista não pode ser reaberta.";
-  return { ...c, stage: "entrevista", decidedAt: "" };
+  return { ...c, stage: c.interview.opinion.trim() ? "entrevista" : "perfil", decidedAt: "" };
 }
 
 /** Validação de CPF pelos dígitos verificadores. */
@@ -299,8 +335,9 @@ export function newCandidate(store: CandidateStore, today: string): { store: Can
   const seq = store.seq + 1;
   const id = `CAND-${String(seq).padStart(3, "0")}`;
   const c: Candidate = {
-    id, name: "", role: "", condoId: "", functionId: "", phone: "", createdAt: today, stage: "entrevista", decidedAt: "",
+    id, name: "", role: "", condoId: "", functionId: "", phone: "", createdAt: today, stage: "perfil", decidedAt: "",
     interview: { date: today, interviewer: "", answers: {}, scores: {}, opinion: "" }, application: null,
+    profile: emptyProfile(), docs: emptyDocs(),
   };
   return { store: { ...store, seq, candidates: [c, ...store.candidates] }, id };
 }
@@ -318,6 +355,9 @@ export function removeCandidate(store: CandidateStore, id: string): CandidateSto
 export function summary(store: CandidateStore) {
   const cs = store.candidates;
   return {
+    profile: cs.filter(c => c.stage === "perfil").length,
+    newProfiles: cs.filter(c => c.stage === "perfil" && c.profile.scores && !c.profile.seen).length,
+    newDocs: cs.filter(c => c.stage === "aprovado" && !c.docs.seen).length,
     interviewing: cs.filter(c => c.stage === "entrevista").length,
     awaitingForm: cs.filter(c => c.stage === "aprovado" && c.application?.status !== "enviada").length,
     sent: cs.filter(c => c.application?.status === "enviada" && !c.application.rh.verdict).length,
@@ -327,6 +367,12 @@ export function summary(store: CandidateStore) {
 
 /* ───────────── Demonstração e restauração ───────────── */
 
+/** Imagem simples de documento usada só na demonstração (o recrutador vê como o arquivo chega). */
+export function sampleDocImage(title: string, name: string): string {
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="640" height="420" viewBox="0 0 640 420"><rect width="640" height="420" rx="18" fill="#eef3f8" stroke="#9fb3c8" stroke-width="3"/><rect x="28" y="28" width="584" height="54" rx="8" fill="#2b4b6b"/><text x="48" y="64" font-family="Arial" font-size="24" font-weight="700" fill="#fff">${title}</text><rect x="40" y="110" width="150" height="190" rx="8" fill="#c9d5e2"/><circle cx="115" cy="175" r="34" fill="#9fb3c8"/><rect x="70" y="220" width="90" height="60" rx="30" fill="#9fb3c8"/><text x="220" y="135" font-family="Arial" font-size="16" fill="#5d6b79">NOME</text><text x="220" y="162" font-family="Arial" font-size="22" font-weight="700" fill="#22303d">${name.toUpperCase()}</text><text x="220" y="205" font-family="Arial" font-size="16" fill="#5d6b79">NÚMERO</text><text x="220" y="232" font-family="Arial" font-size="22" font-weight="700" fill="#22303d">00.000.000-0</text><text x="220" y="275" font-family="Arial" font-size="16" fill="#5d6b79">DATA</text><text x="220" y="302" font-family="Arial" font-size="22" font-weight="700" fill="#22303d">01/01/1990</text><text x="320" y="380" text-anchor="middle" font-family="Arial" font-size="18" font-weight="700" fill="#c2622a">DOCUMENTO DE EXEMPLO — DEMONSTRAÇÃO</text></svg>`;
+  return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
+}
+
 export function demoCandidates(): CandidateStore {
   const full: Interview["answers"] = {
     saida: "Fim do contrato temporário; buscava estabilidade.", colaborador: "Pontualidade e compromisso com o cliente.",
@@ -334,31 +380,47 @@ export function demoCandidates(): CandidateStore {
     hobby: "Futebol aos sábados e igreja.", uniforme: "Nenhuma restrição.", salario: "Piso da categoria.",
     supervisao: "Não, gosto de receber orientação.", parente: "Não.", sobre: "Trabalhei 2 anos como repositor, sou organizado e gosto de atender.",
   };
+  const done = (id: string, at: string): BehaviorProfile => ({ linkSentAt: at, answeredAt: at, scores: simulatedScores(id), seen: true });
   const ana: Candidate = {
     id: "CAND-001", name: "Ana Paula Ribeiro (fictícia)", role: "Agente de portaria", condoId: "COND-001", functionId: "FN-01", phone: "(91) 9 8100-0001",
-    createdAt: "2026-10-19", stage: "aprovado", decidedAt: "2026-10-20T10:00:00",
+    createdAt: "2026-10-17", stage: "aprovado", decidedAt: "2026-10-20T10:00:00",
     interview: { date: "2026-10-20", interviewer: "Supervisão de portaria", answers: full,
       scores: { comunicacao: 5, postura: 4, disponibilidade: 5, perfil: 4 }, opinion: "Boa comunicação e disponibilidade total. Aprovada para a ficha." },
-    application: null,
+    application: null, profile: done("CAND-001", "2026-10-18T09:30:00"), docs: emptyDocs(),
   };
   ana.application = emptyApplication(ana);
+  const at = "2026-10-21T15:40:00";
+  ana.docs = { requestedAt: "2026-10-21T08:00:00", seen: true, files: Object.fromEntries(DOC_LIST.slice(0, 4).map(d =>
+    [d.id, { name: `${d.short}.jpg`, at, url: sampleDocImage(d.short, "Ana Paula Ribeiro") }])) };
   const bruno: Candidate = {
     id: "CAND-002", name: "Bruno Lima (fictício)", role: "Auxiliar de serviços gerais", condoId: "COND-002", functionId: "FN-02", phone: "(91) 9 8100-0002",
-    createdAt: "2026-10-21", stage: "entrevista", decidedAt: "",
+    createdAt: "2026-10-19", stage: "entrevista", decidedAt: "",
     interview: { date: "2026-10-21", interviewer: "", answers: { saida: "Mudança de bairro.", colaborador: "Honestidade." }, scores: {}, opinion: "" },
-    application: null,
+    application: null, profile: done("CAND-002", "2026-10-20T11:15:00"), docs: emptyDocs(),
   };
-  return { version: 1, seq: 2, candidates: [bruno, ana] };
+  const naely: Candidate = {
+    id: "CAND-003", name: "Naely Drago (fictícia)", role: "Agente de portaria", condoId: "COND-001", functionId: "FN-01", phone: "(91) 9 8100-0003",
+    createdAt: "2026-10-21", stage: "perfil", decidedAt: "",
+    interview: { date: "2026-10-22", interviewer: "", answers: {}, scores: {}, opinion: "" },
+    application: null, profile: { ...emptyProfile(), linkSentAt: "2026-10-21T14:20:00" }, docs: emptyDocs(),
+  };
+  const carlos: Candidate = {
+    id: "CAND-004", name: "Carlos Souza (fictício)", role: "Auxiliar de serviços gerais", condoId: "COND-002", functionId: "FN-02", phone: "(91) 9 8100-0004",
+    createdAt: "2026-10-21", stage: "perfil", decidedAt: "",
+    interview: { date: "2026-10-22", interviewer: "", answers: {}, scores: {}, opinion: "" },
+    application: null, profile: { linkSentAt: "2026-10-21T16:00:00", answeredAt: "2026-10-22T08:10:00", scores: simulatedScores("CAND-004"), seen: false }, docs: emptyDocs(),
+  };
+  return { version: 2, seq: 4, candidates: [bruno, ana, naely, carlos] };
 }
 
 const str = (v: unknown) => (typeof v === "string" ? v : "");
 export function restoreCandidates(raw: unknown): CandidateStore {
   const r = raw as Partial<CandidateStore> | null;
-  if (!r || r.version !== 1 || !Array.isArray(r.candidates)) return demoCandidates();
+  if (!r || r.version !== 2 || !Array.isArray(r.candidates)) return demoCandidates();
   const candidates = r.candidates.filter(c => c && typeof c.id === "string").map(c => {
     const base: Candidate = {
       id: c.id, name: str(c.name), role: c.functionId ? str(c.role) : "", condoId: str(c.condoId), functionId: str(c.functionId), phone: str(c.phone), createdAt: str(c.createdAt),
-      stage: (["entrevista", "aprovado", "banco", "reprovado"] as Stage[]).includes(c.stage) ? c.stage : "entrevista",
+      stage: (["perfil", "entrevista", "aprovado", "banco", "reprovado"] as Stage[]).includes(c.stage) ? c.stage : "perfil",
       decidedAt: str(c.decidedAt),
       interview: { date: str(c.interview?.date), interviewer: str(c.interview?.interviewer), answers: { ...(c.interview?.answers ?? {}) },
         scores: { ...(c.interview?.scores ?? {}) }, opinion: str(c.interview?.opinion),
@@ -366,6 +428,9 @@ export function restoreCandidates(raw: unknown): CandidateStore {
         ...(c.interview?.receivedAt ? { receivedAt: str(c.interview.receivedAt) } : {}),
         ...(c.interview?.linkSentAt ? { linkSentAt: str(c.interview.linkSentAt) } : {}) },
       application: null,
+      profile: { linkSentAt: str(c.profile?.linkSentAt), answeredAt: str(c.profile?.answeredAt), seen: c.profile?.seen !== false,
+        scores: c.profile?.scores && typeof c.profile.scores === "object" ? { ...c.profile.scores } : null },
+      docs: restoreDocs(c.docs),
     };
     if (c.application) {
       const e = emptyApplication(base);
@@ -375,5 +440,5 @@ export function restoreCandidates(raw: unknown): CandidateStore {
     }
     return base;
   });
-  return { version: 1, seq: Math.max(Number(r.seq) || 0, candidates.length), candidates };
+  return { version: 2, seq: Math.max(Number(r.seq) || 0, candidates.length), candidates };
 }

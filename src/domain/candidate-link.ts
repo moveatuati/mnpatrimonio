@@ -5,6 +5,8 @@
  * Próxima etapa: trocar por banco de dados + login do entrevistador (respostas automáticas).
  */
 import { INTERVIEW_QUESTIONS, type Candidate, type CandidateStore, type QuestionId } from "./candidates";
+import { emptyProfile } from "./behavior-profile";
+import { emptyDocs } from "./candidate-docs";
 
 export const INTERVIEWER_KEY = "mn-entrevistador-v1";
 export const ANSWER_LIMIT = 600;
@@ -104,7 +106,7 @@ export function replyMissing(name: string, phone: string, answers: Reply["answer
  */
 export function importReply(store: CandidateStore, rep: Reply, today: string): { store: CandidateStore; id: string } | string {
   const found = store.candidates.find(c => c.id === rep.id);
-  if (found && found.stage !== "entrevista") return `As respostas de ${found.name} já foram avaliadas; nada foi alterado.`;
+  if (found && found.stage !== "entrevista" && found.stage !== "perfil") return `As respostas de ${found.name} já foram avaliadas; nada foi alterado.`;
   if (found) {
     const next: Candidate = {
       ...found, name: rep.name || found.name, phone: rep.phone || found.phone,
@@ -117,7 +119,7 @@ export function importReply(store: CandidateStore, rep: Reply, today: string): {
   const c: Candidate = {
     id, name: rep.name, role: rep.role, condoId: rep.condoId, functionId: rep.functionId, phone: rep.phone, createdAt: today, stage: "entrevista", decidedAt: "",
     interview: { date: today, interviewer: rep.interviewer, answers: rep.answers, scores: {}, opinion: "", source: "candidato", receivedAt: rep.sentAt || today },
-    application: null,
+    application: null, profile: emptyProfile(), docs: emptyDocs(),
   };
   return { store: { ...store, seq, candidates: [c, ...store.candidates] }, id };
 }

@@ -1,14 +1,16 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
-  AlertTriangle, Archive, Camera, Check, CheckCircle2, ChevronLeft, ChevronRight, ClipboardCheck, FileSignature,
-  Copy, Eye, Info, Link2, Lock, MessageCircle, MessageSquareText, Plus, Printer, RotateCcw, Search, Send, Star, Trash2, UserCheck, UserPlus, UserX, Users, X,
+  AlertTriangle, Archive, Bell, Camera, Check, CheckCircle2, ChevronLeft, ChevronRight, ClipboardCheck, FileSignature,
+  Copy, Eye, Info, Link2, MessageCircle, Plus, Printer, RotateCcw, Search, Send, Smartphone, Star, Trash2, UserCheck, UserPlus, UserX, Users, X,
 } from "lucide-react";
 import {
   CANDIDATE_KEY, CRITERIA, EXPERIENCE_SLOTS, FORM_SECTIONS, INTERVIEW_QUESTIONS, REFERENCE_GROUPS, STAGE_LABELS,
-  answeredCount, applicationMissing, applicationProgress, decide, demoCandidates, formatCPF, formatPhone, interviewMissing,
-  interviewScore, isValidCPF, newCandidate, removeCandidate, reopen, restoreCandidates, setRhOpinion, submit, summary, updateCandidate,
+  answeredCount, applicationMissing, applicationProgress, decide, decideProfile, demoCandidates, formatCPF, formatPhone, interviewMissing,
+  interviewScore, isValidCPF, newCandidate, receiveProfile, removeCandidate, reopen, restoreCandidates, setRhOpinion, submit, summary, updateCandidate,
   type Application, type Candidate, type CandidateStore, type Field, type Stage,
 } from "@/domain/candidates";
+import { simulatedScores } from "@/domain/behavior-profile";
+import { DOC_LIST, docsReceived, type DocId } from "@/domain/candidate-docs";
 import { UNIT } from "@/domain/config";
 import {
   INTERVIEWER_KEY, importReply, inviteMessage, inviteMissing, inviteUrl, makeInvite, readReply, whatsappUrl,
@@ -19,13 +21,12 @@ import { demoClients, type ClientStore } from "@/domain/clients";
 import { printNode } from "@/lib/print";
 import { publicOrigin } from "@/lib/brand";
 import { PrintHeader } from "@/components/print/PrintHeader";
+import { DocViewer, DocsPanel, ProfilePanel, ProfileSummary, br, nowISO } from "./CandidateSteps";
 import "./CandidatesWorkspace.css";
 
-type Tab = "entrevista" | "ficha";
+type Tab = "perfil" | "entrevista" | "ficha" | "encerrados";
 type Notice = { kind: "ok" | "erro" | "info"; text: string } | null;
 
-const br = (v?: string) => (v ? v.slice(0, 10).split("-").reverse().join("/") : "—");
-const nowISO = () => new Date(Date.now() - 3 * 3600000).toISOString().slice(0, 19);
 
 const STEPS = [
   { id: "pessoais", title: "Dados pessoais" }, { id: "endereco", title: "Endereço" }, { id: "familia", title: "Família e dependentes" },
@@ -33,25 +34,42 @@ const STEPS = [
   { id: "experiencias", title: "Experiências" }, { id: "referencias", title: "Referências" }, { id: "revisao", title: "Revisão e envio" },
 ] as const;
 
+/** As 3 sub-abas da captação, na ordem do processo. */
+const STEP_TABS: { id: Exclude<Tab, "encerrados">; stage: Stage; title: string; help: string }[] = [
+  { id: "perfil", stage: "perfil", title: "Perfil comportamental",
+    help: "Envie o teste pelo WhatsApp. Quando o candidato responder, aparece um aviso. Veja o resultado e aprove para a Entrevista." },
+  { id: "entrevista", stage: "entrevista", title: "Entrevista",
+    help: "Faça a entrevista (ou envie o link). Dê as notas e o parecer. Aprovado vai para a Ficha de emprego." },
+  { id: "ficha", stage: "aprovado", title: "Ficha de emprego",
+    help: "Peça os documentos pelo WhatsApp. Quando chegarem, abra cada um e digite os dados na ficha." },
+];
+
 function StageBadge({ c }: { c: Candidate }) {
   if (c.application?.rh.verdict) return <span className={`cd-badge cd-b-${c.application.rh.verdict}`}>RH: {c.application.rh.verdict === "apto" ? "Apto" : "Inapto"}</span>;
-  if (c.application?.status === "enviada") return <span className="cd-badge cd-b-enviada">Ficha enviada</span>;
+  if (c.application?.status === "enviada") return <span className={`cd-badge cd-b-enviada`}>Ficha enviada</span>;
   return <span className={`cd-badge cd-b-${c.stage}`}>{STAGE_LABELS[c.stage]}</span>;
+}
+
+/** Selos da jornada: verde = etapa concluída, laranja = etapa atual, cinza = ainda não. */
+function Journey({ c }: { c: Candidate }) {
+  const at = c.stage === "perfil" ? 0 : c.stage === "entrevista" ? 1 : c.stage === "aprovado" ? 2 : -1;
+  if (at < 0) return <StageBadge c={c} />;
+  return <span className="cd-journey">{["Perfil", "Entrevista", "Ficha"].map((label, i) =>
+    <span key={label} className={i < at ? "cd-j-done" : i === at ? "cd-j-now" : "cd-j-next"}>{i < at ? <Check size={12} /> : null}{label}</span>)}</span>;
 }
 
 export function CandidatesWorkspace() {
   const [store, setStore] = useState<CandidateStore>(demoCandidates);
   const [ready, setReady] = useState(false);
-  const [tab, setTab] = useState<Tab>("entrevista");
-  const [selected, setSelected] = useState<string>("CAND-002");
-  const [formId, setFormId] = useState<string>("CAND-001");
+  const [tab, setTab] = useState<Tab>("perfil");
+  const [sel, setSel] = useState<Record<Tab, string>>({ perfil: "CAND-003", entrevista: "CAND-002", ficha: "CAND-001", encerrados: "" });
   const [search, setSearch] = useState("");
-  const [filter, setFilter] = useState<"all" | Stage>("all");
   const [notice, setNotice] = useState<Notice>(null);
   const [storageWarn, setStorageWarn] = useState("");
   const [me, setMeState] = useState<InterviewerProfile>({ name: "", phone: "" });
   const [clients, setClients] = useState<ClientStore>(demoClients);
   const [condoFilter, setCondoFilter] = useState("all");
+  const [openDoc, setOpenDoc] = useState<DocId | null>(null);
   useEffect(() => {
     setClients(loadClients());
     const onStorage = () => setClients(loadClients());
@@ -85,9 +103,16 @@ export function CandidatesWorkspace() {
   }, [store, ready]);
 
   const stats = useMemo(() => summary(store), [store]);
-  const current = store.candidates.find(c => c.id === selected) ?? null;
-  const approved = store.candidates.filter(c => c.stage === "aprovado");
-  const formCand = approved.find(c => c.id === formId) ?? approved[0] ?? null;
+  const inTab = (t: Tab) => store.candidates.filter(c => t === "encerrados" ? c.stage === "banco" || c.stage === "reprovado"
+    : c.stage === STEP_TABS.find(x => x.id === t)!.stage);
+  const list = inTab(tab).filter(c => {
+    if (condoFilter !== "all" && c.condoId !== condoFilter) return false;
+    const q = search.trim().toLocaleLowerCase("pt-BR");
+    return !q || `${c.name} ${c.role} ${c.id}`.toLocaleLowerCase("pt-BR").includes(q);
+  });
+  const current = list.find(c => c.id === sel[tab]) ?? list[0] ?? null;
+  const freshProfiles = store.candidates.filter(c => c.stage === "perfil" && c.profile.scores && !c.profile.seen);
+  const freshDocs = store.candidates.filter(c => c.stage === "aprovado" && !c.docs.seen);
 
   const apply = (result: Candidate | string, ok?: string) => {
     if (typeof result === "string") { setNotice({ kind: "erro", text: result }); return false; }
@@ -97,23 +122,37 @@ export function CandidatesWorkspace() {
   };
   const patch = (c: Candidate) => setStore(s => updateCandidate(s, c));
 
+  /** Abre um candidato numa sub-aba; o que era novidade passa a "visto". */
+  function open(t: Tab, c: Candidate) {
+    setTab(t); setSel(s => ({ ...s, [t]: c.id })); setOpenDoc(null);
+    if (t === "perfil" && c.profile.scores && !c.profile.seen) patch({ ...c, profile: { ...c.profile, seen: true } });
+    if (t === "ficha" && !c.docs.seen) patch({ ...c, docs: { ...c.docs, seen: true } });
+  }
+  function goTab(t: Tab) { setTab(t); setOpenDoc(null); setSearch(""); }
+
   function addCandidate() {
     const created = newCandidate(store, todayISO());
-    const id = created.id;
-    const next = { ...created.store, candidates: created.store.candidates.map(c => c.id === id ? { ...c, interview: { ...c.interview, interviewer: me.name } } : c) };
-    setStore(next); setSelected(id); setTab("entrevista"); setFilter("all"); setSearch("");
-    setNotice({ kind: "info", text: "Novo candidato criado. Informe nome e WhatsApp e envie o link da entrevista." });
+    setStore(created.store); setTab("perfil"); setSel(s => ({ ...s, perfil: created.id })); setSearch(""); setCondoFilter("all");
+    setNotice({ kind: "info", text: "Novo candidato criado na etapa 1 (Perfil). Informe nome, vaga, condomínio e WhatsApp e envie o teste." });
   }
   function removeCurrent(c: Candidate) {
     if (!window.confirm(`Excluir ${c.name || "este candidato"}? Esta ação não pode ser desfeita.`)) return;
     const r = removeCandidate(store, c.id);
     if (typeof r === "string") { setNotice({ kind: "erro", text: r }); return; }
-    setStore(r); setSelected(r.candidates[0]?.id ?? ""); setNotice({ kind: "info", text: "Candidato excluído." });
+    setStore(r); setNotice({ kind: "info", text: "Candidato excluído." });
   }
-  function decideCurrent(c: Candidate, stage: Exclude<Stage, "entrevista">) {
-    const msg = stage === "aprovado" ? "Aprovado! A ficha de emprego foi liberada na aba “Ficha de emprego”."
+  function decideOnProfile(c: Candidate, outcome: "entrevista" | "banco" | "reprovado") {
+    const msg = outcome === "entrevista" ? `${c.name} aprovado(a) no Perfil e passou para a etapa 2 · Entrevista.`
+      : outcome === "banco" ? `${c.name} guardado(a) no banco de talentos.` : "Parecer registrado: não aprovado.";
+    apply(decideProfile(c, outcome, nowISO()), msg);
+  }
+  function simulateProfile(c: Candidate) {
+    apply(receiveProfile(c, simulatedScores(`${c.id}-${Date.now()}`), nowISO()));
+  }
+  function decideCurrent(c: Candidate, stage: Exclude<Stage, "entrevista" | "perfil">) {
+    const msg = stage === "aprovado" ? `${c.name} aprovado(a) na Entrevista e passou para a etapa 3 · Ficha de emprego.`
       : stage === "banco" ? "Candidato guardado no banco de talentos." : "Parecer registrado: não aprovado.";
-    if (apply(decide(c, stage, nowISO()), msg) && stage === "aprovado") setFormId(c.id);
+    if (apply(decide(c, stage, nowISO()), msg) && stage === "aprovado") setSel(s => ({ ...s, ficha: c.id }));
   }
 
   function acceptIncoming() {
@@ -122,29 +161,38 @@ export function CandidatesWorkspace() {
     setIncoming(null);
     try { window.history.replaceState(null, "", window.location.pathname); } catch { /* ok */ }
     if (typeof r === "string") { setNotice({ kind: "erro", text: r }); return; }
-    setStore(r.store); setSelected(r.id); setFilter("all"); setSearch(""); setTab("entrevista");
+    setStore(r.store); setSearch(""); setTab("entrevista"); setSel(s => ({ ...s, entrevista: r.id }));
     setNotice({ kind: "ok", text: `Respostas de ${incoming.name} recebidas. Agora faça a avaliação com as estrelas e dê o parecer.` });
   }
 
-  const list = store.candidates.filter(c => {
-    if (filter !== "all" && c.stage !== filter) return false;
-    if (condoFilter !== "all" && c.condoId !== condoFilter) return false;
-    const q = search.trim().toLocaleLowerCase("pt-BR");
-    return !q || `${c.name} ${c.role} ${c.id}`.toLocaleLowerCase("pt-BR").includes(q);
-  });
+  const tabHelp = STEP_TABS.find(x => x.id === tab)?.help;
+  const closed = inTab("encerrados").length;
 
-  return <div className="cd-app">
+  return <div className="cd-app cd-cap">
     <header className="cd-head">
       <div>
         <p className="op-eyebrow">Gestão de pessoas · {UNIT.unit}</p>
         <h1>Captação de <span>candidatos</span></h1>
-        <p>Entrevista → parecer → ficha de emprego → parecer do RH.</p>
+        <p>1. Perfil comportamental → 2. Entrevista → 3. Ficha de emprego e documentos.</p>
       </div>
-      <button className="cd-btn cd-btn-primary" onClick={addCandidate}><UserPlus size={16} /> Novo candidato</button>
+      <div className="cd-actions">
+        <a className="cd-btn" href="/link-candidato"><Smartphone size={16} /> Como o candidato vê</a>
+        <button className="cd-btn cd-btn-primary cd-btn-lg" onClick={addCandidate}><UserPlus size={17} /> Novo candidato</button>
+      </div>
     </header>
 
-    <div className="cd-demo"><Info size={15} /><span><b>Demonstração:</b> dados fictícios salvos apenas neste navegador. Não use dados reais de candidatos até a conexão com o banco de dados seguro.</span></div>
+    <div className="cd-demo"><Info size={15} /><span><b>Demonstração:</b> dados fictícios salvos apenas neste navegador. Os botões “Simular” mostram como as respostas e documentos do candidato chegam. Na próxima fase tudo fica gravado no banco de dados seguro.</span></div>
     {storageWarn && <div className="cd-notice cd-n-erro"><AlertTriangle size={15} /><span>{storageWarn}</span></div>}
+
+    {freshProfiles.map(c => <div key={`p-${c.id}`} className="cd-fresh" role="status">
+      <Bell size={18} /><span><b>Novo!</b> {c.name} respondeu o Perfil comportamental.</span>
+      <button className="cd-btn cd-btn-success" onClick={() => open("perfil", c)}><Eye size={15} /> Ver agora</button>
+    </div>)}
+    {freshDocs.map(c => <div key={`d-${c.id}`} className="cd-fresh" role="status">
+      <Bell size={18} /><span><b>Novo!</b> {c.name} enviou documentos ({docsReceived(c.docs)} de {DOC_LIST.length}).</span>
+      <button className="cd-btn cd-btn-success" onClick={() => open("ficha", c)}><Eye size={15} /> Ver agora</button>
+    </div>)}
+
     {notice && <div className={`cd-notice cd-n-${notice.kind}`} role="status">
       {notice.kind === "ok" ? <CheckCircle2 size={15} /> : notice.kind === "erro" ? <AlertTriangle size={15} /> : <Info size={15} />}
       <span>{notice.text}</span><button aria-label="Fechar aviso" onClick={() => setNotice(null)}><X size={14} /></button>
@@ -157,69 +205,77 @@ export function CandidatesWorkspace() {
       <button className="cd-btn cd-btn-success" onClick={acceptIncoming}><Check size={15} /> Receber respostas</button>
     </div>}
 
-    <section className="cd-stats" aria-label="Resumo">
-      <div className="cd-stat"><span><MessageSquareText size={14} /> Em entrevista</span><strong>{stats.interviewing}</strong><small>aguardando parecer</small></div>
-      <div className="cd-stat"><span><FileSignature size={14} /> Ficha pendente</span><strong>{stats.awaitingForm}</strong><small>aprovados preenchendo</small></div>
-      <div className="cd-stat"><span><Send size={14} /> Fichas enviadas</span><strong>{stats.sent}</strong><small>aguardando o RH</small></div>
-      <div className="cd-stat"><span><UserCheck size={14} /> Aptos</span><strong>{stats.fit}</strong><small>prontos para admissão</small></div>
-    </section>
-
-    <nav className="cd-tabs" role="tablist" aria-label="Etapas da captação">
-      <button role="tab" aria-selected={tab === "entrevista"} className={tab === "entrevista" ? "cd-tab-active" : ""} onClick={() => setTab("entrevista")}>
-        <MessageSquareText size={15} /> 1. Entrevista do candidato <b>{store.candidates.length}</b></button>
-      <button role="tab" aria-selected={tab === "ficha"} className={tab === "ficha" ? "cd-tab-active" : ""} onClick={() => setTab("ficha")}>
-        <FileSignature size={15} /> 2. Ficha de emprego (aprovados) <b>{approved.length}</b></button>
+    <nav className="cd-steps3" role="tablist" aria-label="Etapas da captação">
+      {STEP_TABS.map((t, i) => {
+        const count = inTab(t.id).length;
+        const fresh = t.id === "perfil" ? stats.newProfiles : t.id === "ficha" ? stats.newDocs : 0;
+        return <button key={t.id} role="tab" aria-selected={tab === t.id} className={tab === t.id ? "cd-s3 cd-s3-on" : "cd-s3"} onClick={() => goTab(t.id)}>
+          <span className="cd-s3-num">{i + 1}</span>
+          <span className="cd-s3-text"><b>{t.title}</b><small>{count} candidato{count === 1 ? "" : "s"}</small></span>
+          {fresh > 0 && <span className="cd-s3-new">{fresh} novo{fresh > 1 ? "s" : ""}</span>}
+        </button>;
+      })}
     </nav>
+    <div className="cd-s3-foot">
+      {tab === "encerrados" ? <p className="cd-s3-help"><Archive size={15} /> Banco de talentos e não aprovados. Use <b>Reabrir</b> para voltar o candidato ao processo.</p>
+        : <p className="cd-s3-help"><Info size={15} /> {tabHelp}</p>}
+      <button className={tab === "encerrados" ? "cd-btn cd-btn-primary" : "cd-btn"} onClick={() => goTab(tab === "encerrados" ? "perfil" : "encerrados")}>
+        <Archive size={15} /> {tab === "encerrados" ? "Voltar às etapas" : `Banco de talentos e não aprovados (${closed})`}</button>
+    </div>
 
-    {tab === "entrevista" ? <div className="cd-split">
+    <div className="cd-split">
       <aside className="cd-panel cd-list">
         <div className="cd-list-tools">
-          <label className="cd-search"><Search size={14} /><input placeholder="Buscar nome ou cargo" value={search} onChange={e => setSearch(e.target.value)} /></label>
-          <select aria-label="Filtrar etapa" value={filter} onChange={e => setFilter(e.target.value as typeof filter)}>
-            <option value="all">Todas as etapas</option>
-            {(Object.keys(STAGE_LABELS) as Stage[]).map(s => <option key={s} value={s}>{STAGE_LABELS[s]}</option>)}
-          </select>
+          <label className="cd-search"><Search size={15} /><input placeholder="Buscar candidato" value={search} onChange={e => setSearch(e.target.value)} /></label>
           <select aria-label="Filtrar condomínio" value={condoFilter} onChange={e => setCondoFilter(e.target.value)}>
             <option value="all">Todos os condomínios</option>
             {clients.condos.map(x => <option key={x.id} value={x.id}>{x.name}</option>)}
           </select>
         </div>
         <ul>
-          {list.map(c => <li key={c.id}><button className={c.id === selected ? "cd-item cd-item-on" : "cd-item"} onClick={() => setSelected(c.id)}>
-            <b>{c.name || "Sem nome"}</b><small>{c.role || "Função não definida"} · {condoName(c.condoId) || "Sem condomínio"} · {br(c.interview.date)}</small>
-            <span className="cd-item-foot"><StageBadge c={c} /><em>{answeredCount(c)}/{INTERVIEW_QUESTIONS.length} respostas</em></span>
+          {list.map(c => <li key={c.id}><button className={c.id === current?.id ? "cd-item cd-item-on" : "cd-item"} onClick={() => open(tab, c)}>
+            <b>{c.name || "Sem nome"}</b><small>{c.role || "Função não definida"} · {condoName(c.condoId) || "Sem condomínio"}</small>
+            <Journey c={c} />
+            <span className="cd-item-foot">{tab === "perfil" ? (c.profile.scores
+                ? <em className="cd-ok-t">{!c.profile.seen && <span className="cd-new-pill">NOVO</span>} Respondeu · ver resultado</em>
+                : <em>{c.profile.linkSentAt ? `Teste enviado em ${br(c.profile.linkSentAt)} · aguardando` : "Teste ainda não enviado"}</em>)
+              : tab === "entrevista" ? <em>{answeredCount(c)}/{INTERVIEW_QUESTIONS.length} respostas</em>
+              : tab === "ficha" ? <em>{!c.docs.seen && <span className="cd-new-pill">NOVO</span>} Documentos {docsReceived(c.docs)}/{DOC_LIST.length}{c.application ? ` · ficha ${applicationProgress(c.application)}%` : ""}</em>
+              : <em>Decidido em {br(c.decidedAt)}</em>}</span>
           </button></li>)}
-          {!list.length && <li className="cd-empty"><Users size={18} /> Nenhum candidato encontrado.</li>}
+          {!list.length && <li className="cd-empty"><Users size={18} /> {tab === "perfil" ? <>Nenhum candidato nesta etapa. Clique em <b>Novo candidato</b>.</>
+            : tab === "entrevista" ? "Nenhum candidato aqui. Aprove alguém na etapa 1 (Perfil)."
+            : tab === "ficha" ? "Nenhum candidato aqui. Aprove alguém na etapa 2 (Entrevista)." : "Nenhum candidato encerrado."}</li>}
         </ul>
       </aside>
-      {current ? <InterviewForm key={current.id} c={current} me={me} setMe={setMe} clients={clients} onChange={patch} onDecide={s => decideCurrent(current, s)}
-        onReopen={() => apply(reopen(current), "Entrevista reaberta para edição.")} onRemove={() => removeCurrent(current)}
-        onGoForm={() => { setFormId(current.id); setTab("ficha"); }} />
-        : <div className="cd-panel cd-blank"><UserPlus size={26} /><p>Selecione um candidato ou clique em <b>Novo candidato</b>.</p></div>}
-    </div> : <div className="cd-split">
-      <aside className="cd-panel cd-list">
-        <p className="cd-list-title"><Lock size={13} /> Só aparecem candidatos aprovados na entrevista.</p>
-        <ul>
-          {approved.map(c => <li key={c.id}><button className={c.id === formCand?.id ? "cd-item cd-item-on" : "cd-item"} onClick={() => setFormId(c.id)}>
-            <b>{c.name}</b><small>{c.role}</small>
-            <span className="cd-item-foot"><StageBadge c={c} /><em>{c.application ? `${applicationProgress(c.application)}% preenchido` : ""}</em></span>
-            {c.application && <span className="cd-bar"><span style={{ width: `${applicationProgress(c.application)}%` }} /></span>}
-          </button></li>)}
-          {!approved.length && <li className="cd-empty"><Lock size={18} /> Nenhum aprovado ainda. Aprove um candidato na aba Entrevista.</li>}
-        </ul>
-      </aside>
-      {formCand?.application ? <ApplicationForm key={formCand.id} c={formCand} onChange={patch}
-        onSubmit={() => apply(submit(formCand, nowISO()), "Ficha enviada ao RH com sucesso.")}
-        onRh={rh => apply(setRhOpinion(formCand, rh), "Parecer do RH registrado.")} />
-        : <div className="cd-panel cd-blank"><FileSignature size={26} /><p>A ficha de emprego é liberada após a <b>aprovação na entrevista</b>.</p></div>}
-    </div>}
+
+      {!current ? <div className="cd-panel cd-blank"><UserPlus size={26} /><p>Selecione um candidato na lista.</p></div>
+        : tab === "perfil" ? <ProfilePanel key={current.id} c={current} clients={clients} onChange={patch}
+            onDecide={o => decideOnProfile(current, o)} onSimulate={() => simulateProfile(current)} onRemove={() => removeCurrent(current)} />
+        : tab === "ficha" ? <div className="cd-ficha">
+            <DocsPanel key={`docs-${current.id}`} c={current} onChange={patch} openDoc={openDoc} onOpen={setOpenDoc} />
+            <div className={openDoc ? "cd-ficha-work cd-ficha-split" : "cd-ficha-work"}>
+              {openDoc && <DocViewer c={current} doc={openDoc} onOpen={setOpenDoc} onClose={() => setOpenDoc(null)} />}
+              {current.application ? <ApplicationForm key={current.id} c={current} onChange={patch}
+                onSubmit={() => apply(submit(current, nowISO()), "Ficha enviada ao RH com sucesso.")}
+                onRh={rh => apply(setRhOpinion(current, rh), "Parecer do RH registrado.")} />
+                : <div className="cd-panel cd-blank"><FileSignature size={26} /><p>Ficha não encontrada.</p></div>}
+            </div>
+          </div>
+        : <div className="cd-stack">
+            {current.profile.scores && <ProfileSummary c={current} />}
+            <InterviewForm key={current.id} c={current} me={me} setMe={setMe} clients={clients} onChange={patch} onDecide={s => decideCurrent(current, s)}
+              onReopen={() => apply(reopen(current), current.interview.opinion.trim() ? "Candidato voltou para a etapa 2 · Entrevista." : "Candidato voltou para a etapa 1 · Perfil.")}
+              onRemove={() => removeCurrent(current)} onGoForm={() => open("ficha", current)} />
+          </div>}
+    </div>
   </div>;
 }
 
 /* ─────────────────────────── Entrevista ─────────────────────────── */
 
 function InterviewForm({ c, me, setMe, clients, onChange, onDecide, onReopen, onRemove, onGoForm }: {
-  c: Candidate; me: InterviewerProfile; setMe: (p: InterviewerProfile) => void; clients: ClientStore; onChange: (c: Candidate) => void; onDecide: (s: Exclude<Stage, "entrevista">) => void;
+  c: Candidate; me: InterviewerProfile; setMe: (p: InterviewerProfile) => void; clients: ClientStore; onChange: (c: Candidate) => void; onDecide: (s: Exclude<Stage, "entrevista" | "perfil">) => void;
   onReopen: () => void; onRemove: () => void; onGoForm: () => void;
 }) {
   const locked = c.stage !== "entrevista";

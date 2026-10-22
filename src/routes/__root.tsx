@@ -136,9 +136,9 @@ function RootComponent() {
       window.removeEventListener("storage",fromStorage);
     };
   },[]);
-  // Modo celular do app do supervisor abre em tela cheia, sem o menu do sistema.
+  // Modo celular do app do supervisor e links do candidato abrem em tela cheia, sem o menu do sistema.
   const pathname = useRouterState({ select: (state) => state.location.pathname });
-  if (pathname.startsWith("/celular") || pathname.startsWith("/entrevista")) {
+  if (pathname.startsWith("/celular") || pathname.startsWith("/entrevista") || pathname.startsWith("/perfil") || pathname.startsWith("/documentos")) {
     return (
       <QueryClientProvider client={queryClient}>
         <Outlet key={rulesRevision} />

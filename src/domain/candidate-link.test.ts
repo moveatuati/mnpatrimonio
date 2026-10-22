@@ -30,10 +30,10 @@ describe("link da entrevista", () => {
     const c = r.store.candidates.find(x => x.id === "CAND-002")!;
     expect(c.interview.source).toBe("candidato");
     expect(c.interview.answers.sobre).toBe("resp sobre");
-    expect(r.store.candidates.length).toBe(2);
+    expect(r.store.candidates.length).toBe(demoCandidates().candidates.length);
     const novo = importReply(demoCandidates(), { ...back, id: "CAND-999" }, "2026-10-21");
     if (typeof novo === "string") throw new Error(novo);
-    expect(novo.store.candidates.length).toBe(3);
+    expect(novo.store.candidates.length).toBe(demoCandidates().candidates.length + 1);
     expect(typeof importReply(demoCandidates(), { ...back, id: "CAND-001" }, "2026-10-21")).toBe("string");
   });
 });

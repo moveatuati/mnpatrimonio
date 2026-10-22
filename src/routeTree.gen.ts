@@ -16,6 +16,9 @@ import { Route as CandidatosRouteImport } from './routes/candidatos'
 import { Route as CelularRouteImport } from './routes/celular'
 import { Route as ColaboradoresRouteImport } from './routes/colaboradores'
 import { Route as EntrevistaRouteImport } from './routes/entrevista'
+import { Route as PerfilRouteImport } from './routes/perfil'
+import { Route as DocumentosRouteImport } from './routes/documentos'
+import { Route as LinkCandidatoRouteImport } from './routes/link-candidato'
 import { Route as EscalaRouteImport } from './routes/escala'
 import { Route as FeriasRouteImport } from './routes/ferias'
 import { Route as CondominiosRouteImport } from './routes/condominios'
@@ -58,6 +61,21 @@ const ColaboradoresRoute = ColaboradoresRouteImport.update({
 const EntrevistaRoute = EntrevistaRouteImport.update({
   id: '/entrevista',
   path: '/entrevista',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PerfilRoute = PerfilRouteImport.update({
+  id: '/perfil',
+  path: '/perfil',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DocumentosRoute = DocumentosRouteImport.update({
+  id: '/documentos',
+  path: '/documentos',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LinkCandidatoRoute = LinkCandidatoRouteImport.update({
+  id: '/link-candidato',
+  path: '/link-candidato',
   getParentRoute: () => rootRouteImport,
 } as any)
 const EscalaRoute = EscalaRouteImport.update({
@@ -109,6 +127,9 @@ export interface FileRoutesByFullPath {
   '/celular': typeof CelularRoute
   '/colaboradores': typeof ColaboradoresRoute
   '/entrevista': typeof EntrevistaRoute
+  '/perfil': typeof PerfilRoute
+  '/documentos': typeof DocumentosRoute
+  '/link-candidato': typeof LinkCandidatoRoute
   '/escala': typeof EscalaRoute
   '/condominios': typeof CondominiosRoute
   '/ferias': typeof FeriasRoute
@@ -126,6 +147,9 @@ export interface FileRoutesByTo {
   '/celular': typeof CelularRoute
   '/colaboradores': typeof ColaboradoresRoute
   '/entrevista': typeof EntrevistaRoute
+  '/perfil': typeof PerfilRoute
+  '/documentos': typeof DocumentosRoute
+  '/link-candidato': typeof LinkCandidatoRoute
   '/escala': typeof EscalaRoute
   '/condominios': typeof CondominiosRoute
   '/ferias': typeof FeriasRoute
@@ -144,6 +168,9 @@ export interface FileRoutesById {
   '/celular': typeof CelularRoute
   '/colaboradores': typeof ColaboradoresRoute
   '/entrevista': typeof EntrevistaRoute
+  '/perfil': typeof PerfilRoute
+  '/documentos': typeof DocumentosRoute
+  '/link-candidato': typeof LinkCandidatoRoute
   '/escala': typeof EscalaRoute
   '/condominios': typeof CondominiosRoute
   '/ferias': typeof FeriasRoute
@@ -163,6 +190,9 @@ export interface FileRouteTypes {
     | '/celular'
     | '/colaboradores'
     | '/entrevista'
+    | '/perfil'
+    | '/documentos'
+    | '/link-candidato'
     | '/escala'
     | '/condominios'
     | '/ferias'
@@ -180,6 +210,9 @@ export interface FileRouteTypes {
     | '/celular'
     | '/colaboradores'
     | '/entrevista'
+    | '/perfil'
+    | '/documentos'
+    | '/link-candidato'
     | '/escala'
     | '/condominios'
     | '/ferias'
@@ -197,6 +230,9 @@ export interface FileRouteTypes {
     | '/celular'
     | '/colaboradores'
     | '/entrevista'
+    | '/perfil'
+    | '/documentos'
+    | '/link-candidato'
     | '/escala'
     | '/condominios'
     | '/ferias'
@@ -215,6 +251,9 @@ export interface RootRouteChildren {
   CelularRoute: typeof CelularRoute
   ColaboradoresRoute: typeof ColaboradoresRoute
   EntrevistaRoute: typeof EntrevistaRoute
+  PerfilRoute: typeof PerfilRoute
+  DocumentosRoute: typeof DocumentosRoute
+  LinkCandidatoRoute: typeof LinkCandidatoRoute
   EscalaRoute: typeof EscalaRoute
   CondominiosRoute: typeof CondominiosRoute
   FeriasRoute: typeof FeriasRoute
@@ -274,6 +313,27 @@ declare module '@tanstack/react-router' {
       path: '/entrevista'
       fullPath: '/entrevista'
       preLoaderRoute: typeof EntrevistaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/perfil': {
+      id: '/perfil'
+      path: '/perfil'
+      fullPath: '/perfil'
+      preLoaderRoute: typeof PerfilRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/documentos': {
+      id: '/documentos'
+      path: '/documentos'
+      fullPath: '/documentos'
+      preLoaderRoute: typeof DocumentosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/link-candidato': {
+      id: '/link-candidato'
+      path: '/link-candidato'
+      fullPath: '/link-candidato'
+      preLoaderRoute: typeof LinkCandidatoRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/escala': {
@@ -343,6 +403,9 @@ const rootRouteChildren: RootRouteChildren = {
   CelularRoute: CelularRoute,
   ColaboradoresRoute: ColaboradoresRoute,
   EntrevistaRoute: EntrevistaRoute,
+  PerfilRoute: PerfilRoute,
+  DocumentosRoute: DocumentosRoute,
+  LinkCandidatoRoute: LinkCandidatoRoute,
   EscalaRoute: EscalaRoute,
   CondominiosRoute: CondominiosRoute,
   FeriasRoute: FeriasRoute,
