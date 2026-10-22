@@ -25,12 +25,12 @@ function EixoCard({ e, cor }: { e: Eixo; cor: string }) {
     <span className="cd-eyebrow">{e.titulo}</span>
     <small className="cd-rp-sinal">{e.sinal}</small>
     <div className="cd-ax-labels">
-      <span className={aLead ? "cd-ax-lead" : ""} style={aLead ? { color: cor } : undefined}><b>{e.av}%</b> {e.a}</span>
-      <span className={bLead ? "cd-ax-lead" : ""} style={bLead ? { color: cor } : undefined}>{e.b} <b>{e.bv}%</b></span>
+      <span className={aLead ? "cd-ax-lead" : ""} style={aLead ? { color: cor } : undefined}><b>{e.av}%</b>{e.av < 18 ? ` ${e.a}` : ""}</span>
+      <span className={bLead ? "cd-ax-lead" : ""} style={bLead ? { color: cor } : undefined}>{e.bv < 18 ? `${e.b} ` : ""}<b>{e.bv}%</b></span>
     </div>
     <div className="cd-ax-bar" role="img" aria-label={`${e.a} ${e.av}%, ${e.b} ${e.bv}%`}>
-      <span style={{ width: `${e.av}%`, ...side(aLead) }}>{e.av >= 15 ? e.a : ""}</span>
-      <span style={{ width: `${e.bv}%`, ...side(bLead) }}>{e.bv >= 15 ? e.b : ""}</span>
+      <span style={{ width: `${e.av}%`, ...side(aLead) }}>{e.av >= 18 ? e.a : ""}</span>
+      <span style={{ width: `${e.bv}%`, ...side(bLead) }}>{e.bv >= 18 ? e.b : ""}</span>
     </div>
     <p className="cd-rp-lead"><b>{e.lider.toUpperCase()} {e.equilibrio ? "EM EQUILÍBRIO" : "EM DESTAQUE"}</b> · {e.leitura}</p>
   </div>;
