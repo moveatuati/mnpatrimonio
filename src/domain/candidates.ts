@@ -4,10 +4,10 @@
  * Fluxo: perfil → (aprovado) entrevista → parecer → (aprovado) ficha de emprego + documentos → envio → parecer do RH.
  * Ao aprovar uma etapa o candidato sai da sub-aba e passa para a próxima.
  */
-import { emptyProfile, simulatedScores, type BehaviorProfile, type ProfileScores } from "./behavior-profile";
+import { emptyProfile, type BehaviorProfile, type ProfileScores } from "./behavior-profile";
 import { DOC_LIST, emptyDocs, restoreDocs, type DocRequest } from "./candidate-docs";
 
-export const CANDIDATE_KEY = "mn-candidatos-v3";
+export const CANDIDATE_KEY = "mn-candidatos-v4";
 
 /* ───────────── Entrevista (Formulário de Candidato) ───────────── */
 
@@ -385,13 +385,13 @@ export function demoCandidates(): CandidateStore {
     hobby: "Futebol aos sábados e igreja.", uniforme: "Nenhuma restrição.", salario: "Piso da categoria.",
     supervisao: "Não, gosto de receber orientação.", parente: "Não.", sobre: "Trabalhei 2 anos como repositor, sou organizado e gosto de atender.",
   };
-  const done = (id: string, at: string): BehaviorProfile => ({ linkSentAt: at, answeredAt: at, scores: simulatedScores(id), seen: true });
+  const done = (scores: ProfileScores, at: string): BehaviorProfile => ({ linkSentAt: at, answeredAt: at, scores, seen: true });
   const ana: Candidate = {
     id: "CAND-001", name: "Ana Paula Ribeiro (fictícia)", role: "Agente de portaria", condoId: "COND-001", functionId: "FN-01", phone: "(91) 9 8100-0001",
     createdAt: ago(8).slice(0, 10), stage: "aprovado", decidedAt: ago(5, "10:00:00"),
     interview: { date: ago(5).slice(0, 10), interviewer: "Supervisão de portaria", answers: full,
       scores: { comunicacao: 5, postura: 4, disponibilidade: 5, perfil: 4 }, opinion: "Boa comunicação e disponibilidade total. Aprovada para a ficha." },
-    application: null, profile: done("CAND-001", ago(7, "09:30:00")), docs: emptyDocs(),
+    application: null, profile: done({ "Tubarão": 46, "Lobo": 26, "Gato": 17, "Águia": 11 }, ago(7, "09:30:00")), docs: emptyDocs(),
   };
   ana.application = emptyApplication(ana);
   const at = ago(2, "15:40:00");
@@ -401,7 +401,7 @@ export function demoCandidates(): CandidateStore {
     id: "CAND-002", name: "Bruno Lima (fictício)", role: "Auxiliar de serviços gerais", condoId: "COND-002", functionId: "FN-02", phone: "(91) 9 8100-0002",
     createdAt: ago(3).slice(0, 10), stage: "entrevista", decidedAt: "",
     interview: { date: ago(0).slice(0, 10), interviewer: "", answers: { saida: "Mudança de bairro.", colaborador: "Honestidade." }, scores: {}, opinion: "" },
-    application: null, profile: done("CAND-002", ago(1, "11:15:00")), docs: emptyDocs(),
+    application: null, profile: done({ "Lobo": 44, "Gato": 28, "Tubarão": 16, "Águia": 12 }, ago(1, "11:15:00")), docs: emptyDocs(),
   };
   const naely: Candidate = {
     id: "CAND-003", name: "Naely Drago (fictícia)", role: "Agente de portaria", condoId: "COND-001", functionId: "FN-01", phone: "(91) 9 8100-0003",
@@ -413,7 +413,7 @@ export function demoCandidates(): CandidateStore {
     id: "CAND-004", name: "Carlos Souza (fictício)", role: "Auxiliar de serviços gerais", condoId: "COND-002", functionId: "FN-02", phone: "(91) 9 8100-0004",
     createdAt: ago(1).slice(0, 10), stage: "perfil", decidedAt: "",
     interview: { date: ago(0).slice(0, 10), interviewer: "", answers: {}, scores: {}, opinion: "" },
-    application: null, profile: { linkSentAt: ago(1, "16:00:00"), answeredAt: ago(0, "08:10:00"), scores: simulatedScores("CAND-004"), seen: false }, docs: emptyDocs(),
+    application: null, profile: { linkSentAt: ago(1, "16:00:00"), answeredAt: ago(0, "08:10:00"), scores: { "Gato": 48, "Águia": 24, "Lobo": 17, "Tubarão": 11 }, seen: false }, docs: emptyDocs(),
   };
   return { version: 2, seq: 4, candidates: [bruno, ana, naely, carlos] };
 }

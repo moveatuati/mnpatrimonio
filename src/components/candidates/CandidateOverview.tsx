@@ -74,8 +74,8 @@ export function CandidateOverview({ store, today, condoName, onOpen, onGoTab }: 
           return <tr key={c.id}>
             <td><button className="ov-name" onClick={() => onOpen(tabOf(c), c)}>{c.name || "Sem nome"}</button>
               <small>{c.role || "Função não definida"}{c.condoId ? ` · ${condoName(c.condoId)}` : ""}</small></td>
-            <td>{top ? <span className="ov-animal"><span className="ov-emoji" style={{ background: PERFIS[top].fundo }} aria-hidden="true">{PERFIS[top].emoji}</span>
-                <span><b style={{ color: PERFIS[top].cor }}>{top}</b><small>{c.stage === "perfil" && !c.profile.seen ? "NOVO · decidir" : "✓ respondido"}</small></span></span>
+            <td>{top ? <span className="ov-animal"><span className="ov-emoji" style={{ background: PERFIS[top].cor, boxShadow: `0 0 0 3px ${PERFIS[top].fundo}, 0 4px 10px -4px ${PERFIS[top].cor}` }} aria-hidden="true">{PERFIS[top].emoji}</span>
+                <span><b className="ov-animal-name" style={{ background: PERFIS[top].cor }}>{top}</b><small>{c.stage === "perfil" && !c.profile.seen ? "NOVO · decidir" : "✓ respondido"}</small></span></span>
               : <span className="ov-animal"><span className="ov-emoji ov-emoji-wait" aria-hidden="true">?</span>
                 <span><b className="ov-muted">Aguardando</b><small>{c.profile.linkSentAt ? "teste enviado" : "teste não enviado"}</small></span></span>}</td>
             <td>{c.stage === "perfil" ? <span className="ov-muted">—</span>

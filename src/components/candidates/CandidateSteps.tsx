@@ -31,8 +31,9 @@ function ProfileResult({ scores }: { scores: ProfileScores }) {
   return <div className="cd-result">
     <div className="cd-pred">
       <span className="cd-eyebrow">{top.length > 1 ? "Perfis predominantes (empate)" : "Perfil predominante"}</span>
-      {top.map(n => <div key={n} className="cd-pred-item" style={{ borderColor: PERFIS[n].cor }}>
-        <b style={{ color: PERFIS[n].cor }}>{n} · {scores[n]}%</b>
+      {top.map(n => <div key={n} className="cd-pred-item" style={{ borderColor: PERFIS[n].cor, background: PERFIS[n].fundo }}>
+        <span className="cd-pred-top"><span className="cd-pred-emoji" style={{ background: PERFIS[n].cor }} aria-hidden="true">{PERFIS[n].emoji}</span>
+          <b style={{ color: PERFIS[n].cor }}>{n} · {scores[n]}%</b></span>
         <span>{PERFIS[n].foco}</span>
         <small>Pontos fortes: {PERFIS[n].forcas.join(", ")}.</small>
       </div>)}
@@ -52,7 +53,7 @@ export function ProfileSummary({ c }: { c: Candidate }) {
   return <section className="cd-panel cd-psum">
     <div className="cd-psum-row">
       <span className="cd-j-done cd-psum-ok"><Check size={13} /> Etapa 1 concluída</span>
-      <span>Perfil: {top.map(n => <b key={n} style={{ color: PERFIS[n].cor }}>{n} {scores[n]}% </b>)}— {PERFIS[top[0]!].foco}</span>
+      <span>Perfil: {top.map(n => <b key={n} className="cd-psum-animal" style={{ background: PERFIS[n].cor }}>{PERFIS[n].emoji} {n} {scores[n]}%</b>)} — {PERFIS[top[0]!].foco}</span>
       <button className="cd-btn" onClick={() => setOpenMore(!openMore)}>{openMore ? "Fechar" : "Ver resultado completo"}</button>
     </div>
     {openMore && <ProfileResult scores={scores} />}
