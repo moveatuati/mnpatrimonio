@@ -7,8 +7,9 @@
 export type PerfilNome = "Tubarão" | "Gato" | "Águia" | "Lobo";
 export const PERFIL_NOMES: PerfilNome[] = ["Tubarão", "Gato", "Águia", "Lobo"];
 
-export const PERFIS: Record<PerfilNome, { foco: string; forcas: string[]; explorar: string[]; cor: string }> = {
+export const PERFIS: Record<PerfilNome, { foco: string; forcas: string[]; explorar: string[]; cor: string; emoji: string; fundo: string }> = {
   "Tubarão": {
+    emoji: "🦈", fundo: "#e6f4ec",
     foco: "Ação, iniciativa e resultados", cor: "#0f8a57",
     forcas: ["iniciativa", "senso de urgência", "orientação a resultados"],
     explorar: [
@@ -17,6 +18,7 @@ export const PERFIS: Record<PerfilNome, { foco: string; forcas: string[]; explor
     ],
   },
   "Gato": {
+    emoji: "🐱", fundo: "#fcefe2",
     foco: "Colaboração, comunicação e relacionamentos", cor: "#c2620f",
     forcas: ["comunicação", "cooperação", "construção de consenso"],
     explorar: [
@@ -25,6 +27,7 @@ export const PERFIS: Record<PerfilNome, { foco: string; forcas: string[]; explor
     ],
   },
   "Águia": {
+    emoji: "🦅", fundo: "#e7effc",
     foco: "Exploração, criatividade e possibilidades", cor: "#1f5fcf",
     forcas: ["criatividade", "visão de possibilidades", "adaptação de ideias"],
     explorar: [
@@ -33,6 +36,7 @@ export const PERFIS: Record<PerfilNome, { foco: string; forcas: string[]; explor
     ],
   },
   "Lobo": {
+    emoji: "🐺", fundo: "#f1eaf8",
     foco: "Organização, consistência e planejamento", cor: "#7a3fb0",
     forcas: ["organização", "consistência", "atenção a regras e critérios"],
     explorar: [

@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   AlertTriangle, Archive, Bell, Camera, Check, CheckCircle2, ChevronLeft, ChevronRight, ClipboardCheck, FileSignature,
-  Copy, Eye, Info, Link2, MessageCircle, Plus, Printer, RotateCcw, Search, Send, Smartphone, Star, Trash2, UserCheck, UserPlus, UserX, Users, X,
+  Copy, Eye, Info, LayoutGrid, Link2, MessageCircle, Plus, Printer, RotateCcw, Search, Send, Smartphone, Star, Trash2, UserCheck, UserPlus, UserX, Users, X,
 } from "lucide-react";
 import {
   CANDIDATE_KEY, CRITERIA, EXPERIENCE_SLOTS, FORM_SECTIONS, INTERVIEW_QUESTIONS, REFERENCE_GROUPS, STAGE_LABELS,
@@ -22,9 +22,10 @@ import { printNode } from "@/lib/print";
 import { publicOrigin } from "@/lib/brand";
 import { PrintHeader } from "@/components/print/PrintHeader";
 import { DocViewer, DocsPanel, ProfilePanel, ProfileSummary, br, nowISO } from "./CandidateSteps";
+import { CandidateOverview } from "./CandidateOverview";
 import "./CandidatesWorkspace.css";
 
-type Tab = "perfil" | "entrevista" | "ficha" | "encerrados";
+type Tab = "geral" | "perfil" | "entrevista" | "ficha" | "encerrados";
 type Notice = { kind: "ok" | "erro" | "info"; text: string } | null;
 
 
@@ -61,8 +62,8 @@ function Journey({ c }: { c: Candidate }) {
 export function CandidatesWorkspace() {
   const [store, setStore] = useState<CandidateStore>(demoCandidates);
   const [ready, setReady] = useState(false);
-  const [tab, setTab] = useState<Tab>("perfil");
-  const [sel, setSel] = useState<Record<Tab, string>>({ perfil: "CAND-003", entrevista: "CAND-002", ficha: "CAND-001", encerrados: "" });
+  const [tab, setTab] = useState<Tab>("geral");
+  const [sel, setSel] = useState<Record<Tab, string>>({ geral: "", perfil: "CAND-003", entrevista: "CAND-002", ficha: "CAND-001", encerrados: "" });
   const [search, setSearch] = useState("");
   const [notice, setNotice] = useState<Notice>(null);
   const [storageWarn, setStorageWarn] = useState("");
@@ -103,7 +104,7 @@ export function CandidatesWorkspace() {
   }, [store, ready]);
 
   const stats = useMemo(() => summary(store), [store]);
-  const inTab = (t: Tab) => store.candidates.filter(c => t === "encerrados" ? c.stage === "banco" || c.stage === "reprovado"
+  const inTab = (t: Tab) => t === "geral" ? [] : store.candidates.filter(c => t === "encerrados" ? c.stage === "banco" || c.stage === "reprovado"
     : c.stage === STEP_TABS.find(x => x.id === t)!.stage);
   const list = inTab(tab).filter(c => {
     if (condoFilter !== "all" && c.condoId !== condoFilter) return false;
@@ -206,6 +207,10 @@ export function CandidatesWorkspace() {
     </div>}
 
     <nav className="cd-steps3" role="tablist" aria-label="Etapas da captação">
+      <button role="tab" aria-selected={tab === "geral"} className={tab === "geral" ? "cd-s3 cd-s3-on" : "cd-s3"} onClick={() => goTab("geral")}>
+        <span className="cd-s3-num"><LayoutGrid size={21} /></span>
+        <span className="cd-s3-text"><b>Visão geral</b><small>como está cada candidato</small></span>
+      </button>
       {STEP_TABS.map((t, i) => {
         const count = inTab(t.id).length;
         const fresh = t.id === "perfil" ? stats.newProfiles : t.id === "ficha" ? stats.newDocs : 0;
@@ -217,13 +222,15 @@ export function CandidatesWorkspace() {
       })}
     </nav>
     <div className="cd-s3-foot">
-      {tab === "encerrados" ? <p className="cd-s3-help"><Archive size={15} /> Banco de talentos e não aprovados. Use <b>Reabrir</b> para voltar o candidato ao processo.</p>
+      {tab === "geral" ? <p className="cd-s3-help"><Info size={15} /> Veja em que etapa está cada candidato e resolva primeiro o que está <b>atrasado</b>, para ninguém ficar parado.</p>
+        : tab === "encerrados" ? <p className="cd-s3-help"><Archive size={15} /> Banco de talentos e não aprovados. Use <b>Reabrir</b> para voltar o candidato ao processo.</p>
         : <p className="cd-s3-help"><Info size={15} /> {tabHelp}</p>}
-      <button className={tab === "encerrados" ? "cd-btn cd-btn-primary" : "cd-btn"} onClick={() => goTab(tab === "encerrados" ? "perfil" : "encerrados")}>
+      <button className={tab === "encerrados" ? "cd-btn cd-btn-primary" : "cd-btn"} onClick={() => goTab(tab === "encerrados" ? "geral" : "encerrados")}>
         <Archive size={15} /> {tab === "encerrados" ? "Voltar às etapas" : `Banco de talentos e não aprovados (${closed})`}</button>
     </div>
 
-    <div className="cd-split">
+    {tab === "geral" ? <CandidateOverview store={store} today={todayISO()} condoName={condoName} onOpen={(t, c) => open(t, c)} onGoTab={goTab} />
+    : <div className="cd-split">
       <aside className="cd-panel cd-list">
         <div className="cd-list-tools">
           <label className="cd-search"><Search size={15} /><input placeholder="Buscar candidato" value={search} onChange={e => setSearch(e.target.value)} /></label>
@@ -268,7 +275,7 @@ export function CandidatesWorkspace() {
               onReopen={() => apply(reopen(current), current.interview.opinion.trim() ? "Candidato voltou para a etapa 2 · Entrevista." : "Candidato voltou para a etapa 1 · Perfil.")}
               onRemove={() => removeCurrent(current)} onGoForm={() => open("ficha", current)} />
           </div>}
-    </div>
+    </div>}
   </div>;
 }
 
