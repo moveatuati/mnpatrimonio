@@ -114,6 +114,15 @@ function RootShell({ children }: { children: ReactNode }) {
     <html lang="pt-BR">
       <head>
         <HeadContent />
+        {/* After a new publish, old tabs request chunk files that no longer exist; reload once to fetch the new version. */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){var K="mn-chunk-reload";function r(){try{var t=+sessionStorage.getItem(K)||0;if(Date.now()-t<10000)return;sessionStorage.setItem(K,String(Date.now()));}catch(e){}location.reload();}
+window.addEventListener("vite:preloadError",function(e){e.preventDefault();r();});
+window.addEventListener("unhandledrejection",function(e){var m=String(e.reason&&e.reason.message||e.reason||"");if(/dynamically imported module|Importing a module script failed|error loading dynamically/i.test(m))r();});
+window.addEventListener("error",function(e){var m=String(e.message||"");if(/dynamically imported module/i.test(m))r();});})();`,
+          }}
+        />
       </head>
       <body>
         {children}
