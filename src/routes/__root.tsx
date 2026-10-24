@@ -43,6 +43,19 @@ function ErrorComponent({ error, reset }: ErrorComponentProps) {
   console.error(error);
   const router = useRouter();
   useEffect(() => {
+    const msg = String((error as Error)?.message ?? error);
+    if (/dynamically imported module|Importing a module script failed/i.test(msg)) {
+      try {
+        const last = Number(sessionStorage.getItem("mn-chunk-reload")) || 0;
+        if (Date.now() - last > 10000) {
+          sessionStorage.setItem("mn-chunk-reload", String(Date.now()));
+          window.location.reload();
+          return;
+        }
+      } catch {
+        /* ignore */
+      }
+    }
     reportLovableError(error, { boundary: "tanstack_root_error_component" });
   }, [error]);
 
